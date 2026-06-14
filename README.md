@@ -2,7 +2,7 @@
 
 # 🌌 Nebula Search
 
-**A private, online and offline-capable, AI-powered, hybrid search engine with privacy browsing**
+**Private · Offline-Capable · AI-Powered · Hybrid Search Engine**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-7c5cfc.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://python.org)
@@ -384,5 +384,5 @@ Contributions are welcome. Please:
 This project is licensed under the [MIT License](LICENSE).
 
 ```
-MIT License · Copyright (c) 2025 Sky-254-1
+MIT License · Copyright (c) 2026 Sky-254-1
 ```
