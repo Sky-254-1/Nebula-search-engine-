@@ -1,0 +1,16 @@
+Nebula-search-engine/
+│
+├── frontend/
+├── backend/
+├── docs/
+│   ├── ARCHITECTURE_V2.md
+│   ├── API.md
+│   └── ROADMAP.md
+│
+├── prototypes/
+│   └── nebula-search-v1.html
+│
+├── docker/
+├── storage/
+├── tests/
+└── README.md
