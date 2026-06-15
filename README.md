@@ -6,7 +6,7 @@
 
 # 🌌 Nebula Search
 
-**Private · Offline-Capable · AI-Powered · Hybrid Search Engine**
+**Private · online and Offline-First (Partial Web Mode) · AI-Powered · Hybrid Search Engine**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-7c5cfc.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://python.org)
@@ -70,7 +70,7 @@ graph LR
 | **AI**       | OpenAI-compatible API                       |
 | **Deploy**   | Docker, Nginx, HTTPS                        |
 
----
+> Nebula uses a modular layered architecture separating search, AI, storage, and offline indexing to ensure scalability and privacy isolation.---
 
 ## Features
 
@@ -362,10 +362,11 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://127.0.0.1:80
+        proxy_pass http://127.0.0.1:8000;
 ```
 
 ---
+Never expose JWT_SECRET or OPENAI_API_KEY in frontend builds. All sensitive operations must remain server-side.
 
 ## Contributing
 
@@ -377,12 +378,22 @@ Contributions are welcome. Please:
 4. Push to the branch (`git push origin feature/your-feature`)
 5. Open a Pull Request
 
----
+## Roadmap
+
+- [ ] Full offline LLM support (local models via GGUF)
+- [ ] Federated search across devices
+- [ ] Plugin system for search providers
+- [ ] Mobile app (React Native / Kotlin)
+- [ ] Encrypted sync across devices---
 
 ## License
+![Status](https://img.shields.io/badge/status-active-brightgreen)
+![API](https://img.shields.io/badge/API-FastAPI-blue)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 This project is licensed under the [MIT License](LICENSE).
 
 ```
 MIT License · Copyright (c) 2026 Sky-254-1
+
 ```
