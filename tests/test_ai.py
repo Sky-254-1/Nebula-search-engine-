@@ -16,19 +16,24 @@ async def test_ai_ask_requires_auth(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_ai_ask_success(client: AsyncClient, auth_headers: dict):
-    with patch("app.routes.ai.get_ai_answer", new=AsyncMock(return_value="Python is a language.")):
+    with patch(
+        "app.routes.ai.get_ai_answer",
+        new=AsyncMock(return_value=("Python is a language.", "openai")),
+    ):
         response = await client.post(
             "/api/v1/ai/ask",
             json={"prompt": "What is Python?"},
             headers=auth_headers,
         )
     assert response.status_code == 200
-    assert "Python" in response.json()["answer"]
+    data = response.json()
+    assert "Python" in data["answer"]
+    assert data["provider"] == "openai"
 
 
 @pytest.mark.asyncio
 async def test_ai_ask_not_found(client: AsyncClient, auth_headers: dict):
-    with patch("app.routes.ai.get_ai_answer", new=AsyncMock(return_value=None)):
+    with patch("app.routes.ai.get_ai_answer", new=AsyncMock(return_value=(None, "none"))):
         response = await client.post(
             "/api/v1/ai/ask",
             json={"prompt": "obscure query xyz"},

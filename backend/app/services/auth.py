@@ -1,4 +1,4 @@
-"""Authentication: password hashing and JWT helpers."""
+"""Authentication: password hashing, JWT, and refresh tokens."""
 
 import hashlib
 import secrets
@@ -13,14 +13,12 @@ settings = get_settings()
 
 
 def hash_password(password: str) -> str:
-    """Hash a password with PBKDF2-SHA256 and a random salt."""
     salt = secrets.token_hex(16)
     dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 200_000)
     return f"{salt}${dk.hex()}"
 
 
 def verify_password(password: str, stored: str) -> bool:
-    """Verify a password against the stored hash."""
     try:
         salt, hashed = stored.split("$", 1)
         dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 200_000)
@@ -29,18 +27,27 @@ def verify_password(password: str, stored: str) -> bool:
         return False
 
 
-def create_token(email: str) -> str:
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def create_access_token(email: str) -> str:
     payload = {
         "sub": email,
+        "type": "access",
         "iat": datetime.now(timezone.utc),
         "exp": datetime.now(timezone.utc) + timedelta(hours=settings.jwt_expiry_hours),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
-def decode_token(token: str) -> dict:
+def create_refresh_token() -> str:
+    return secrets.token_urlsafe(48)
+
+
+def decode_token(token: str, expected_type: str | None = None) -> dict:
     try:
-        return jwt.decode(
+        payload = jwt.decode(
             token,
             settings.jwt_secret,
             algorithms=[settings.jwt_algorithm],
@@ -50,9 +57,19 @@ def decode_token(token: str) -> dict:
     except jwt.InvalidTokenError as exc:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
 
+    if expected_type:
+        token_type = payload.get("type", "access")
+        if token_type != expected_type:
+            raise HTTPException(status_code=401, detail="Invalid token type")
+    return payload
+
+
+def create_token(email: str) -> str:
+    """Backward-compatible alias for access token creation."""
+    return create_access_token(email)
+
 
 async def get_current_user(request: Request) -> str:
-    """Extract and validate JWT from Authorization header."""
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(
@@ -60,7 +77,7 @@ async def get_current_user(request: Request) -> str:
             detail="Missing or invalid Authorization header",
         )
     token = auth[7:]
-    payload = decode_token(token)
+    payload = decode_token(token, expected_type="access")
     email = payload.get("sub")
     if not email:
         raise HTTPException(status_code=401, detail="Invalid token payload")

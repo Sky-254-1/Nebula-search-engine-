@@ -11,6 +11,7 @@ Docs:
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,6 +21,7 @@ from app.config import get_settings
 from app.database import init_db
 from app.middleware.security import SecurityHeadersMiddleware
 from app.routes import ai, auth, health, search
+from app.services.cache import cache_service
 
 settings = get_settings()
 
@@ -30,11 +32,29 @@ logging.basicConfig(
 logger = logging.getLogger("nebula")
 
 
+def _ensure_storage_dirs() -> None:
+    for path in (
+        settings.storage_uploads,
+        settings.storage_cache,
+        settings.storage_vector,
+        settings.storage_indexes,
+        settings.storage_exports,
+    ):
+        Path(path).mkdir(parents=True, exist_ok=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _ensure_storage_dirs()
     await init_db()
-    logger.info("Nebula Search API started (env=%s)", settings.app_env)
+    await cache_service.connect()
+    logger.info(
+        "Nebula Search API started (env=%s, db=%s)",
+        settings.app_env,
+        "postgresql" if settings.uses_postgres else "sqlite",
+    )
     yield
+    await cache_service.close()
 
 
 app = FastAPI(
@@ -51,7 +71,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 

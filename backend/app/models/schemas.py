@@ -11,6 +11,11 @@ class AuthRequest(BaseModel):
 class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    refresh_token: str | None = None
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(..., min_length=10)
 
 
 class AIRequest(BaseModel):
@@ -19,6 +24,16 @@ class AIRequest(BaseModel):
 
 class AIResponse(BaseModel):
     answer: str
+    provider: str = "unknown"
+
+
+class ChatMessage(BaseModel):
+    role: str = Field(..., pattern="^(user|assistant|system)$")
+    content: str = Field(..., min_length=1, max_length=4000)
+
+
+class ChatHistoryResponse(BaseModel):
+    messages: list[ChatMessage]
 
 
 class SearchResult(BaseModel):
@@ -28,11 +43,24 @@ class SearchResult(BaseModel):
     source: str
 
 
+class OrchestratedSearchResponse(BaseModel):
+    query: str
+    expanded_queries: list[str]
+    backends: list[str]
+    results: list[SearchResult]
+    total: int
+    page: int
+    page_size: int
+    cached: bool = False
+
+
 class HealthResponse(BaseModel):
     status: str
     version: str
     environment: str
     timestamp: str
+    database: str = "sqlite"
+    cache: str = "memory"
 
 
 class SynthesizeRequest(BaseModel):

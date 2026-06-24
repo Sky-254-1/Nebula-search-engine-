@@ -30,41 +30,35 @@ A modern search platform combining web search, offline document search, AI-power
 
 ```
 Nebula-search-engine-/
-├── frontend/              # Main UI (index.html)
-├── backend/
-│   └── app/
-│       ├── main.py        # FastAPI entry point
-│       ├── config.py      # Environment settings
-│       ├── database.py    # SQLite schema
-│       ├── models/        # Pydantic schemas
-│       ├── routes/        # API endpoints
-│       ├── services/      # Business logic
-│       └── middleware/    # Rate limit, security headers
-├── tests/                 # pytest suite
-├── docs/                  # Documentation
-├── docker/                # Dockerfile + compose
-├── storage/               # Local cache, uploads, indexes
-├── scripts/               # Dev helper scripts
-└── deployments/           # Deployment references
+├── frontend/
+│   ├── src/               # React + Vite app (v1.0)
+│   ├── public/            # PWA manifest + service worker
+│   └── legacy/            # Original monolithic UI (full offline features)
+├── backend/app/
+│   ├── database/          # Engine, migrations, repositories
+│   ├── providers/ai/      # OpenAI, Ollama, DuckDuckGo
+│   ├── search/            # Search orchestrator
+│   ├── routes/            # API endpoints
+│   └── services/          # cache, auth, ai
+├── tests/                 # 34 pytest tests
+├── docs/                  # Architecture, implementation plan, mobile
+├── docker/                # Full stack: Postgres, Redis, backend, frontend
+└── storage/               # uploads, cache, vector, indexes, exports
 ```
 
 ## Quick Start
 
 ```bash
-cd backend
-pip install -r requirements-dev.txt
-cp .env.example .env
-uvicorn app.main:app --reload
+# Backend
+cd backend && pip install -r requirements-dev.txt && uvicorn app.main:app --reload
+
+# Frontend (React)
+cd frontend && npm install && npm run dev
 ```
 
-Open `frontend/index.html` via a static server:
-
-```bash
-cd ../frontend
-python -m http.server 3000
-```
-
-API docs: http://localhost:8000/docs
+- React app: http://localhost:5173
+- Legacy UI: http://localhost:5173/legacy/index.html
+- API docs: http://localhost:8000/docs
 
 ## Docker
 

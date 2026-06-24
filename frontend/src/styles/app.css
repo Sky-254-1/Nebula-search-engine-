@@ -1,0 +1,256 @@
+:root {
+  --bg: #0b0c10;
+  --surface: #1f2229;
+  --text: #e0e0e0;
+  --text-dim: rgba(224, 224, 224, 0.6);
+  --accent: #7c5cfc;
+  --accent-glow: #a78bfa;
+  --border: rgba(255, 255, 255, 0.08);
+  --radius: 16px;
+}
+
+body[data-theme='light'] {
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --text: #202124;
+  --text-dim: rgba(32, 33, 36, 0.6);
+  --accent: #5e4ae3;
+  --border: rgba(0, 0, 0, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.page {
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+}
+
+.logo {
+  font-size: 1.4rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.hero {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.hero-title {
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  text-align: center;
+  margin: 0 0 0.5rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-tagline {
+  text-align: center;
+  color: var(--text-dim);
+  margin-bottom: 2rem;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+}
+
+.search-bar input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
+  outline: none;
+  padding: 0.8rem;
+}
+
+.btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.btn.ghost {
+  background: transparent;
+}
+
+.backend-select {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.backend-select select {
+  margin-left: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem;
+}
+
+.results-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.result-card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.result-card h3 {
+  margin: 0 0 0.5rem;
+  color: var(--accent-glow);
+}
+
+.result-url,
+.result-source {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 0.4rem;
+}
+
+.ai-box,
+.error-box,
+.empty-state {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  margin-top: 1.5rem;
+}
+
+.skeleton-card {
+  height: 120px;
+  border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--surface), rgba(255, 255, 255, 0.05), var(--surface));
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+}
+
+.modal {
+  width: min(420px, 92vw);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.modal label {
+  display: block;
+  margin-bottom: 0.8rem;
+}
+
+.modal input {
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.toast {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  display: flex;
+  gap: 0.8rem;
+  z-index: 200;
+}
+
+.toast-error {
+  border-color: #ef4444;
+}
+
+.form-error {
+  color: #ef4444;
+}
+
+.user-email {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent-glow);
+  cursor: pointer;
+  margin-top: 0.8rem;
+}
+
+.muted {
+  color: var(--text-dim);
+}

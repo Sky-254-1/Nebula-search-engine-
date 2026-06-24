@@ -19,3 +19,5 @@ async def test_health(client: AsyncClient):
     assert data["status"] == "healthy"
     assert data["version"] == "1.0.0"
     assert data["environment"] == "testing"
+    assert data["database"] == "sqlite"
+    assert data["cache"] in {"memory", "redis"}
