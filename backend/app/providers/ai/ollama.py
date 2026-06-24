@@ -1,5 +1,7 @@
-"""Ollama local model provider."""
+"""Ollama local model provider with streaming."""
 
+import json
+from collections.abc import AsyncIterator
 from typing import Optional
 
 import httpx
@@ -34,3 +36,34 @@ class OllamaProvider(AIProvider):
             return content or None
         except Exception:
             return None
+
+    async def stream(self, prompt: str, system: Optional[str] = None) -> AsyncIterator[str]:
+        url = f"{settings.ollama_url.rstrip('/')}/api/chat"
+        payload = {
+            "model": settings.ollama_model,
+            "messages": [
+                {"role": "system", "content": system or DEFAULT_SYSTEM},
+                {"role": "user", "content": prompt},
+            ],
+            "stream": True,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=120) as client:
+                async with client.stream("POST", url, json=payload) as resp:
+                    resp.raise_for_status()
+                    async for line in resp.aiter_lines():
+                        if not line:
+                            continue
+                        try:
+                            data = json.loads(line)
+                            content = data.get("message", {}).get("content")
+                            if content:
+                                yield content
+                            if data.get("done"):
+                                break
+                        except json.JSONDecodeError:
+                            continue
+        except Exception:
+            answer = await self.complete(prompt, system)
+            if answer:
+                yield answer

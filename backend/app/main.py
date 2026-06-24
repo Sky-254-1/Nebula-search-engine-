@@ -20,8 +20,9 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.database import init_db
 from app.middleware.security import SecurityHeadersMiddleware
-from app.routes import ai, auth, health, search
+from app.routes import ai, auth, health, search, storage
 from app.services.cache import cache_service
+from app.services.queue import job_queue
 
 settings = get_settings()
 
@@ -48,6 +49,7 @@ async def lifespan(app: FastAPI):
     _ensure_storage_dirs()
     await init_db()
     await cache_service.connect()
+    await job_queue.connect()
     logger.info(
         "Nebula Search API started (env=%s, db=%s)",
         settings.app_env,
@@ -55,6 +57,7 @@ async def lifespan(app: FastAPI):
     )
     yield
     await cache_service.close()
+    await job_queue.close()
 
 
 app = FastAPI(
@@ -79,6 +82,7 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(search.router)
 app.include_router(ai.router)
+app.include_router(storage.router)
 
 
 @app.exception_handler(HTTPException)

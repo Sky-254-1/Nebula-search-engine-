@@ -70,3 +70,39 @@ class SynthesizeRequest(BaseModel):
 
 class SynthesizeResponse(BaseModel):
     synthesis: str
+
+
+class DocumentResponse(BaseModel):
+    id: int
+    filename: str
+    content_type: str | None = None
+    indexed_at: str | None = None
+    created_at: str = ""
+
+
+class DocumentListResponse(BaseModel):
+    documents: list[DocumentResponse]
+
+
+class SettingsResponse(BaseModel):
+    settings: dict
+
+
+class SettingsUpdateRequest(BaseModel):
+    settings: dict = Field(default_factory=dict)
+
+
+class ExportCreateRequest(BaseModel):
+    export_type: str = Field(..., min_length=1, max_length=50)
+    data: dict | None = None
+
+
+class ExportResponse(BaseModel):
+    id: int
+    export_type: str
+    storage_path: str
+    created_at: str = ""
+
+
+class ExportListResponse(BaseModel):
+    exports: list[ExportResponse]

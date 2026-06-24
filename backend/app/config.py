@@ -48,6 +48,7 @@ class Settings:
     openai_model: str = field(default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"))
     ollama_url: str = field(default_factory=lambda: os.getenv("OLLAMA_URL", "http://localhost:11434"))
     ollama_model: str = field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3.2"))
+    gguf_model_path: str = field(default_factory=lambda: os.getenv("GGUF_MODEL_PATH", ""))
     ai_provider: str = field(default_factory=lambda: os.getenv("AI_PROVIDER", "auto"))
     brave_api_key: str = field(default_factory=lambda: os.getenv("BRAVE_API_KEY", ""))
     serpapi_key: str = field(default_factory=lambda: os.getenv("SERPAPI_KEY", ""))

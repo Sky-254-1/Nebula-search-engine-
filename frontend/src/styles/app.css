@@ -254,3 +254,135 @@ body {
 .muted {
   color: var(--text-dim);
 }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.pagination-info {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.install-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.install-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat-panel {
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.chat-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.chat-msg {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-msg--assistant {
+  opacity: 0.95;
+}
+
+.chat-role {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--accent-glow);
+}
+
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.history-item {
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-query {
+  color: var(--accent-glow);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.history-meta {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 0.25rem;
+}
+
+.ai-skeleton .skeleton-line {
+  height: 14px;
+  background: var(--border);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.ai-skeleton .skeleton-line.short {
+  width: 60%;
+}
+
+.streaming-dot::after {
+  content: ' ●';
+  color: var(--accent);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.backend-select {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.toast-success {
+  border-color: #22c55e;
+}
+
+.page-loading {
+  min-height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

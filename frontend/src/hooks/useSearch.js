@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { loadHistory, saveHistory } from '../utils/storage';
 
 export function useSearch() {
   const { api, isAuthenticated } = useAuth();
@@ -20,7 +19,8 @@ export function useSearch() {
           setResults(data.results || []);
           setMeta(data);
         } else {
-          const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=${page_size}`;
+          const offset = (page - 1) * page_size;
+          const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=${page_size}&sroffset=${offset}`;
           const res = await fetch(url);
           const json = await res.json();
           const mapped = (json.query?.search || []).map((item) => ({
@@ -30,13 +30,18 @@ export function useSearch() {
             source: 'wikipedia',
           }));
           setResults(mapped);
-          setMeta({ query, total: mapped.length, page, page_size, cached: false });
+          setMeta({
+            query,
+            total: json.query?.searchinfo?.totalhits || mapped.length,
+            page,
+            page_size,
+            cached: false,
+          });
         }
-        const hist = [query, ...loadHistory().filter((h) => h !== query)].slice(0, 8);
-        saveHistory(hist);
       } catch (err) {
         setError(err.message || 'Search failed');
         setResults([]);
+        setMeta(null);
       } finally {
         setLoading(false);
       }
