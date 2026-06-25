@@ -750,6 +750,8 @@
     backend: 'wikipedia', apiKey: '',
     privateMode: false, safeSearch: true
   });
+  // SECURITY: never keep API keys persisted at rest in localStorage
+  cfg.apiKey = '';
 
   /* ─── persisted search history ─── */
   let hist = lsj('nebula_history', []);
@@ -1396,7 +1398,8 @@
     cfg.apiKey      = document.getElementById('sp-apikey').value.trim();
     cfg.privateMode = document.getElementById('sp-private').checked;
     cfg.safeSearch  = document.getElementById('sp-safe').checked;
-    ssj('nebula_cfg', cfg);
+    const persistedCfg = { ...cfg, apiKey: '' };
+    ssj('nebula_cfg', persistedCfg);
     refreshName();
     if (cfg.privateMode) { hist = []; ssj('nebula_history', []); renderHist(); }
     closeSettings();
