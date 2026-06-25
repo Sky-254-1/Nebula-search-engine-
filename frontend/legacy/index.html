@@ -1391,12 +1391,29 @@
   spClose.addEventListener('click', closeSettings);
   overlay.addEventListener('click', closeSettings);
   document.getElementById('sp-save').addEventListener('click', () => {
-    cfg.name        = (document.getElementById('sp-name').value.trim() || 'explorer');
-    cfg.backend     = spBackend.value;
-    cfg.apiKey      = document.getElementById('sp-apikey').value.trim();
-    cfg.privateMode = document.getElementById('sp-private').checked;
-    cfg.safeSearch  = document.getElementById('sp-safe').checked;
-    ssj('nebula_cfg', cfg);
+    const apiKey =
+        document.getElementById('sp-apikey').value.trim();
+
+    cfg.name =
+        document.getElementById('sp-name').value.trim() ||
+        'explorer';
+
+    cfg.backend = spBackend.value;
+
+    cfg.privateMode =
+        document.getElementById('sp-private').checked;
+
+    cfg.safeSearch =
+        document.getElementById('sp-safe').checked;
+
+    // Keep only in memory
+    cfg.apiKey = apiKey;
+
+    // Remove secret before save
+    const { apiKey: _, ...safeCfg } = cfg;
+
+    ssj('nebula_cfg', safeCfg);
+});
     refreshName();
     if (cfg.privateMode) { hist = []; ssj('nebula_history', []); renderHist(); }
     closeSettings();
