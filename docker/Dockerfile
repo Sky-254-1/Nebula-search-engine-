@@ -12,6 +12,7 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/app ./app
+COPY backend/vector ./vector
 
 RUN mkdir -p /app/storage && chown -R nebula:nebula /app
 

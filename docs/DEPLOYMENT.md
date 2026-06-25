@@ -50,6 +50,17 @@ server {
 }
 ```
 
+## v1.1 Vector indexing
+
+When using Redis (`REDIS_URL`), run the vector worker to process document indexing jobs:
+
+```bash
+npm run vector:worker
+# or Docker: docker compose up vector-worker
+```
+
+Without Redis, the API process drains in-memory index jobs automatically.
+
 ## CI/CD
 
 GitHub Actions workflow at `.github/workflows/ci.yml` runs tests on push and pull requests.

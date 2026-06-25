@@ -29,7 +29,8 @@ class DocumentRepository:
 
     async def list_for_user(self, user_id: int, limit: int = 50) -> list[dict]:
         rows = await self._db.fetchall(
-            "SELECT id, filename, content_type, storage_path, indexed_at, created_at "
+            "SELECT id, filename, content_type, storage_path, indexed_at, created_at, "
+            "status, content_hash, error_message "
             "FROM documents WHERE user_id = ? ORDER BY created_at DESC LIMIT ?",
             (user_id, limit),
         )
@@ -37,7 +38,8 @@ class DocumentRepository:
 
     async def get_by_id(self, doc_id: int, user_id: int):
         return await self._db.fetchone(
-            "SELECT id, filename, content_type, storage_path, indexed_at, created_at "
+            "SELECT id, filename, content_type, storage_path, indexed_at, created_at, "
+            "status, content_hash, error_message "
             "FROM documents WHERE id = ? AND user_id = ?",
             (doc_id, user_id),
         )
@@ -50,7 +52,37 @@ class DocumentRepository:
         await self._db.commit()
         return True
 
-    async def mark_indexed(self, doc_id: int) -> None:
+    async def mark_indexed(self, doc_id: int, content_hash: str | None = None) -> None:
         now = datetime.now(timezone.utc).isoformat()
-        await self._db.execute("UPDATE documents SET indexed_at = ? WHERE id = ?", (now, doc_id))
+        if content_hash:
+            await self._db.execute(
+                "UPDATE documents SET indexed_at = ?, status = ?, content_hash = ?, error_message = NULL WHERE id = ?",
+                (now, "indexed", content_hash, doc_id),
+            )
+        else:
+            await self._db.execute(
+                "UPDATE documents SET indexed_at = ?, status = ?, error_message = NULL WHERE id = ?",
+                (now, "indexed", doc_id),
+            )
         await self._db.commit()
+
+    async def set_status(
+        self,
+        doc_id: int,
+        status: str,
+        content_hash: str | None = None,
+        error_message: str | None = None,
+    ) -> None:
+        await self._db.execute(
+            "UPDATE documents SET status = ?, content_hash = ?, error_message = ? WHERE id = ?",
+            (status, content_hash, error_message, doc_id),
+        )
+        await self._db.commit()
+
+    async def find_by_hash(self, user_id: int, content_hash: str) -> dict | None:
+        row = await self._db.fetchone(
+            "SELECT id, filename, content_hash, status FROM documents "
+            "WHERE user_id = ? AND content_hash = ? AND status = 'indexed'",
+            (user_id, content_hash),
+        )
+        return dict(row) if row else None

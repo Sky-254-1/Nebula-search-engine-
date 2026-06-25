@@ -28,7 +28,7 @@ router = APIRouter(prefix="/api/v1/storage", tags=["Storage"])
 settings = get_settings()
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
-ALLOWED_EXTENSIONS = {".txt", ".md", ".json", ".csv", ".pdf"}
+ALLOWED_EXTENSIONS = {".txt", ".md", ".json", ".csv", ".pdf", ".html", ".htm", ".docx"}
 
 
 async def _user_id(db, email: str) -> int:

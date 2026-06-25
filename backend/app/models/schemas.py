@@ -106,3 +106,50 @@ class ExportResponse(BaseModel):
 
 class ExportListResponse(BaseModel):
     exports: list[ExportResponse]
+
+
+class DocumentIndexStatusResponse(BaseModel):
+    id: int
+    filename: str
+    status: str = "pending"
+    indexed_at: str | None = None
+    error_message: str | None = None
+
+
+class VectorSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=500)
+    top_k: int = Field(default=10, ge=1, le=50)
+
+
+class VectorSearchResult(BaseModel):
+    document_id: int | None = None
+    chunk_id: int | None = None
+    filename: str = ""
+    content: str = ""
+    score: float = 0
+    vector_score: float = 0
+    keyword_score: float = 0
+
+
+class VectorSearchResponse(BaseModel):
+    query: str
+    results: list[VectorSearchResult]
+    total: int
+
+
+class VectorCitationResponse(BaseModel):
+    id: int
+    document_id: int | None = None
+    chunk_id: int | None = None
+    query: str
+    snippet: str | None = None
+    score: float = 0
+    created_at: str = ""
+
+
+class VectorCitationListResponse(BaseModel):
+    citations: list[VectorCitationResponse]
+
+
+class VectorReindexRequest(BaseModel):
+    limit: int | None = Field(default=100, ge=1, le=500)

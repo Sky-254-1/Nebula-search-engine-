@@ -10,12 +10,20 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
 async def run_migrations() -> None:
     settings = get_settings()
-    filename = "001_postgres.sql" if settings.uses_postgres else "001_sqlite.sql"
-    sql = (MIGRATIONS_DIR / filename).read_text(encoding="utf-8")
+    suffix = "postgres" if settings.uses_postgres else "sqlite"
+    files = sorted(MIGRATIONS_DIR.glob(f"*_{suffix}.sql"))
     db = await connect()
     try:
-        for statement in _split_statements(sql):
-            await db.execute(statement)
+        for path in files:
+            sql = path.read_text(encoding="utf-8")
+            for statement in _split_statements(sql):
+                try:
+                    await db.execute(statement)
+                except Exception as exc:
+                    # SQLite ALTER may fail if column already exists on re-run
+                    if "duplicate column" in str(exc).lower():
+                        continue
+                    raise
         await db.commit()
     finally:
         await db.close()

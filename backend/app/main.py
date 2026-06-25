@@ -9,6 +9,7 @@ Docs:
     http://localhost:8000/docs
 """
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -20,7 +21,7 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.database import init_db
 from app.middleware.security import SecurityHeadersMiddleware
-from app.routes import ai, auth, health, search, storage
+from app.routes import ai, auth, health, search, storage, vector
 from app.services.cache import cache_service
 from app.services.queue import job_queue
 
@@ -31,6 +32,42 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
 )
 logger = logging.getLogger("nebula")
+
+
+async def _process_index_jobs() -> None:
+    """Drain in-memory index jobs when Redis is unavailable."""
+    from app.database.engine import connect
+    from vector.pipeline import index_document
+
+    while True:
+        job = await job_queue.dequeue()
+        if not job:
+            break
+        if job.get("type") != "index_document":
+            continue
+        payload = job.get("payload", {})
+        doc_id = payload.get("document_id")
+        user_id = payload.get("user_id")
+        if not doc_id or not user_id:
+            continue
+        db = await connect()
+        try:
+            await index_document(db, doc_id, user_id)
+        except Exception:
+            logger.exception("Background index failed for doc %s", doc_id)
+        finally:
+            await db.close()
+
+
+async def _background_worker_loop() -> None:
+    while True:
+        await asyncio.sleep(2.0)
+        if job_queue._redis:
+            continue
+        try:
+            await _process_index_jobs()
+        except Exception:
+            logger.exception("Background worker error")
 
 
 def _ensure_storage_dirs() -> None:
@@ -50,12 +87,18 @@ async def lifespan(app: FastAPI):
     await init_db()
     await cache_service.connect()
     await job_queue.connect()
+    worker_task = asyncio.create_task(_background_worker_loop())
     logger.info(
         "Nebula Search API started (env=%s, db=%s)",
         settings.app_env,
         "postgresql" if settings.uses_postgres else "sqlite",
     )
     yield
+    worker_task.cancel()
+    try:
+        await worker_task
+    except asyncio.CancelledError:
+        pass
     await cache_service.close()
     await job_queue.close()
 
@@ -63,7 +106,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Nebula Search API",
     description="A private, AI-powered, hybrid search engine backend.",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -83,6 +126,7 @@ app.include_router(auth.router)
 app.include_router(search.router)
 app.include_router(ai.router)
 app.include_router(storage.router)
+app.include_router(vector.router)
 
 
 @app.exception_handler(HTTPException)

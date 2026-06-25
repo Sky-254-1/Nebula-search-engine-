@@ -65,6 +65,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  vector-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["python", "-m", "vector.worker"]
+    env_file:
+      - ../backend/.env
+    environment:
+      DATABASE_URL: postgresql://nebula:nebula@postgres:5432/nebula
+      REDIS_URL: redis://redis:6379/0
+      APP_ENV: production
+      STORAGE_ROOT: /app/storage
+    volumes:
+      - nebula-storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   nebula-storage:

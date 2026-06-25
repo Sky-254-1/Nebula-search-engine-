@@ -84,6 +84,10 @@ docker compose up --build
 ```bash
 cd backend
 pytest --cov=app --cov-report=term-missing
+
+# E2E (Playwright v1.1)
+npm install && npm run e2e:install
+npm run e2e
 ```
 
 ## Environment Variables
