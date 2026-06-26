@@ -66,7 +66,12 @@ export function useSearch() {
 
           const json = await res.json();
 
-          const mapped = (json.query?.search || []).map((item) => ({
+          const mapped = (
+  (json &&
+    json.query &&
+    json.query.search) ||
+  []
+).map((item) => ({
             title: item.title || '',
             snippet: escapeHtml(item.snippet || ''),
             url: `https://en.wikipedia.org/wiki/${encodeURIComponent(
@@ -80,10 +85,11 @@ export function useSearch() {
           setMeta({
             query,
             total:
-              (json.query &&
-                json.query.searchinfo &&
-                json.query.searchinfo.totalhits) ||
-              mapped.length,
+  (json &&
+    json.query &&
+    json.query.searchinfo &&
+    json.query.searchinfo.totalhits) ||
+  mapped.length,
             page,
             page_size,
             cached: false,
