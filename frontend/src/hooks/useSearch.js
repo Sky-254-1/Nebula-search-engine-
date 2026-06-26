@@ -49,13 +49,15 @@ export function useSearch() {
         } else {
           const offset = (page - 1) * page_size;
 
-const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=${page_size}&sroffset=${offset}`;
-```
-
-  query
-)}&format=json&origin=*&srlimit=${page_size}&sroffset=${offset}`;
-```
-
+          const url =
+            `https://en.wikipedia.org/w/api.php` +
+            `?action=query` +
+            `&list=search` +
+            `&srsearch=${encodeURIComponent(query)}` +
+            `&format=json` +
+            `&origin=*` +
+            `&srlimit=${page_size}` +
+            `&sroffset=${offset}`;
 
           const res = await fetch(url);
 
@@ -65,11 +67,11 @@ const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearc
 
           const json = await res.json();
 
-          const mapped = (json?.query?.search || []).map((item) => ({
-            title: item?.title || '',
-            snippet: escapeHtml(item?.snippet || ''),
+          const mapped = (json.query?.search || []).map((item) => ({
+            title: item.title || '',
+            snippet: escapeHtml(item.snippet || ''),
             url: `https://en.wikipedia.org/wiki/${encodeURIComponent(
-              (item?.title || '').replace(/ /g, '_')
+              (item.title || '').replace(/ /g, '_')
             )}`,
             source: 'wikipedia',
           }));
@@ -78,14 +80,21 @@ const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearc
 
           setMeta({
             query,
-            total: json?.query?.searchinfo?.totalhits || mapped.length,
+            total:
+              (json.query &&
+                json.query.searchinfo &&
+                json.query.searchinfo.totalhits) ||
+              mapped.length,
             page,
             page_size,
             cached: false,
           });
         }
       } catch (err) {
-        setError(err?.message || 'Search failed');
+        setError(
+          (err && err.message) || 'Search failed'
+        );
+
         setResults([]);
         setMeta(null);
       } finally {
