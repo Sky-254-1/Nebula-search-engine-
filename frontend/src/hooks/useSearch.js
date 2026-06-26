@@ -1,4 +1,3 @@
-```javascript
 import { useCallback, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 
