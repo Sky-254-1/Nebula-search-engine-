@@ -50,7 +50,10 @@ export function useSearch() {
           const offset = (page - 1) * page_size;
 
          ```js
-const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
+```js
+const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=${page_size}&sroffset=${offset}`;
+```
+
   query
 )}&format=json&origin=*&srlimit=${page_size}&sroffset=${offset}`;
 ```
