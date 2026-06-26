@@ -2,13 +2,10 @@
 import { useCallback, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 
-function escapeHtml(str = '') {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+function escapeHtml(value = '') {
+  const div = document.createElement('div');
+  div.textContent = String(value);
+  return div.innerHTML;
 }
 
 export function useSearch() {
@@ -28,7 +25,7 @@ export function useSearch() {
         page_size = 10,
       } = {}
     ) => {
-      if (!query.trim()) return;
+      if (!query?.trim()) return;
 
       setLoading(true);
       setError(null);
@@ -60,7 +57,7 @@ export function useSearch() {
           const res = await fetch(url);
 
           if (!res.ok) {
-            throw new Error('Wikipedia search failed');
+            throw new Error('Search request failed');
           }
 
           const json = await res.json();
@@ -68,7 +65,7 @@ export function useSearch() {
           const mapped = (json.query?.search || []).map((item) => ({
             title: item.title || '',
 
-            // Safe replacement for regex stripping
+            // Safe output encoding
             snippet: escapeHtml(item.snippet || ''),
 
             url:
@@ -84,7 +81,7 @@ export function useSearch() {
           setMeta({
             query,
             total:
-              json.query?.searchinfo?.totalhits ||
+              json.query?.searchinfo?.totalhits ??
               mapped.length,
             page,
             page_size,
