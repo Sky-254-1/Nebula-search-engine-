@@ -44,7 +44,7 @@ export function useSearch() {
             page_size,
           });
 
-          setResults(data?.results || []);
+          setResults((data && data.results) || []);
           setMeta(data || null);
         } else {
           const offset = (page - 1) * page_size;
