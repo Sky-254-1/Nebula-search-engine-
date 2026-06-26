@@ -1,45 +1,98 @@
+```js
 import { useCallback, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 
+function escapeHtml(str = '') {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export function useSearch() {
   const { api, isAuthenticated } = useAuth();
+
   const [results, setResults] = useState([]);
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const search = useCallback(
-    async (query, { backends = 'wikipedia', page = 1, page_size = 10 } = {}) => {
+    async (
+      query,
+      {
+        backends = 'wikipedia',
+        page = 1,
+        page_size = 10,
+      } = {}
+    ) => {
       if (!query.trim()) return;
+
       setLoading(true);
       setError(null);
+
       try {
         if (isAuthenticated) {
-          const data = await api.searchOrchestrate({ q: query, backends, page, page_size });
+          const data = await api.searchOrchestrate({
+            q: query,
+            backends,
+            page,
+            page_size,
+          });
+
           setResults(data.results || []);
           setMeta(data);
         } else {
           const offset = (page - 1) * page_size;
-          const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=${page_size}&sroffset=${offset}`;
+
+          const url =
+            `https://en.wikipedia.org/w/api.php` +
+            `?action=query` +
+            `&list=search` +
+            `&srsearch=${encodeURIComponent(query)}` +
+            `&format=json` +
+            `&origin=*` +
+            `&srlimit=${page_size}` +
+            `&sroffset=${offset}`;
+
           const res = await fetch(url);
+
+          if (!res.ok) {
+            throw new Error('Wikipedia search failed');
+          }
+
           const json = await res.json();
+
           const mapped = (json.query?.search || []).map((item) => ({
-            title: item.title,
-            snippet: item.snippet?.replace(/<[^>]+>/g, '') || '',
-            url: `https://en.wikipedia.org/wiki/${encodeURIComponent(item.title.replace(/ /g, '_'))}`,
+            title: item.title || '',
+
+            // Safe replacement for regex stripping
+            snippet: escapeHtml(item.snippet || ''),
+
+            url:
+              `https://en.wikipedia.org/wiki/${encodeURIComponent(
+                (item.title || '').replace(/ /g, '_')
+              )}`,
+
             source: 'wikipedia',
           }));
+
           setResults(mapped);
+
           setMeta({
             query,
-            total: json.query?.searchinfo?.totalhits || mapped.length,
+            total:
+              json.query?.searchinfo?.totalhits ||
+              mapped.length,
             page,
             page_size,
             cached: false,
           });
         }
       } catch (err) {
-        setError(err.message || 'Search failed');
+        setError(err?.message || 'Search failed');
         setResults([]);
         setMeta(null);
       } finally {
@@ -49,5 +102,12 @@ export function useSearch() {
     [api, isAuthenticated]
   );
 
-  return { results, meta, loading, error, search };
+  return {
+    results,
+    meta,
+    loading,
+    error,
+    search,
+  };
 }
+```
