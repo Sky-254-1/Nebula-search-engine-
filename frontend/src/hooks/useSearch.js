@@ -2,10 +2,13 @@
 import { useCallback, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 
-function escapeHtml(value = '') {
-  const div = document.createElement('div');
-  div.textContent = String(value);
-  return div.innerHTML;
+function escapeHtml(str = '') {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 export function useSearch() {
@@ -19,13 +22,9 @@ export function useSearch() {
   const search = useCallback(
     async (
       query,
-      {
-        backends = 'wikipedia',
-        page = 1,
-        page_size = 10,
-      } = {}
+      { backends = 'wikipedia', page = 1, page_size = 10 } = {}
     ) => {
-      if (!query?.trim()) return;
+      if (!query.trim()) return;
 
       setLoading(true);
       setError(null);
@@ -57,22 +56,17 @@ export function useSearch() {
           const res = await fetch(url);
 
           if (!res.ok) {
-            throw new Error('Search request failed');
+            throw new Error('Search failed');
           }
 
           const json = await res.json();
 
           const mapped = (json.query?.search || []).map((item) => ({
             title: item.title || '',
-
-            // Safe output encoding
             snippet: escapeHtml(item.snippet || ''),
-
-            url:
-              `https://en.wikipedia.org/wiki/${encodeURIComponent(
-                (item.title || '').replace(/ /g, '_')
-              )}`,
-
+            url: `https://en.wikipedia.org/wiki/${encodeURIComponent(
+              (item.title || '').replace(/ /g, '_')
+            )}`,
             source: 'wikipedia',
           }));
 
@@ -80,9 +74,7 @@ export function useSearch() {
 
           setMeta({
             query,
-            total:
-              json.query?.searchinfo?.totalhits ??
-              mapped.length,
+            total: json.query?.searchinfo?.totalhits || mapped.length,
             page,
             page_size,
             cached: false,
