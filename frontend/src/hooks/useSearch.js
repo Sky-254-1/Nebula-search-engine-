@@ -49,15 +49,12 @@ export function useSearch() {
         } else {
           const offset = (page - 1) * page_size;
 
-          const url =
-            `https://en.wikipedia.org/w/api.php` +
-            `?action=query` +
-            `&list=search` +
-            `&srsearch=${encodeURIComponent(query)}` +
-            `&format=json` +
-            `&origin=*` +
-            `&srlimit=${page_size}` +
-            `&sroffset=${offset}`;
+         ```js
+const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
+  query
+)}&format=json&origin=*&srlimit=${page_size}&sroffset=${offset}`;
+```
+
 
           const res = await fetch(url);
 
