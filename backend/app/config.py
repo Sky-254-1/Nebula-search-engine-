@@ -70,6 +70,43 @@ class Settings:
         default_factory=lambda: os.getenv("STORAGE_ROOT", str(_REPO_ROOT / "storage"))
     )
 
+    # Security & Auth
+    auth_cookie_mode: bool = field(
+        default_factory=lambda: os.getenv("AUTH_COOKIE_MODE", "true").lower() == "true"
+    )
+    cookie_secure: bool = field(
+        default_factory=lambda: os.getenv("COOKIE_SECURE", "true").lower() == "true"
+    )
+    cookie_samesite: str = field(
+        default_factory=lambda: os.getenv("COOKIE_SAMESITE", "lax")
+    )
+    enable_rbac: bool = field(
+        default_factory=lambda: os.getenv("ENABLE_RBAC", "true").lower() == "true"
+    )
+    enable_refresh_reuse_detection: bool = field(
+        default_factory=lambda: os.getenv("ENABLE_REFRESH_REUSE_DETECTION", "true").lower() == "true"
+    )
+    enable_audit_logs: bool = field(
+        default_factory=lambda: os.getenv("ENABLE_AUDIT_LOGS", "true").lower() == "true"
+    )
+
+    # Brute-force protection
+    max_login_attempts: int = field(
+        default_factory=lambda: int(os.getenv("MAX_LOGIN_ATTEMPTS", "5"))
+    )
+    login_lockout_minutes: int = field(
+        default_factory=lambda: int(os.getenv("LOGIN_LOCKOUT_MINUTES", "15"))
+    )
+    signup_rate_limit: int = field(
+        default_factory=lambda: int(os.getenv("SIGNUP_RATE_LIMIT", "5"))
+    )
+    login_rate_limit: int = field(
+        default_factory=lambda: int(os.getenv("LOGIN_RATE_LIMIT", "5"))
+    )
+    refresh_rate_limit: int = field(
+        default_factory=lambda: int(os.getenv("REFRESH_RATE_LIMIT", "10"))
+    )
+
     @property
     def uses_postgres(self) -> bool:
         return self.database_url.startswith("postgresql")

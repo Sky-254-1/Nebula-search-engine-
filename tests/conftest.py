@@ -13,6 +13,9 @@ os.environ["JWT_SECRET"] = "test-secret-key-for-nebula-tests-only"
 os.environ["APP_ENV"] = "testing"
 os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 os.environ["RATE_LIMIT_PER_MINUTE"] = "1000"
+os.environ["SIGNUP_RATE_LIMIT"] = "1000"
+os.environ["LOGIN_RATE_LIMIT"] = "1000"
+os.environ["REFRESH_RATE_LIMIT"] = "1000"
 
 from app.config import get_settings
 from app.database import init_db
@@ -43,11 +46,11 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
 async def auth_headers(client: AsyncClient) -> dict[str, str]:
     await client.post(
         "/api/v1/auth/signup",
-        json={"email": "test@example.com", "password": "secret123"},
+        json={"email": "test@example.com", "password": "Password1!"},
     )
     login = await client.post(
         "/api/v1/auth/login",
-        json={"email": "test@example.com", "password": "secret123"},
+        json={"email": "test@example.com", "password": "Password1!"},
     )
     token = login.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

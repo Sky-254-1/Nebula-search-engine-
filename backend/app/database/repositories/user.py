@@ -9,14 +9,14 @@ class UserRepository:
 
     async def get_by_email(self, email: str):
         return await self._db.fetchone(
-            "SELECT id, email, hashed_password FROM users WHERE email = ?",
+            "SELECT id, email, hashed_password, role FROM users WHERE email = ?",
             (email,),
         )
 
-    async def create(self, email: str, hashed_password: str) -> None:
+    async def create(self, email: str, hashed_password: str, role: str = "user") -> None:
         await self._db.execute(
-            "INSERT INTO users (email, hashed_password) VALUES (?, ?)",
-            (email, hashed_password),
+            "INSERT INTO users (email, hashed_password, role) VALUES (?, ?, ?)",
+            (email, hashed_password, role),
         )
         await self._db.commit()
 
@@ -26,6 +26,13 @@ class UserRepository:
 
     async def get_by_id(self, user_id: int):
         return await self._db.fetchone(
-            "SELECT id, email, hashed_password FROM users WHERE id = ?",
+            "SELECT id, email, hashed_password, role FROM users WHERE id = ?",
             (user_id,),
         )
+
+    async def update_role(self, user_id: int, role: str) -> None:
+        await self._db.execute(
+            "UPDATE users SET role = ? WHERE id = ?",
+            (role, user_id),
+        )
+        await self._db.commit()

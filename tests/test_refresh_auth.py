@@ -8,11 +8,11 @@ from httpx import AsyncClient
 async def test_login_returns_refresh_token(client: AsyncClient):
     await client.post(
         "/api/v1/auth/signup",
-        json={"email": "refresh@example.com", "password": "password1"},
+        json={"email": "refresh@example.com", "password": "Password1!"},
     )
     login = await client.post(
         "/api/v1/auth/login",
-        json={"email": "refresh@example.com", "password": "password1"},
+        json={"email": "refresh@example.com", "password": "Password1!"},
     )
     data = login.json()
     assert login.status_code == 200
@@ -23,11 +23,11 @@ async def test_login_returns_refresh_token(client: AsyncClient):
 async def test_refresh_token_flow(client: AsyncClient):
     await client.post(
         "/api/v1/auth/signup",
-        json={"email": "flow@example.com", "password": "password1"},
+        json={"email": "flow@example.com", "password": "Password1!"},
     )
     login = await client.post(
         "/api/v1/auth/login",
-        json={"email": "flow@example.com", "password": "password1"},
+        json={"email": "flow@example.com", "password": "Password1!"},
     )
     refresh_token = login.json()["refresh_token"]
     refreshed = await client.post(

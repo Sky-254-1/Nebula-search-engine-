@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.database import init_db
 from app.middleware.security import SecurityHeadersMiddleware
-from app.routes import ai, auth, health, search, storage, vector
+from app.routes import admin, ai, auth, health, search, storage, vector
 from app.services.cache import cache_service
 from app.services.queue import job_queue
 
@@ -60,8 +60,27 @@ async def _process_index_jobs() -> None:
 
 
 async def _background_worker_loop() -> None:
+    # Track last audit cleanup to run daily
+    last_cleanup = 0.0
     while True:
         await asyncio.sleep(2.0)
+
+        # Audit log retention: 90 days
+        now = asyncio.get_event_loop().time()
+        if now - last_cleanup > 86400: # 24 hours
+            from app.database.engine import connect
+            from app.database.repositories.audit import AuditRepository
+            db = await connect()
+            try:
+                audit = AuditRepository(db)
+                await audit.delete_old_logs(days=90)
+                last_cleanup = now
+                logger.info("Audit logs cleanup completed")
+            except Exception:
+                logger.exception("Audit logs cleanup failed")
+            finally:
+                await db.close()
+
         if job_queue._redis:
             continue
         try:
@@ -123,6 +142,7 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(admin.router)
 app.include_router(search.router)
 app.include_router(ai.router)
 app.include_router(storage.router)
