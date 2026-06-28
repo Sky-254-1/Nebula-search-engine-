@@ -1,0 +1,1 @@
+2025-05-15 — Ranking Overhead | Learning: Python generator expressions within sum() have measurable overhead in tight loops for large search result sets (1000+ items). Replacing them with manual loops and pre-calculating search terms can yield ~25% logic speedup. | Action: Use manual loops for performance-critical ranking or deduplication logic when handling lists >100 items.

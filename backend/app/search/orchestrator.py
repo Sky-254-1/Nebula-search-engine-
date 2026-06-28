@@ -39,13 +39,25 @@ def _dedupe_results(results: list[dict]) -> list[dict]:
 
 
 def _rank_results(results: list[dict], query: str) -> list[dict]:
+    # OPTIMIZATION: pre-calculating unique query terms and using a manual loop
+    # instead of a generator within sum() reduces overhead for large result sets.
+    # We use a set for query terms to preserve exact original ranking behavior.
     query_terms = {term.lower() for term in query.split() if term}
+    if not query_terms:
+        return list(results)
 
-    def score(item: dict) -> float:
+    scored_results = []
+    for item in results:
         text = f"{item.get('title', '')} {item.get('snippet', '')}".lower()
-        return float(sum(1 for term in query_terms if term in text))
+        s = 0.0
+        for term in query_terms:
+            if term in text:
+                s += 1.0
+        scored_results.append((s, item))
 
-    return sorted(results, key=score, reverse=True)
+    # Python's sort is stable, but to be safe and efficient we sort by score.
+    scored_results.sort(key=lambda x: x[0], reverse=True)
+    return [item for _, item in scored_results]
 
 
 async def orchestrate_search(
