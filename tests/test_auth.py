@@ -8,13 +8,13 @@ from httpx import AsyncClient
 async def test_signup_and_login(client: AsyncClient):
     signup = await client.post(
         "/api/v1/auth/signup",
-        json={"email": "user@example.com", "password": "password1"},
+        json={"email": "user@example.com", "password": "Password1!"},
     )
     assert signup.status_code == 201
 
     login = await client.post(
         "/api/v1/auth/login",
-        json={"email": "user@example.com", "password": "password1"},
+        json={"email": "user@example.com", "password": "Password1!"},
     )
     assert login.status_code == 200
     assert "access_token" in login.json()
@@ -22,7 +22,7 @@ async def test_signup_and_login(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_duplicate_signup(client: AsyncClient):
-    payload = {"email": "dup@example.com", "password": "password1"}
+    payload = {"email": "dup@example.com", "password": "Password1!"}
     assert (await client.post("/api/v1/auth/signup", json=payload)).status_code == 201
     assert (await client.post("/api/v1/auth/signup", json=payload)).status_code == 409
 
@@ -31,7 +31,7 @@ async def test_duplicate_signup(client: AsyncClient):
 async def test_login_invalid_credentials(client: AsyncClient):
     await client.post(
         "/api/v1/auth/signup",
-        json={"email": "valid@example.com", "password": "password1"},
+        json={"email": "valid@example.com", "password": "Password1!"},
     )
     response = await client.post(
         "/api/v1/auth/login",

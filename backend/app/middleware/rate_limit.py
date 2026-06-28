@@ -13,17 +13,20 @@ logger = logging.getLogger("nebula.ratelimit")
 _memory_store: dict[str, list[float]] = {}
 
 
-async def rate_limit(request: Request) -> None:
+async def rate_limit(request: Request, limit: int | None = None) -> None:
     """Reject requests that exceed the configured per-minute limit."""
     ip = request.client.host if request.client else "unknown"
-    redis_key = f"ratelimit:{ip}"
+    path = request.url.path
+    # Use path-specific keys for granular rate limiting
+    redis_key = f"ratelimit:{ip}:{path}"
+    limit = limit or settings.rate_limit_per_minute
 
     if cache_service._redis:
         try:
             count = await cache_service._redis.incr(redis_key)
             if count == 1:
                 await cache_service._redis.expire(redis_key, 60)
-            if count > settings.rate_limit_per_minute:
+            if count > limit:
                 raise HTTPException(
                     status_code=429,
                     detail="Rate limit exceeded. Try again shortly.",
@@ -35,11 +38,23 @@ async def rate_limit(request: Request) -> None:
             logger.debug("Redis rate limit fallback: %s", exc)
 
     now = time.time()
-    window = _memory_store.setdefault(ip, [])
-    _memory_store[ip] = [timestamp for timestamp in window if now - timestamp < 60]
-    if len(_memory_store[ip]) >= settings.rate_limit_per_minute:
+    window = _memory_store.setdefault(redis_key, [])
+    _memory_store[redis_key] = [timestamp for timestamp in window if now - timestamp < 60]
+    if len(_memory_store[redis_key]) >= limit:
         raise HTTPException(
             status_code=429,
             detail="Rate limit exceeded. Try again shortly.",
         )
-    _memory_store[ip].append(now)
+    _memory_store[redis_key].append(now)
+
+
+def rate_limit_auth(limit: int):
+    async def limiter(request: Request):
+        await rate_limit(request, limit=limit)
+
+    return limiter
+
+
+limit_signup = rate_limit_auth(settings.signup_rate_limit)
+limit_login = rate_limit_auth(settings.login_rate_limit)
+limit_refresh = rate_limit_auth(settings.refresh_rate_limit)
