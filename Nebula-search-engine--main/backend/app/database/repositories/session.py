@@ -21,43 +21,28 @@ class SessionRepository:
         from app.config import get_settings
         settings = get_settings()
 
+        params = (
+            user_id,
+            refresh_token_hash,
+            expires_at.isoformat(),
+            session_id,
+            device_name,
+            parent_refresh_id,
+        )
+
         if settings.uses_postgres:
             sql = """INSERT INTO sessions
                 (user_id, refresh_token_hash, expires_at, session_id, device_name, parent_refresh_id)
                 VALUES (?, ?, ?, ?, ?, ?) RETURNING id"""
-        else:
-            sql = """INSERT INTO sessions
-                (user_id, refresh_token_hash, expires_at, session_id, device_name, parent_refresh_id)
-                VALUES (?, ?, ?, ?, ?, ?)"""
-
-        cursor = await self._db.execute(
-            sql,
-            (
-                user_id,
-                refresh_token_hash,
-                expires_at.isoformat(),
-                session_id,
-                device_name,
-                parent_refresh_id,
-            ),
-        )
-        await self._db.commit()
-
-        if settings.uses_postgres:
-            # Postgres cursor with fetchone (handled in engine.py as fetchrow)
-            # Actually engine.py.execute doesn't return the row.
-            # We need to use fetchone for RETURNING.
-            row = await self._db.fetchone(sql, (
-                user_id,
-                refresh_token_hash,
-                expires_at.isoformat(),
-                session_id,
-                device_name,
-                parent_refresh_id,
-            ))
-            # Note: This is a double-insert if we use fetchone instead of execute.
-            # Let's refine the engine to support this or just use a workaround.
+            row = await self._db.fetchone(sql, params)
+            await self._db.commit()
             return row["id"] if row else 0
+
+        sql = """INSERT INTO sessions
+            (user_id, refresh_token_hash, expires_at, session_id, device_name, parent_refresh_id)
+            VALUES (?, ?, ?, ?, ?, ?)"""
+        cursor = await self._db.execute(sql, params)
+        await self._db.commit()
 
         if hasattr(cursor, "lastrowid"):
             return cursor.lastrowid

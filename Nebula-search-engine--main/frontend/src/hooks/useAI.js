@@ -49,6 +49,9 @@ export function useAI() {
           const res = await fetch(
             `https://api.duckduckgo.com/?q=${encodeURIComponent(prompt)}&format=json&no_redirect=1&t=Nebula`
           );
+          if (!res.ok) {
+            throw new Error(`DuckDuckGo API returned ${res.status}`);
+          }
           const json = await res.json();
           setAnswer(json.AbstractText || json.Answer || 'No instant answer available.');
           setProvider('duckduckgo');

@@ -86,11 +86,14 @@ async def search_serpapi(query: str, page: int, page_size: int) -> list[dict]:
     start = (page - 1) * page_size
     url = (
         "https://serpapi.com/search.json"
-        f"?q={quote(query)}&api_key={settings.serpapi_key}&engine=google"
+        f"?q={quote(query)}&engine=google"
         f"&start={start}&num={page_size}"
     )
     async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.get(url)
+        resp = await client.get(
+            url,
+            headers={"Authorization": f"Bearer {settings.serpapi_key}"},
+        )
         resp.raise_for_status()
         data = resp.json()
 
