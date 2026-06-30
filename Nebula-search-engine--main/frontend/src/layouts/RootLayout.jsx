@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../auth/AuthContext';
 import { useAppStore } from '../store/app-store';
-import { FiHome, FiSearch, FiGrid, FiUser, FiSettings, FiBarChart2, FiShield, FiClock, FiMenu, FiX, FiSun, FiMoon, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiSearch, FiGrid, FiUser, FiSettings, FiBarChart2, FiShield, FiClock, FiFile, FiMenu, FiX, FiSun, FiMoon, FiLogOut } from 'react-icons/fi';
 
 const navItems = [
   { to: '/', icon: FiHome, labelKey: 'nav.home' },
@@ -15,6 +15,7 @@ const navItems = [
   { to: '/analytics', icon: FiBarChart2, labelKey: 'nav.analytics' },
   { to: '/admin', icon: FiShield, labelKey: 'nav.admin' },
   { to: '/history', icon: FiClock, labelKey: 'nav.history' },
+  { to: '/documents', icon: FiFile, labelKey: 'nav.documents' },
 ];
 
 export function RootLayout() {

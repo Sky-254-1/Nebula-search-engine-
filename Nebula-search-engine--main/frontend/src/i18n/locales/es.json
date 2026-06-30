@@ -14,7 +14,8 @@
     "admin": "Admin",
     "signIn": "Iniciar sesión",
     "signOut": "Cerrar sesión",
-    "signUp": "Registrarse"
+    "signUp": "Registrarse",
+    "documents": "Documentos"
   },
   "search": {
     "placeholder": "Busca en la web con Nebula…",

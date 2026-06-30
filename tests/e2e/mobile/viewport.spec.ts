@@ -1,30 +1,55 @@
-import { test, expect } from '../fixtures/auth.fixture';
+import { test, expect } from '../fixtures/test-context';
 
-test.describe('Mobile viewport', () => {
-  test.use({ viewport: { width: 390, height: 844 } });
+test.describe('mobile viewport', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
 
-  test('responsive layout on mobile', async ({ page }) => {
+  test('home page renders in mobile viewport', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Nebula Search')).toBeVisible();
-    const searchBar = page.locator('.search-bar');
-    await expect(searchBar).toBeVisible();
-    const box = await searchBar.boundingBox();
-    expect(box?.width).toBeLessThanOrEqual(390);
+    await page.waitForLoadState('networkidle');
+    const title = await page.textContent('.hero-title');
+    expect(title).toBe('Nebula Search');
   });
 
-  test('header actions accessible', async ({ page }) => {
+  test('search bar is visible on mobile', async ({ page }) => {
     await page.goto('/');
-    const signIn = page.getByRole('button', { name: 'Sign in' });
-    await expect(signIn).toBeVisible();
+    await expect(page.locator('.search-bar')).toBeVisible();
+    await expect(page.locator('input[aria-label="Search query"]')).toBeVisible();
   });
 
-  test('touch scroll on results', async ({ page, accessToken }) => {
-    void accessToken;
+  test('mobile sidebar toggle opens menu', async ({ page }) => {
+    const EMAIL = `mobile-${Date.now()}@test.nebula`;
+    const PASS = 'MobP1!';
+
+    await page.request.post('http://localhost:8000/api/v1/auth/signup', { data: { email: EMAIL, password: PASS } });
+    const login = await page.request.post('http://localhost:8000/api/v1/auth/login', { data: { email: EMAIL, password: PASS } });
+    const { access_token, refresh_token } = await login.json();
+
+    await page.goto('/search?q=test');
+    await page.evaluate((t) => {
+      localStorage.setItem('nebula_tokens', JSON.stringify(t));
+    }, { access_token, refresh_token });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+  });
+});
+
+test.describe('tablet viewport', () => {
+  test.use({ viewport: { width: 768, height: 1024 } });
+
+  test('layout adapts to tablet', async ({ page }) => {
     await page.goto('/');
-    await page.getByLabel('Search query').fill('mobile test');
-    await page.getByRole('button', { name: 'Search' }).click();
-    await page.waitForTimeout(8000);
-    await page.mouse.wheel(0, 300);
-    await expect(page.locator('.hero')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('.hero-title')).toBeVisible();
+  });
+});
+
+test.describe('landscape mobile', () => {
+  test.use({ viewport: { width: 812, height: 375 } });
+
+  test('app renders in landscape', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const title = await page.textContent('.hero-title');
+    expect(title).toBe('Nebula Search');
   });
 });

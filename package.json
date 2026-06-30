@@ -17,8 +17,27 @@
     "mobile:build:web": "cd frontend && npm run build && cd ../mobile && npx cap copy"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.0",
+    "@playwright/test": "^1.61.1",
     "@types/node": "^20.17.0",
+    "playwright": "^1.61.1",
     "typescript": "^5.7.0"
-  }
+  },
+  "description": "<div align=\"center\">",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sky-254-1/Nebula-search-engine-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Sky-254-1/Nebula-search-engine-/issues"
+  },
+  "homepage": "https://github.com/Sky-254-1/Nebula-search-engine-#readme"
 }

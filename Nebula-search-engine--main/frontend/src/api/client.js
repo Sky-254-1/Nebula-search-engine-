@@ -2,6 +2,7 @@ import { createAuthedFetch } from './base';
 import { createAuthApi } from './auth';
 import { createSearchApi } from './search';
 import { createAiApi } from './ai';
+import { createDocumentApi } from './documents';
 
 export { ApiError } from './base';
 
@@ -11,6 +12,7 @@ export function buildClient(getTokens, setTokens, clearTokens) {
     ...createAuthApi(authedFetch, setTokens, getTokens, clearTokens),
     ...createSearchApi(authedFetch),
     ...createAiApi(authedFetch, getTokens, setTokens),
+    ...createDocumentApi(authedFetch),
     health: () => fetch('/health').then((r) => r.json()),
   };
 }

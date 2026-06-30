@@ -19,6 +19,9 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const DocumentsPage = lazy(() =>
+  import('./pages/DocumentsPage').then((m) => ({ default: m.DocumentsPage }))
+);
 
 function PageLoader() {
   return (
@@ -46,6 +49,7 @@ export default function App() {
                   <Route path="/analytics" element={<AnalyticsPage />} />
                   <Route path="/admin" element={<AdminPage />} />
                   <Route path="/history" element={<HistoryPage />} />
+                  <Route path="/documents" element={<DocumentsPage />} />
                 </Route>
                 <Route path="/legacy" element={<LegacyRedirect />} />
               </Routes>
