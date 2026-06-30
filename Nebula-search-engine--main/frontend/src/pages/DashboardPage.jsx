@@ -18,7 +18,7 @@ function DashboardContent() {
     async function load() {
       try {
         const data = await api.me();
-        if (active) setStats({ totalSearches: 42, documentsIndexed: 128, aiQueries: 15, storageUsed: 256, storageTotal: 1024 });
+        if (active) setStats({ totalSearches: data?.totalSearches ?? 0, documentsIndexed: data?.documentsIndexed ?? 0, aiQueries: data?.aiQueries ?? 0, storageUsed: data?.storageUsed ?? 0, storageTotal: data?.storageTotal ?? 1024 });
       } catch { /* ignore */ }
       finally { if (active) setLoading(false); }
     }

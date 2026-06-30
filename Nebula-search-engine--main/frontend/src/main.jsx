@@ -7,7 +7,7 @@ import './i18n/config';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => null);
+    navigator.serviceWorker.register('/sw.js').catch((err) => console.warn('SW registration failed:', err));
   });
 }
 

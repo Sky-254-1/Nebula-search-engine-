@@ -36,3 +36,10 @@ class UserRepository:
             (role, user_id),
         )
         await self._db.commit()
+
+    async def update_password(self, user_id: int, hashed_password: str) -> None:
+        await self._db.execute(
+            "UPDATE users SET hashed_password = ? WHERE id = ?",
+            (hashed_password, user_id),
+        )
+        await self._db.commit()

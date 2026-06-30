@@ -157,8 +157,8 @@ class AsyncCrawler:
             if self._respect_robots:
                 try:
                     delay = await self._robots.get_crawl_delay(url)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.warning("Failed to get crawl delay for %s: %s", url, exc)
             last = self._domain_timers.get(domain, 0.0)
             wait = max(0.0, delay - (asyncio.get_event_loop().time() - last))
             if wait > 0:
@@ -185,8 +185,9 @@ class AsyncCrawler:
                 logger.debug("Skipping non-HTML content: %s (%s)", url, ctype)
                 return None
             return resp.text
-        except Exception:
-            raise
+        except Exception as exc:
+            logger.warning("Unexpected fetch error for %s: %s", url, exc)
+            return None
 
     async def crawl_page(self, url: str, depth: int, client: httpx.AsyncClient) -> list[str]:
         if self._stopped:

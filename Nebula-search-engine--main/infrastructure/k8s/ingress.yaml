@@ -16,7 +16,7 @@ spec:
   tls:
     - hosts:
         - nebula.example.com
-      secretName: nebula-tls
+      secretName: nebula-tls  # Create with: kubectl create secret tls nebula-tls --cert=... --key=...
   rules:
     - host: nebula.example.com
       http:

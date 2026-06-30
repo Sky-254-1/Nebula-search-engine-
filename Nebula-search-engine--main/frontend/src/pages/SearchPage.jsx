@@ -9,7 +9,6 @@ import { useSearch } from '../hooks/useSearch';
 import { useAI } from '../hooks/useAI';
 import { useChat } from '../hooks/useChat';
 import { useSearchState } from '../state/SearchContext';
-import { Spinner } from '../components/ui/Spinner';
 
 export default function SearchPage() {
   const { t } = useTranslation();
@@ -82,7 +81,7 @@ export default function SearchPage() {
         <div className="search-page-results">
           {meta && (
             <p className="results-meta">
-              {meta.total} {t('search.resultsCount', { count: meta.total, query: meta.query }).replace('{count}', meta.total).replace('{query}', meta.query)}
+              {t('search.resultsCount', { count: meta.total, query: meta.query })}
               {meta.cached ? ` ${t('search.cached')}` : ''}
             </p>
           )}
