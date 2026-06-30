@@ -39,7 +39,8 @@ def verify_password_bcrypt(password: str, stored: str) -> bool:
         return _bcrypt.checkpw(
             password.encode("utf-8"), raw.encode("ascii")
         )
-    except Exception:
+    except Exception as exc:
+        logger.warning("verify_password_bcrypt failed: %s", exc)
         return False
 
 
@@ -65,7 +66,8 @@ def verify_password(password: str, stored: str) -> bool:
                 "sha256", password.encode(), salt.encode(), 200_000
             )
             return secrets.compare_digest(dk.hex(), hashed)
-        except Exception:
+        except Exception as exc:
+            logger.warning("Legacy PBKDF2 verification failed: %s", exc)
             return False
 
     # Prefixed PBKDF2
@@ -77,7 +79,8 @@ def verify_password(password: str, stored: str) -> bool:
                 "sha256", password.encode(), salt.encode(), 200_000
             )
             return secrets.compare_digest(dk.hex(), hashed)
-        except Exception:
+        except Exception as exc:
+            logger.warning("Prefixed PBKDF2 verification failed: %s", exc)
             return False
 
     # bcrypt

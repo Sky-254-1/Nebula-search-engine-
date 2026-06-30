@@ -1,5 +1,6 @@
 """CSRF protection middleware using the double-submit cookie pattern."""
 
+import logging
 import secrets
 from typing import Optional
 
@@ -8,6 +9,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from app.config import get_settings
+
+logger = logging.getLogger("nebula.csrf")
 
 settings = get_settings()
 
@@ -80,8 +83,8 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
                 try:
                     form = await request.form()
                     body_token = form.get(self._form_field)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.warning("Failed to parse form data for CSRF check: %s", exc)
 
             submitted_token = header_token or body_token
 

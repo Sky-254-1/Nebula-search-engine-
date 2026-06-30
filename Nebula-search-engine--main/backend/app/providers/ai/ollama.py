@@ -1,6 +1,7 @@
 """Ollama local model provider with streaming."""
 
 import json
+import logging
 from collections.abc import AsyncIterator
 from typing import Optional
 
@@ -9,6 +10,7 @@ import httpx
 from app.config import get_settings
 from app.providers.ai.base import AIProvider
 
+logger = logging.getLogger("nebula.ollama")
 settings = get_settings()
 DEFAULT_SYSTEM = "You are Nebula, a helpful search assistant."
 
@@ -34,7 +36,8 @@ class OllamaProvider(AIProvider):
             message = data.get("message", {})
             content = message.get("content", "").strip()
             return content or None
-        except Exception:
+        except Exception as exc:
+            logger.warning("Ollama complete failed: %s", exc)
             return None
 
     async def stream(self, prompt: str, system: Optional[str] = None) -> AsyncIterator[str]:
@@ -63,7 +66,8 @@ class OllamaProvider(AIProvider):
                                 break
                         except json.JSONDecodeError:
                             continue
-        except Exception:
+        except Exception as exc:
+            logger.warning("Ollama stream failed, falling back to non-streaming: %s", exc)
             answer = await self.complete(prompt, system)
             if answer:
                 yield answer

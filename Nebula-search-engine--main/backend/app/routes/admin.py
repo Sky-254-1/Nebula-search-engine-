@@ -19,10 +19,10 @@ async def get_audit_logs(limit: int = 100, db=Depends(get_db)):
 
 
 @router.get("/users/{user_id}/sessions", dependencies=[Depends(require_admin)])
-async def get_user_sessions(user_id: int, db=Depends(get_db)):
-    # This might need a new method in SessionRepository to list active unique sessions
-    # For now, let's just return a placeholder or implement it.
-    return {"message": "Not fully implemented yet", "user_id": user_id}
+async def get_user_sessions(user_id: int, limit: int = 50, db=Depends(get_db)):
+    sessions = SessionRepository(db)
+    rows = await sessions.list_for_user(user_id, limit)
+    return {"user_id": user_id, "sessions": rows, "count": len(rows)}
 
 
 @router.post("/sessions/{session_id}/revoke", dependencies=[Depends(require_admin)])
