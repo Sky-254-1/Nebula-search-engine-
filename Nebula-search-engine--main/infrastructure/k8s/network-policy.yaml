@@ -60,18 +60,16 @@ spec:
       ports:
         - protocol: TCP
           port: 6379
-    # Allow health check probes from nodes
+    # Allow health check probes from kube-system (nodes)
     - from:
-        - namespaceSelector: {}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: TCP
           port: 8000
         - protocol: TCP
           port: 80
-        - protocol: TCP
-          port: 5432
-        - protocol: TCP
-          port: 6379
   egress:
     # Allow all egress to DNS (port 53)
     - to:

@@ -1,15 +1,25 @@
-FROM python:3.11-slim
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+FROM python:3.11-slim AS runtime
 
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    APP_ENV=production
+    APP_ENV=production \
+    PATH="/root/.local/bin:$PATH"
 
 RUN addgroup --system nebula && adduser --system --ingroup nebula nebula
 
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=builder /root/.local /root/.local
 
 COPY backend/app ./app
 COPY backend/vector ./vector

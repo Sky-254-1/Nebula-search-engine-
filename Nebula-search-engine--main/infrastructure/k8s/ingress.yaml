@@ -11,12 +11,13 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    cert-manager.io/cluster-issuer: nebula-letsencrypt
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
         - nebula.example.com
-      secretName: nebula-tls  # Create with: kubectl create secret tls nebula-tls --cert=... --key=...
+      secretName: nebula-tls  # Auto-provisioned by cert-manager via cluster-issuer.yaml
   rules:
     - host: nebula.example.com
       http:
