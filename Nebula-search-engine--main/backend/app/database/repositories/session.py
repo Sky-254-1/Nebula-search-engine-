@@ -90,6 +90,14 @@ class SessionRepository:
         )
         await self._db.commit()
 
+    async def list_for_user(self, user_id: int, limit: int = 50) -> list[dict]:
+        rows = await self._db.fetchall(
+            """SELECT id, session_id, device_name, expires_at, rotated_at, revoked_reason, created_at
+            FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?""",
+            (user_id, limit),
+        )
+        return [dict(r) for r in rows]
+
     async def delete_expired(self) -> None:
         now = datetime.now(timezone.utc).isoformat()
         await self._db.execute("DELETE FROM sessions WHERE expires_at < ?", (now,))

@@ -2,15 +2,27 @@
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 from app.database import get_db
 from app.database.repositories.search import SearchRepository
+from app.database.repositories.search_click import SearchClickRepository
 from app.database.repositories.user import UserRepository
+from app.indexer.ranker import ranker
 from app.middleware.rate_limit import rate_limit
 from app.models.schemas import OrchestratedSearchResponse, SearchResult
 from app.search.orchestrator import orchestrate_search
 from app.services.auth import get_current_user
 from app.services.search import ALLOWED_BACKENDS, run_web_search
+
+
+class ClickTrackingRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=500)
+    result_url: str = Field(..., min_length=1, max_length=2000)
+    result_title: str | None = Field(default=None, max_length=500)
+    result_position: int | None = Field(default=None, ge=1)
+    backend: str | None = Field(default=None, max_length=50)
+    search_log_id: int | None = None
 
 router = APIRouter(prefix="/api/v1/search", tags=["Search"])
 
@@ -74,6 +86,23 @@ async def orchestrated_search(
     search_repo = SearchRepository(db)
     await search_repo.log_search(user_id, q, ",".join(backend_list), len(payload["results"]))
     return payload
+
+
+@router.post("/click", status_code=204)
+async def track_click(body: ClickTrackingRequest, email: str = Depends(get_current_user), db=Depends(get_db)):
+    users = UserRepository(db)
+    user_id = await users.get_id_by_email(email)
+    click_repo = SearchClickRepository(db)
+    await click_repo.record_click(
+        user_id=user_id,
+        query=body.query,
+        result_url=body.result_url,
+        result_title=body.result_title,
+        result_position=body.result_position,
+        backend=body.backend,
+        search_log_id=body.search_log_id,
+    )
+    ranker.record_click(hash(body.result_url) & 0x7FFFFFFF)
 
 
 @router.get("/history")

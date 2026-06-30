@@ -224,6 +224,32 @@ class CrawlJobScheduler:
 
     async def _schedule_loop(self):
         while self._running:
+            try:
+                now = time.time()
+                for job in list(self._jobs.values()):
+                    if job.schedule_interval is None:
+                        continue
+                    if job.status in (JobStatus.RUNNING, JobStatus.PENDING, JobStatus.STOPPED, JobStatus.FAILED):
+                        continue
+                    last_run = 0.0
+                    if job.completed_at:
+                        try:
+                            dt = datetime.fromisoformat(job.completed_at.replace("Z", "+00:00"))
+                            last_run = dt.timestamp()
+                        except (ValueError, TypeError):
+                            pass
+                    if job.started_at and not job.completed_at:
+                        try:
+                            dt = datetime.fromisoformat(job.started_at.replace("Z", "+00:00"))
+                            last_run = dt.timestamp()
+                        except (ValueError, TypeError):
+                            pass
+                    if now - last_run >= job.schedule_interval:
+                        job.status = JobStatus.PENDING
+                        await self._queue.put((job.priority, time.time(), job.id))
+                        logger.info("Re-queued scheduled job %s for %s", job.id, job.url)
+            except Exception as exc:
+                logger.exception("Schedule loop error: %s", exc)
             await asyncio.sleep(30)
 
     async def start(self):

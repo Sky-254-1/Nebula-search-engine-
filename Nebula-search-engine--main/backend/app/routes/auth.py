@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app.database import get_db
+from app.database.repositories.api_key import APIKeyRepository
 from app.database.repositories.audit import AuditRepository
 from app.database.repositories.session import SessionRepository
 from app.database.repositories.user import UserRepository
@@ -255,3 +256,47 @@ async def logout_all(request: Request, response: Response, db=Depends(get_db), e
 @router.get("/me")
 async def get_me(email: str = Depends(get_current_user)):
     return {"email": email}
+
+
+# ---------------------------------------------------------------------------
+# API Key management
+# ---------------------------------------------------------------------------
+
+
+@router.post("/api-keys")
+async def create_api_key(name: str = "default", db=Depends(get_db), email: str = Depends(get_current_user)):
+    from app.services.security import generate_api_key as _gen_key
+
+    users = UserRepository(db)
+    user = await users.get_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    raw_key, hashed_key = _gen_key()
+    prefix = settings.api_key_prefix
+    repo = APIKeyRepository(db)
+    kid = await repo.create(user["id"], hashed_key, prefix, name)
+    return {"id": kid, "api_key": raw_key, "name": name, "detail": "Save this key — it will not be shown again"}
+
+
+@router.get("/api-keys")
+async def list_api_keys(db=Depends(get_db), email: str = Depends(get_current_user)):
+    users = UserRepository(db)
+    user = await users.get_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    repo = APIKeyRepository(db)
+    keys = await repo.list_for_user(user["id"])
+    return {"api_keys": keys}
+
+
+@router.delete("/api-keys/{key_id}", status_code=204)
+async def revoke_api_key(key_id: int, db=Depends(get_db), email: str = Depends(get_current_user)):
+    users = UserRepository(db)
+    user = await users.get_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    repo = APIKeyRepository(db)
+    existing = await repo.get_by_id(key_id, user["id"])
+    if not existing:
+        raise HTTPException(status_code=404, detail="API key not found")
+    await repo.revoke(key_id, user["id"])
