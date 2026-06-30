@@ -15,7 +15,7 @@ async def test_oauth2_login_redirect(client: AsyncClient):
     resp = await client.get("/api/v1/auth/oauth2/google/login", follow_redirects=False)
     assert resp.status_code == 302
     location = resp.headers.get("location", "")
-    assert "accounts.google.com" in location
+    assert location.startswith("https://accounts.google.com/")
     assert "client_id=" in location
     assert "response_type=code" in location
 

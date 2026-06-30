@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from pydantic import AnyUrl, ValidationError
 
 from app.config import get_settings
 from app.database import get_db
@@ -33,6 +34,21 @@ settings = get_settings()
 router = APIRouter(prefix="/api/v1/auth/oauth2", tags=["OAuth2"])
 
 
+def _validate_redirect_url(url: str) -> str:
+    """Validate redirect URL is well-formed and matches allowed frontend origin."""
+    try:
+        parsed = AnyUrl(url)
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid redirect URL: {exc}")
+    allowed_origin = settings.oauth2_frontend_redirect_uri.rstrip("/")
+    origin = f"{parsed.scheme}://{parsed.host}"
+    if parsed.port:
+        origin += f":{parsed.port}"
+    if origin != allowed_origin:
+        raise HTTPException(status_code=400, detail="Redirect URL not allowed")
+    return url
+
+
 @router.get("/{provider}/login")
 async def oauth2_login(provider: str):
     if provider not in OAUTH2_PROVIDERS:
@@ -44,6 +60,8 @@ async def oauth2_login(provider: str):
     await cache_service.set(f"oauth2_state:{state}", provider, ttl=600)
 
     authorize_url = get_authorize_url(provider, state)
+    if not any(authorize_url.startswith(base) for base in settings.oauth2_authorize_bases):
+        raise HTTPException(status_code=400, detail="Invalid authorize URL")
     return RedirectResponse(url=authorize_url, status_code=302)
 
 
@@ -63,26 +81,26 @@ async def oauth2_callback(
 
     if error:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': error})}",
+            url=f"{_validate_redirect_url(frontend_base)}?error={urlencode({'error': error})}",
             status_code=302,
         )
 
     if not code:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'Authorization code missing'})}",
+            url=f"{_validate_redirect_url(frontend_base)}?error={urlencode({'error': 'Authorization code missing'})}",
             status_code=302,
         )
 
     if not state:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'State parameter missing'})}",
+            url=f"{_validate_redirect_url(frontend_base)}?error={urlencode({'error': 'State parameter missing'})}",
             status_code=302,
         )
 
     stored_provider = await cache_service.get(f"oauth2_state:{state}")
     if not stored_provider or stored_provider != provider:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'Invalid or expired state parameter'})}",
+            url=f"{_validate_redirect_url(frontend_base)}?error={urlencode({'error': 'Invalid or expired state parameter'})}",
             status_code=302,
         )
     await cache_service.delete(f"oauth2_state:{state}")
@@ -91,14 +109,14 @@ async def oauth2_callback(
         token_data = await exchange_code(provider, code)
     except Exception as exc:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': f'Token exchange failed: {exc}'})}",
+            url=f"{_validate_redirect_url(frontend_base)}?error={urlencode({'error': f'Token exchange failed: {exc}'})}",
             status_code=302,
         )
 
     access_token = token_data.get("access_token")
     if not access_token:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'Failed to obtain access token'})}",
+            url=f"{_validate_redirect_url(frontend_base)}?error={urlencode({'error': 'Failed to obtain access token'})}",
             status_code=302,
         )
 
@@ -106,7 +124,7 @@ async def oauth2_callback(
         user_info = await get_user_info(provider, access_token)
     except Exception as exc:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': f'Failed to fetch user info: {exc}'})}",
+            url=f"{_validate_redirect_url(frontend_base)}?error={urlencode({'error': f'Failed to fetch user info: {exc}'})}",
             status_code=302,
         )
 
@@ -117,7 +135,7 @@ async def oauth2_callback(
 
     if not email:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'Email not provided by OAuth provider'})}",
+            url=f"{_validate_redirect_url(frontend_base)}?error={urlencode({'error': 'Email not provided by OAuth provider'})}",
             status_code=302,
         )
 
@@ -144,7 +162,7 @@ async def oauth2_callback(
             user_row = await user_repo.get_by_email(email)
             if not user_row:
                 return RedirectResponse(
-                    url=f"{frontend_base}?error={urlencode({'error': 'Failed to create user'})}",
+                    url=f"{_validate_redirect_url(frontend_base)}?error={urlencode({'error': 'Failed to create user'})}",
                     status_code=302,
                 )
             user_id = user_row["id"]
@@ -159,7 +177,7 @@ async def oauth2_callback(
     user_row = await user_repo.get_by_id(user_id)
     if not user_row:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'User not found'})}",
+            url=f"{_validate_redirect_url(frontend_base)}?error={urlencode({'error': 'User not found'})}",
             status_code=302,
         )
 
@@ -187,7 +205,7 @@ async def oauth2_callback(
         "access_token": jwt_access_token,
         "refresh_token": refresh_token,
     })
-    return RedirectResponse(url=f"{frontend_base}?{params}", status_code=302)
+    return RedirectResponse(url=f"{_validate_redirect_url(frontend_base)}?{params}", status_code=302)
 
 
 @router.get("/{provider}/accounts")

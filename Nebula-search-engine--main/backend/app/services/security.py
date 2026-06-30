@@ -213,19 +213,19 @@ def generate_api_key() -> Tuple[str, str]:
     """
     raw = secrets.token_urlsafe(settings.api_key_length)
     prefixed = f"{settings.api_key_prefix}{raw}"
-    hashed = hashlib.sha256(prefixed.encode()).hexdigest()
+    hashed = hashlib.pbkdf2_hmac("sha256", prefixed.encode(), b"nebula-apikey-salt", 100_000).hex()
     return prefixed, hashed
 
 
 def validate_api_key(raw_key: str, hashed_key: str) -> bool:
     """Validate a raw API key against its stored hash."""
-    computed = hashlib.sha256(raw_key.encode()).hexdigest()
+    computed = hashlib.pbkdf2_hmac("sha256", raw_key.encode(), b"nebula-apikey-salt", 100_000).hex()
     return secrets.compare_digest(computed, hashed_key)
 
 
 def hash_api_key(raw_key: str) -> str:
-    """Return the SHA-256 digest of an API key (for storage comparison)."""
-    return hashlib.sha256(raw_key.encode()).hexdigest()
+    """Return the PBKDF2-SHA256 digest of an API key (for storage comparison)."""
+    return hashlib.pbkdf2_hmac("sha256", raw_key.encode(), b"nebula-apikey-salt", 100_000).hex()
 
 
 # ---------------------------------------------------------------------------

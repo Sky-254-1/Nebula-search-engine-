@@ -109,7 +109,7 @@ class TestCORSParsing:
         from app.config import get_settings
         origins = get_settings().cors_origin_list
         assert len(origins) == 3
-        assert "http://a.com" in origins
+        assert any(o == "http://a.com" for o in origins)
 
     def test_cors_wildcard(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setenv("CORS_ORIGINS", "*")
@@ -148,7 +148,7 @@ class TestCSPPolicyGeneration:
         from app.config import get_settings
         policy = get_settings().csp_policy
         assert "default-src 'none'" in policy
-        assert "cdn.example.com" in policy
+        assert "https://cdn.example.com" in policy
 
 
 class TestStoragePaths:

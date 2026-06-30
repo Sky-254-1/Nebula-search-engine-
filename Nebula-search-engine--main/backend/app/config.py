@@ -187,6 +187,12 @@ class Settings:
     oauth2_frontend_redirect_uri: str = field(
         default_factory=lambda: os.getenv("OAUTH2_FRONTEND_REDIRECT_URI", "http://localhost:5173/oauth/callback")
     )
+    oauth2_authorize_bases: list[str] = field(
+        default_factory=lambda: [
+            "https://accounts.google.com/o/oauth2/",
+            "https://github.com/login/oauth/authorize",
+        ]
+    )
 
     # === API Key Settings ===
     api_key_length: int = field(
