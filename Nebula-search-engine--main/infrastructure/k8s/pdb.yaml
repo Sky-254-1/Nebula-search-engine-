@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nebula-backend-pdb
+  namespace: nebula
+  labels:
+    app.kubernetes.io/name: nebula-backend
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: nebula
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nebula-backend
