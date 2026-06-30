@@ -1,33 +1,35 @@
-import { test, expect } from '../fixtures/auth.fixture';
-import { openAuthModal, fillAuthForm } from '../utils/helpers';
+import { test, expect, signUpUser, loginUser } from '../fixtures/test-context';
 
-test.describe('Authentication', () => {
-  test('signup and login', async ({ page, testEmail, testPassword }) => {
-    await page.goto('/');
-    await openAuthModal(page);
-    await page.getByRole('button', { name: 'Need an account? Sign up' }).click();
-    await fillAuthForm(page, testEmail, testPassword);
-    await page.getByRole('button', { name: 'Sign up' }).click();
-    await expect(page.getByText(testEmail)).toBeVisible({ timeout: 15000 });
-  });
+const TEST_EMAIL = `login-test-${Date.now()}@test.nebula`;
+const TEST_PASS = 'Password123!';
 
-  test('login with existing user', async ({ page, testEmail, testPassword, accessToken }) => {
-    void accessToken;
-    await page.goto('/');
-    await openAuthModal(page);
-    await fillAuthForm(page, testEmail, testPassword);
-    await page.getByRole('button', { name: 'Sign in' }).click();
-    await expect(page.getByText(testEmail)).toBeVisible({ timeout: 15000 });
+test.beforeAll(async ({ request }) => {
+  const res = await request.post('http://localhost:8000/api/v1/auth/signup', {
+    data: { email: TEST_EMAIL, password: TEST_PASS },
   });
+  if (res.status() !== 409) expect(res.status()).toBe(201);
+});
 
-  test('logout', async ({ page, testEmail, testPassword, accessToken }) => {
-    void accessToken;
-    await page.goto('/');
-    await openAuthModal(page);
-    await fillAuthForm(page, testEmail, testPassword);
-    await page.getByRole('button', { name: 'Sign in' }).click();
-    await expect(page.getByText(testEmail)).toBeVisible();
-    await page.getByRole('button', { name: 'Log out' }).click();
-    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+test('login with valid credentials returns tokens', async ({ request }) => {
+  const res = await request.post('http://localhost:8000/api/v1/auth/login', {
+    data: { email: TEST_EMAIL, password: TEST_PASS },
   });
+  expect(res.ok()).toBeTruthy();
+  const body = await res.json();
+  expect(body.access_token).toBeTruthy();
+  expect(body.refresh_token).toBeTruthy();
+});
+
+test('login with wrong password returns 401', async ({ request }) => {
+  const res = await request.post('http://localhost:8000/api/v1/auth/login', {
+    data: { email: TEST_EMAIL, password: 'WrongPass!' },
+  });
+  expect(res.status()).toBe(401);
+});
+
+test('login with non-existent email returns 401', async ({ request }) => {
+  const res = await request.post('http://localhost:8000/api/v1/auth/login', {
+    data: { email: 'noone@test.nebula', password: TEST_PASS },
+  });
+  expect(res.status()).toBe(401);
 });

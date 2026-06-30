@@ -21,3 +21,4 @@ resources:
   - ingress.yaml
   - network-policy.yaml
   - pdb.yaml
+  - cluster-issuer.yaml

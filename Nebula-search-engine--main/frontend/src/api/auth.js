@@ -21,5 +21,12 @@ export function createAuthApi(authedFetch, setTokens, getTokens, clearTokens) {
       clearTokens();
     },
     me: () => authedFetch('/auth/me'),
+    updateProfile: (data) =>
+      authedFetch('/auth/profile', { method: 'PUT', body: JSON.stringify(data) }),
+    changePassword: (currentPassword, newPassword) =>
+      authedFetch('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+      }),
   };
 }

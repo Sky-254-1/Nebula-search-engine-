@@ -20,7 +20,10 @@ function ProfileContent() {
     e.preventDefault();
     setSaving(true);
     try {
-      toast.success('Profile updated');
+      if (api.updateProfile) {
+        await api.updateProfile({ name });
+      }
+      toast.success(t('common.save'));
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -30,8 +33,15 @@ function ProfileContent() {
 
   async function handleChangePassword(e) {
     e.preventDefault();
+    if (!currentPassword || !newPassword) {
+      toast.error('Both fields are required');
+      return;
+    }
     setSaving(true);
     try {
+      if (api.changePassword) {
+        await api.changePassword(currentPassword, newPassword);
+      }
       toast.success('Password changed');
       setCurrentPassword('');
       setNewPassword('');

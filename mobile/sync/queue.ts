@@ -1,5 +1,5 @@
 import { Preferences } from '@capacitor/preferences';
-import { config } from './config';
+import { config } from '../src/config';
 
 export type SyncJob = {
   id: string;

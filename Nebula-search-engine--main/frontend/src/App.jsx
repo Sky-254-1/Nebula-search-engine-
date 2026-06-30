@@ -1,7 +1,5 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from './lib/query-client';
 import { AuthProvider } from './auth/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SearchProvider } from './state/SearchContext';
@@ -21,6 +19,9 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const DocumentsPage = lazy(() =>
+  import('./pages/DocumentsPage').then((m) => ({ default: m.DocumentsPage }))
+);
 
 function PageLoader() {
   return (
@@ -32,33 +33,32 @@ function PageLoader() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        <AuthProvider>
-          <SearchProvider>
-            <BrowserRouter>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/oauth/callback" element={<OAuthCallback />} />
-                  <Route element={<RootLayout />}>
-                    <Route path="/search" element={<SearchPage />} />
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/analytics" element={<AnalyticsPage />} />
-                    <Route path="/admin" element={<AdminPage />} />
-                    <Route path="/history" element={<HistoryPage />} />
-                  </Route>
-                  <Route path="/legacy" element={<LegacyRedirect />} />
-                </Routes>
-              </Suspense>
-            </BrowserRouter>
-            <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
-          </SearchProvider>
-        </AuthProvider>
-      </ErrorBoundary>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <SearchProvider>
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/oauth/callback" element={<OAuthCallback />} />
+                <Route element={<RootLayout />}>
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/analytics" element={<AnalyticsPage />} />
+                  <Route path="/admin" element={<AdminPage />} />
+                  <Route path="/history" element={<HistoryPage />} />
+                  <Route path="/documents" element={<DocumentsPage />} />
+                </Route>
+                <Route path="/legacy" element={<LegacyRedirect />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+          <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
+        </SearchProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

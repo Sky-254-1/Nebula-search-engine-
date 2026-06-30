@@ -44,6 +44,8 @@ async def web_search(
 
     try:
         results = await run_web_search(q, backend, page, page_size)
+    except HTTPException:
+        raise
     except httpx.HTTPStatusError as exc:
         raise HTTPException(
             status_code=502,
@@ -76,6 +78,8 @@ async def orchestrated_search(
     backend_list = [b.strip() for b in backends.split(",") if b.strip()]
     try:
         payload = await orchestrate_search(q, backend_list, page, page_size)
+    except HTTPException:
+        raise
     except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=502, detail=f"Search backend error: {exc.response.status_code}") from exc
     except httpx.RequestError as exc:

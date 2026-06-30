@@ -14,7 +14,8 @@
     "admin": "Admin",
     "signIn": "Sign in",
     "signOut": "Sign out",
-    "signUp": "Sign up"
+    "signUp": "Sign up",
+    "documents": "Documents"
   },
   "search": {
     "placeholder": "Search the web with Nebula…",
@@ -84,6 +85,7 @@
     "aiSettings": "AI settings",
     "aiProvider": "AI provider preference",
     "privacy": "Privacy",
+    "theme": "Theme",
     "notifications": "Notifications",
     "exportData": "Export data",
     "deleteAccount": "Delete account",

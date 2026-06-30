@@ -14,7 +14,8 @@
     "admin": "Admin",
     "signIn": "Iniciar sesión",
     "signOut": "Cerrar sesión",
-    "signUp": "Registrarse"
+    "signUp": "Registrarse",
+    "documents": "Documentos"
   },
   "search": {
     "placeholder": "Busca en la web con Nebula…",
@@ -84,6 +85,7 @@
     "aiSettings": "Ajustes de IA",
     "aiProvider": "Preferencia de proveedor IA",
     "privacy": "Privacidad",
+    "theme": "Tema",
     "notifications": "Notificaciones",
     "exportData": "Exportar datos",
     "deleteAccount": "Eliminar cuenta",

@@ -24,6 +24,11 @@ spec:
         app.kubernetes.io/component: worker
         app.kubernetes.io/part-of: nebula
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       terminationGracePeriodSeconds: 60
       containers:
         - name: vector-worker
@@ -42,6 +47,11 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
           volumeMounts:
             - name: storage
               mountPath: /app/storage

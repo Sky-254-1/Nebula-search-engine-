@@ -24,6 +24,11 @@ spec:
         app.kubernetes.io/component: frontend
         app.kubernetes.io/part-of: nebula
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1010
+        runAsGroup: 1010
+        fsGroup: 1010
       terminationGracePeriodSeconds: 30
       containers:
         - name: frontend
@@ -54,3 +59,8 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

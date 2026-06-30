@@ -46,7 +46,7 @@ def _set_auth_cookies(response: Response, access_token: str, refresh_token: str)
         value=refresh_token,
         httponly=True,
         secure=settings.cookie_secure,
-        samesite="strict",
+        samesite=settings.cookie_samesite,
         max_age=settings.refresh_token_days * 86400,
     )
 
@@ -254,8 +254,50 @@ async def logout_all(request: Request, response: Response, db=Depends(get_db), e
 
 
 @router.get("/me")
-async def get_me(email: str = Depends(get_current_user)):
-    return {"email": email}
+async def get_me(email: str = Depends(get_current_user), db=Depends(get_db)):
+    users = UserRepository(db)
+    user = await users.get_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"email": user["email"], "role": user["role"], "id": user["id"]}
+
+
+@router.put("/profile")
+async def update_profile(body: dict, db=Depends(get_db), email: str = Depends(get_current_user)):
+    from app.database.repositories.settings import SettingsRepository
+
+    if not body:
+        raise HTTPException(status_code=400, detail="Request body required")
+    users = UserRepository(db)
+    user = await users.get_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    settings_repo = SettingsRepository(db)
+    current = await settings_repo.get_for_user(user["id"])
+    current.update({k: v for k, v in body.items() if k in ("name", "avatar_url", "preferences")})
+    await settings_repo.upsert(user["id"], current)
+    return {"message": "Profile updated"}
+
+
+@router.post("/change-password")
+async def change_password(body: dict, db=Depends(get_db), email: str = Depends(get_current_user)):
+    current_password = (body or {}).get("current_password", "")
+    new_password = (body or {}).get("new_password", "")
+    if not current_password or not new_password:
+        raise HTTPException(status_code=400, detail="Current and new passwords required")
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters")
+
+    users = UserRepository(db)
+    user = await users.get_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(current_password, user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    new_hashed = hash_password(new_password)
+    await users.update_password(user["id"], new_hashed)
+    return {"message": "Password changed successfully"}
 
 
 # ---------------------------------------------------------------------------
@@ -264,8 +306,12 @@ async def get_me(email: str = Depends(get_current_user)):
 
 
 @router.post("/api-keys")
-async def create_api_key(name: str = "default", db=Depends(get_db), email: str = Depends(get_current_user)):
+async def create_api_key(name: str = Query("default", min_length=1, max_length=100), db=Depends(get_db), email: str = Depends(get_current_user)):
     from app.services.security import generate_api_key as _gen_key
+
+    if not name or not name.strip():
+        raise HTTPException(status_code=400, detail="API key name is required")
+    name = name.strip()
 
     users = UserRepository(db)
     user = await users.get_by_email(email)
