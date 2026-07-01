@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.database import init_db
 from app.middleware.security import SecurityHeadersMiddleware
-from app.routes import admin, ai, auth, health, search, storage, vector
+from app.routes import admin, ai, audio, auth, health, search, storage, vector
 from app.services.cache import cache_service
 from app.services.queue import job_queue
 
@@ -145,6 +145,7 @@ app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(search.router)
 app.include_router(ai.router)
+app.include_router(audio.router)
 app.include_router(storage.router)
 app.include_router(vector.router)
 

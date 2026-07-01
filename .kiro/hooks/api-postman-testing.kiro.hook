@@ -1,15 +1,38 @@
 {
   "enabled": true,
   "name": "API Postman Testing",
-  "description": "Monitors API source code changes in the backend and automatically runs Postman collection tests to validate functionality",
+  "description": "Monitors API source code changes across multiple programming languages and automatically runs Postman collection tests to validate functionality",
   "version": "1",
   "when": {
     "type": "fileEdited",
     "patterns": [
+      "backend/**/*.js",
+      "backend/**/*.ts",
       "backend/**/*.py",
+      "backend/**/*.java",
+      "backend/**/*.cs",
+      "backend/**/*.go",
+      "backend/**/*.rs",
+      "backend/**/*.php",
+      "backend/**/*.rb",
+      "frontend/**/*.js",
+      "frontend/**/*.ts",
+      "package.json",
       "backend/requirements.txt",
-      "backend/requirements.lock",
-      "backend/app/**/*.py"
+      "backend/Pipfile",
+      "pom.xml",
+      "build.gradle",
+      "*.csproj",
+      "go.mod",
+      "Cargo.toml",
+      "composer.json",
+      "Gemfile",
+      "openapi.yaml",
+      "openapi.yml",
+      "swagger.yaml",
+      "swagger.yml",
+      "api.yaml",
+      "api.yml"
     ]
   },
   "then": {
