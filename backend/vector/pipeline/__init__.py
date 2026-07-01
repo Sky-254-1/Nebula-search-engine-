@@ -181,9 +181,13 @@ async def hybrid_search(
     from vector.retrieval import retrieve_chunks
     from vector.citations import CitationRepository
 
+    sessions = SearchSessionRepository(db)
+    session_id = await sessions.create(user_id, query, mode="hybrid")
+
     embed_repo = EmbeddingRepository(db)
     candidates = await embed_repo.candidates_for_user(user_id)
     if not candidates:
+        await sessions.complete(session_id, 0, '{"reason":"no_candidates"}')
         return []
 
     query_vec, _, _ = await embed_text(query)
@@ -200,4 +204,24 @@ async def hybrid_search(
             item.get("content", "")[:500],
             item.get("score", 0),
         )
+
+    await sessions.complete(session_id, len(results))
     return results
+
+
+async def reindex_all_documents(
+    db: DatabaseConnection, user_id: int, limit: int = 100
+) -> dict[str, int]:
+    docs = DocumentRepository(db)
+    rows = await docs.list_for_user(user_id, limit=limit)
+    stats = {"total": len(rows), "success": 0, "failed": 0}
+    for row in rows:
+        try:
+            if await index_document(db, row["id"], user_id):
+                stats["success"] += 1
+            else:
+                stats["failed"] += 1
+        except Exception:
+            logger.exception("Reindex failed for doc %s", row["id"])
+            stats["failed"] += 1
+    return stats

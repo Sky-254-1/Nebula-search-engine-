@@ -35,3 +35,12 @@ class CitationRepository:
             (user_id, limit),
         )
         return [dict(row) for row in rows]
+
+    async def list_by_query(self, user_id: int, query: str, limit: int = 20) -> list[dict]:
+        rows = await self._db.fetchall(
+            "SELECT id, document_id, chunk_id, query, snippet, score, created_at "
+            "FROM citations WHERE user_id = ? AND query = ? "
+            "ORDER BY score DESC, created_at DESC LIMIT ?",
+            (user_id, query, limit),
+        )
+        return [dict(row) for row in rows]

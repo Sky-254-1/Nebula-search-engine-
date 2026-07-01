@@ -19,3 +19,7 @@ storage/index/*
 htmlcov/
 .pytest_cache/
 node_modules/
+docker-compose.override.yml
+*.pid
+*.seed
+*.pid.lock

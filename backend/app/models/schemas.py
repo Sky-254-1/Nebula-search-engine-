@@ -153,3 +153,15 @@ class VectorCitationListResponse(BaseModel):
 
 class VectorReindexRequest(BaseModel):
     limit: int | None = Field(default=100, ge=1, le=500)
+
+
+class VectorAskRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=500)
+    top_k: int = Field(default=5, ge=1, le=20)
+
+
+class VectorAskResponse(BaseModel):
+    query: str
+    answer: str
+    citations: list[VectorCitationResponse]
+    sources: list[str]

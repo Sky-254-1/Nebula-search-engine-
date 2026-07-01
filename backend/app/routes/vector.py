@@ -8,6 +8,8 @@ from app.database.repositories.export import ExportRepository
 from app.database.repositories.user import UserRepository
 from app.models.schemas import (
     DocumentIndexStatusResponse,
+    VectorAskRequest,
+    VectorAskResponse,
     VectorCitationListResponse,
     VectorCitationResponse,
     VectorReindexRequest,
@@ -15,9 +17,15 @@ from app.models.schemas import (
     VectorSearchResponse,
     VectorSearchResult,
 )
+from app.services.ai import synthesize_snippets
 from app.services.auth import get_current_user
 from app.services.queue import job_queue
-from vector.pipeline import ChunkRepository, EmbeddingRepository, hybrid_search, index_document
+from vector.pipeline import (
+    ChunkRepository,
+    EmbeddingRepository,
+    hybrid_search,
+    index_document,
+)
 
 router = APIRouter(prefix="/api/v1/vector", tags=["Vector"])
 
@@ -80,6 +88,50 @@ async def reindex_all(
             {"document_id": row["id"], "user_id": user_id},
         )
     return {"message": "Reindex queued", "count": len(rows)}
+
+
+@router.post("/ask", response_model=VectorAskResponse)
+async def vector_ask(
+    body: VectorAskRequest,
+    email: str = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """RAG-style answer over indexed documents with citations and sources."""
+    user_id = await _user_id(db, email)
+    results = await hybrid_search(db, user_id, body.query, top_k=body.top_k)
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No indexed documents match this query. Upload and index documents first.",
+        )
+
+    snippets = [r.get("content", "") for r in results if r.get("content")]
+    synth = await synthesize_snippets(body.query, snippets)
+    answer = synth.synthesis or "No summary could be generated from your documents."
+
+    from vector.citations import CitationRepository
+
+    citations_repo = CitationRepository(db)
+    citation_rows = await citations_repo.list_by_query(user_id, body.query, limit=body.top_k)
+    sources = sorted({r.get("filename", "") for r in results if r.get("filename")})
+
+    return VectorAskResponse(
+        query=body.query,
+        answer=answer,
+        citations=[
+            VectorCitationResponse(
+                id=r["id"],
+                document_id=r.get("document_id"),
+                chunk_id=r.get("chunk_id"),
+                query=r["query"],
+                snippet=r.get("snippet"),
+                score=r.get("score", 0),
+                created_at=str(r.get("created_at", "")),
+            )
+            for r in citation_rows
+        ],
+        sources=sources,
+    )
 
 
 @router.post("/search", response_model=VectorSearchResponse)
