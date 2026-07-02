@@ -22,8 +22,9 @@ COPY --from=builder /root/.local /root/.local
 
 COPY backend/app ./app
 COPY backend/vector ./vector
+COPY docker/scheduler-entrypoint.sh /app/scheduler-entrypoint.sh
 
-RUN mkdir -p /app/storage && chown -R nebula:nebula /app
+RUN mkdir -p /app/storage && chown -R nebula:nebula /app /app/scheduler-entrypoint.sh && chmod +x /app/scheduler-entrypoint.sh
 
 USER nebula
 
@@ -32,4 +33,4 @@ EXPOSE 8000/tcp
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info", "--no-access-log"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]

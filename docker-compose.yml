@@ -1,2 +1,4 @@
-include:
-  - docker/docker-compose.yml
+# Root Compose entrypoint
+# Canonical service definitions live in docker/docker-compose.yml
+# Use: docker compose -f docker/docker-compose.yml up
+# Or use scripts/start.ps1 / scripts/start.sh

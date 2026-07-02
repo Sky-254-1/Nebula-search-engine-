@@ -9,81 +9,118 @@
 | backend   | docker/Dockerfile         | 8000                | FastAPI REST server             |
 | worker    | docker/Dockerfile         | internal            | Background indexing jobs        |
 | scheduler | docker/Dockerfile         | internal            | Periodic background heartbeat   |
-| frontend  | docker/frontend.Dockerfile| 3000                | Vite → Nginx static assets      |
-| nginx     | nginx:1.25-alpine         | 80                  | Reverse proxy / static Hosting  |
+| frontend  | docker/frontend.Dockerfile| 3000 (prod) / 5173 (dev) | Vite dev or nginx static |
+| nginx     | nginx:1.25-alpine         | 80                  | Reverse proxy / static hosting  |
 | storage   | minio/minio               | 9000/9001           | S3-compatible object storage    |
 | monitoring| prom/prometheus           | 9090                | Metrics scrape & alerting       |
 
 ## 2. Networking
 
-* `nebula-internal` (bridge, internal: true) — postgres, redis, backend, worker, scheduler, storage
+* `nebula-internal` (bridge, `internal: true`) — postgres, redis, backend, worker, scheduler, storage  
 * `nebula-public` (bridge) — backend, frontend, nginx, storage, monitoring
 
-Only `backend` and `nginx` expose ports externally. All services communicate on the `nebula-internal` network without IP exposure.
+Only `backend` and `nginx` expose ports externally. All service-to-service traffic stays on the internal bridge.
 
 ## 3. Startup Order
 
 1. infrastructure: postgres, redis
 2. data: storage (minio)
-3. compute: backend (depends on postgres + redis)
-4. background: worker, scheduler (depend on postgres + redis)
-5. edge: frontend (depends on backend)
-6. proxy: nginx (depends on frontend + backend)
+3. compute: backend (waits for postgres + redis health)
+4. background: worker, scheduler
+5. edge: frontend
+6. proxy: nginx (waits for frontend + backend)
 7. monitoring: prometheus
 
-Startup is orchestrated via `depends_on` + `healthcheck` conditions in Docker Compose.
+Startup is enforced by `depends_on` with `condition: service_healthy` on every dependent service.
 
 ## 4. Data Volumes
 
 | Volume         | Service   | Backup Strategy               | Restore                        |
 |----------------|-----------|-------------------------------|--------------------------------|
-| postgres-data  | postgres  | Nightly `pg_dump | gzip`      | `gunzip | psql` from backup    |
-| redis-data     | redis     | Optional RDB/AOF snapshot     | Replace volume with snapshot   |
+| postgres-data  | postgres  | Nightly `pg_dump` to `.sql`   | Restore via `psql < backup.sql` |
 | nebula-storage | backend   | Included in `database/backups`| Restore from backup archive    |
-| minio-data     | storage   | Recurring minio mirror batch  | Replace volume or mc cp remote |
-| prometheus-data| prometheus| Exported via remote storage    | Restore from snapshot          |
+| minio-data     | storage   | Recurring minio mirror batch  | Replace volume or remote copy   |
+| prometheus-data| monitoring | Remote write / snapshots     | Restore from snapshot          |
 
-Backups are stored under `database/backups/`. Use scripts/backup.ps1.
+Backups are stored under `database/backups/`. Use `scripts/backup.ps1`.
 
-## 5. Security
+## 5. Security Hardening
 
-* **Non-root containers**: backend, frontend, nginx run as non-root users.
-* **Image minimization**: multi-stage builds, `-slim` / `-alpine` base images.
-* **Read-only mounts**: source code mounted read-only in production.
-* **Secrets handling**: environment variables injected via `.env` (never committed). For production, use Docker Secrets or a vault.
-* **Health checks**: every service exposes a healthcheck to enforce startup ordering.
-* **Network isolation**: internal services are not reachable from outside the bridge.
+* **Non-root execution**: backend (user `nebula`), frontend (user `nginx`), nginx (user `nginx`).
+* **Multi-stage images**: backend uses `python:3.11-slim` with a builder stage; frontend uses `node:20-alpine` build + `nginx:1.25-alpine`.
+* **Read-only mounts**: in production, source code is mounted read-only.
+* **Security headers**: nginx sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and `Referrer-Policy`.
+* **Secrets handling**: environment variables injected via `.env` (never committed). Production should use Docker Secrets or Vault.
+* **Network isolation**: internal services are unreachable from outside the bridge.
+* **Health checks**: every service has a healthcheck to enforce startup ordering.
+* **Image minimization**: one service per container, minimal base images, no build tools in runtime images.
 
 ## 6. Development Workflow
 
 ```powershell
-# First time setup
+# First-time setup
 copy backend\.env.example backend\.env
+
+# Start all services in hot-reload mode
+.\scripts\start.ps1
+
+# Tail logs
+.\scripts\logs.ps1                  # all services
+.\scripts\logs.ps1 backend          # single service
+
+# Apply database migrations
 .\scripts\migrations.ps1
-.\scripts\start.ps1           # development mode
-.\scripts\logs.ps1             # tail logs
-.\scripts\migrations.ps1       # apply new migrations
-.\scripts\test.ps1             # run pytest suite
-.\scripts\stop.ps1             # bring down containers
-.\scripts\reset.ps1            # reset volumes and rebuild
+
+# Run tests inside the backend container
+.\scripts\test.ps1
+
+# Stop services
+.\scripts\stop.ps1
+
+# Nuclear reset (removes volumes, rebuilds images)
+.\scripts\reset.ps1
+
+# Backup current database
+.\scripts\backup.ps1
+
+# Restore from backup
+.\scripts\restore.ps1 .\database\backups\nebula_20240101_120000.sql
 ```
+
+The dev override (`docker/docker-compose.dev.yml`) enables:
+* Hot-reload backend via `uvicorn --reload`
+* Editable mounts for `backend/`, `backend/vector/`, `frontend/`, and `tests/`
+* Vite dev server on `frontend:5173` (proxied through nginx on `:3000`)
+* Faster health checks (5–10s intervals)
 
 ## 7. Production Workflow
 
 ```powershell
-# Configure backend\.env with production secrets
-.\scripts\backup.ps1
-.\scripts\start.ps1 prod       # production mode
-.\scripts\migrations.ps1
+# Configure secrets
+copy .env.example .env
+notepad .env
+notepad backend\.env
+
+# Build and start in production mode
+.\scripts\start.ps1 prod
+
+# Tail logs
 .\scripts\logs.ps1
+
+# Apply migrations
+.\scripts\migrations.ps1
+
+# Backup
+.\scripts\backup.ps1
 ```
 
-Production override (`docker-compose.prod.yml`) sets:
-* 2 backend workers
-* Multiple worker replicas
-* Resource limits and monitoring
-* Log rotation (`json-file`, max 10MB, max 3 files)
-* Rollback via `failure_action: rollback`
+The production override (`docker-compose.prod.yml`) adds:
+* 2 backend replicas (Scaling via `deploy.replicas`)
+* 2 worker replicas
+* Resource limits on every service
+* Log rotation (`json-file`, max 10MB × 3 files)
+* `restart_policy` with automatic failure recovery
+* `failure_action: rollback` for zero-downtime updates
 
 ## 8. Container Dependency Map
 
@@ -100,43 +137,92 @@ frontend  <-- nginx
 
 ## 9. Deployment Checklist
 
-* [ ] `backend/.env` configured with production secrets (JWT_SECRET, DATABASE_URL, etc.)
-* [ ] `.env` not committed to version control
-* [ ] Images tagged and pushed to container registry (docker hub or private)
-* [ ] PostgreSQL backups scheduled and tested (restore procedure verified)
+* [ ] `backend/.env` configured with production secrets (`JWT_SECRET`, `DATABASE_URL`, etc.)
+* [ ] `POSTGRES_PASSWORD` rotated from default
+* [ ] `.env` and `backend/.env` are not committed to version control
+* [ ] Images tagged with git SHA + `latest` and pushed to registry
+* [ ] PostgreSQL backups scheduled (e.g., GitHub Actions cron, host cron)
+* [ ] Restore procedure verified on a staging database
 * [ ] Resource limits set in `docker-compose.prod.yml`
-* [ ] Logging and monitoring configured (Prometheus + Grafana / ELK)
-* [ ] Health checks pass on all services
-* [ ] Nginx SSL configured (via separate ingress / cloud load balancer)
-* [ ] CI/CD pipeline builds, tests, pushes, and deploys images
+* [ ] Logging configured (docker json-file, external ELK/Grafana/Loki)
+* [ ] Health checks return `healthy` for all services
+* [ ] Nginx SSL/TLS termination configured (Let's Encrypt / cloud LB)
+* [ ] CI/CD pipeline: build → test → scan → push → deploy
+* [ ] Image scanning: run Trivy or Grype on final images before deployment
 * [ ] Rollback procedure documented and tested
 
 ## 10. Common Failure Points
 
-* **Port conflicts**: Ensure ports 80, 3000, 5432, 6379, 8000, 9000, 9090 are free on the host or remap in `.env`.
-* **Insufficient shared memory**: Redis / PostgreSQL may need `--shm-size` if using custom containers.
-* **Slow dependency installs**: Backend build runs `pip install` on every build. Use BuildKit cache mounts.
-* **File permissions**: On some hosts, `nebula-storage` volume may be owned by root. Fix with `chown` or disable user namespace remap.
-* **CORS misconfiguration**: Ensure `CORS_ORIGINS` matches the frontend URL; `nginx.conf` proxies `/api/` to backend.
-* **PostgreSQL readiness**: Backend waits for healthy postgres. If migrations fail, check `DATABASE_URL` environment.
-* **Redis SSL**: Redis prompt may require `rediss://` URLs in production; configure TLS if required by architecture.
-* **Out of memory**: Reduce backend worker count or memory limits in production overrides.
+* **Port conflicts**: Ensure ports 80, 3000, 5173, 5432, 6379, 8000, 9000, 9001, 9090 are free on the host or remap in `.env`.
+* **Out of memory**: Reduce `deploy.resources.limits.memory` or worker replicas on low-RAM hosts.
+* **Slow builds**: Enable BuildKit (`DOCKER_BUILDKIT=1`) for layer caching.
+* **CORS mismatch**: Ensure `CORS_ORIGINS` matches the frontend origin exactly. Nginx proxies `/api/` to backend.
+* **PostgreSQL readiness**: Backend waits for healthy postgres. If migrations fail, verify `DATABASE_URL` and that the volume directory permissions are correct.
+* **Missing `JWT_SECRET`**: Fatal in production — tokens will be invalidated on every restart. Set explicitly in `backend/.env`.
+* **Tests running in container without source**: Ensure `tests/` is mounted in dev override or run pytest on the host.
+* **Redis SSL**: Some architectures require `rediss://` TLS URLs. Configure TLS if required.
+* **File permissions on volumes**: On some hosts, bind-mounted files may be owned by root. Fix with `chown` or disable user namespace remap in Docker daemon.
 
 ## 11. CI/CD Integration
 
-Build and test pipeline example:
+Build and test pipeline example (GitHub Actions / GitLab CI):
 
 ```yaml
+env:
+  DOCKER_BUILDKIT: 1
+
 steps:
-  - run: docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml build
-  - run: docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up -d
+  - run: docker compose -f docker/docker-compose.yml -f docker-compose.prod.yml build
+  - run: docker compose -f docker/docker-compose.yml -f docker-compose.prod.yml up -d
   - run: .\scripts\migrations.ps1
   - run: .\scripts\test.ps1
-  - run: docker tag nebula-backend:dev registry.example.com/nebula-backend:$TAG
-  - run: docker push registry.example.com/nebula-backend:$TAG
+  - run: docker tag nebula-backend:latest registry.example.com/nebula-backend:$GITHUB_SHA
+  - run: docker push registry.example.com/nebula-backend:$GITHUB_SHA
 ```
 
 Container registry strategy:
 * Tag images with git SHA + `latest`.
-* Use digest pinning in production (`@sha256:...`) for reproducibility.
+* In production manifests (Swarm / K8s / Compose), pin by digest (`image: registry/nebula-backend@sha256:...`) for reproducibility.
 * Scan images with Trivy or Grype before push.
+
+## 12. BuildKit Optimization
+
+BuildKit is enabled by default in Docker Desktop and recent Docker Engine releases. For extra speed:
+
+```powershell
+$env:DOCKER_BUILDKIT = "1"
+docker compose -f docker/docker-compose.yml -f docker-compose.override.yml build --no-cache
+```
+
+Caching mounts (`--mount=type=cache`) are built into the `Dockerfile` for `pip`.
+
+## 13. Monitoring and Observability
+
+Prometheus (`monitoring:9090`) scrapes:
+* `backend:8000/metrics` (if exposed)
+* `postgres:9187` (requires `postgres_exporter`)
+* `redis:9121` (requires `redis_exporter`)
+* `node-exporter:9100` (requires host agent)
+
+Extend `infra/prometheus.yml` with additional scrape configs as needed.
+
+## 14. Cross-Platform Scripts
+
+For CI/CD or WSL / Linux / macOS environments, equivalent `bash` scripts are provided in `scripts/`:
+
+```bash
+./scripts/start.sh            # dev mode
+./scripts/start.sh prod       # production mode
+./scripts/stop.sh
+./scripts/logs.sh              # all services
+./scripts/logs.sh backend      # single service
+./scripts/migrations.sh prod   # migrations in prod
+./scripts/test.sh
+./scripts/reset.sh prod        # nuclear reset for prod
+./scripts/backup.sh
+./scripts/restore.sh <file.sql>
+./scripts/build.sh prod        # production build
+./scripts/build.sh             # dev build
+```
+
+PowerShell scripts remain the primary interface on Windows. Bash scripts require `bash` (WSL, Git Bash, or native) and Docker CLI access.

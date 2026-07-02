@@ -120,13 +120,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     container_name: nebula-scheduler
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        while true; do
-          python -c "from app.database.engine import connect; print('scheduler: heartbeat $(date)')" || true
-          sleep 60
-        done
+    entrypoint: ["/bin/sh", "/app/scheduler-entrypoint.sh"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-nebula}:${POSTGRES_PASSWORD:-nebula}@postgres:5432/${POSTGRES_DB:-nebula}
       APP_ENV: production
