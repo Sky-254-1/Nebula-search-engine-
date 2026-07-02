@@ -35,11 +35,13 @@ class Settings:
     database_url: str = field(default_factory=lambda: os.getenv("DATABASE_URL", "nebula.db"))
     jwt_secret: str = field(default_factory=_resolve_jwt_secret)
     jwt_algorithm: str = "HS256"
-    jwt_expiry_hours: int = field(
-        default_factory=lambda: int(os.getenv("JWT_EXPIRY_HOURS", "24"))
+    jwt_expiry_minutes: int = field(
+        default_factory=lambda: int(os.getenv("JWT_EXPIRY_MINUTES", "30"))
     )
+    jwt_issuer: str = field(default_factory=lambda: os.getenv("JWT_ISSUER", "nebula-search"))
+    jwt_audience: str = field(default_factory=lambda: os.getenv("JWT_AUDIENCE", "nebula-api"))
     refresh_token_days: int = field(
-        default_factory=lambda: int(os.getenv("REFRESH_TOKEN_DAYS", "30"))
+        default_factory=lambda: int(os.getenv("REFRESH_TOKEN_DAYS", "7"))
     )
     openai_api_key: str = field(default_factory=lambda: os.getenv("OPENAI_API_KEY", ""))
     openai_base_url: str = field(
@@ -89,6 +91,15 @@ class Settings:
     enable_audit_logs: bool = field(
         default_factory=lambda: os.getenv("ENABLE_AUDIT_LOGS", "true").lower() == "true"
     )
+    require_email_verification: bool = field(
+        default_factory=lambda: os.getenv("REQUIRE_EMAIL_VERIFICATION", "false").lower() == "true"
+    )
+    enable_mfa: bool = field(
+        default_factory=lambda: os.getenv("ENABLE_MFA", "false").lower() == "true"
+    )
+    enable_oauth: bool = field(
+        default_factory=lambda: os.getenv("ENABLE_OAUTH", "false").lower() == "true"
+    )
 
     # Brute-force protection
     max_login_attempts: int = field(
@@ -105,6 +116,38 @@ class Settings:
     )
     refresh_rate_limit: int = field(
         default_factory=lambda: int(os.getenv("REFRESH_RATE_LIMIT", "10"))
+    )
+
+    # Email verification
+    email_verification_expiry_hours: int = field(
+        default_factory=lambda: int(os.getenv("EMAIL_VERIFICATION_EXPIRY_HOURS", "24"))
+    )
+    password_reset_expiry_hours: int = field(
+        default_factory=lambda: int(os.getenv("PASSWORD_RESET_EXPIRY_HOURS", "1"))
+    )
+
+    # MFA
+    mfa_issuer: str = field(default_factory=lambda: os.getenv("MFA_ISSUER", "Nebula Search"))
+
+    # OAuth providers
+    google_client_id: str = field(default_factory=lambda: os.getenv("GOOGLE_CLIENT_ID", ""))
+    google_client_secret: str = field(default_factory=lambda: os.getenv("GOOGLE_CLIENT_SECRET", ""))
+    github_client_id: str = field(default_factory=lambda: os.getenv("GITHUB_CLIENT_ID", ""))
+    github_client_secret: str = field(default_factory=lambda: os.getenv("GITHUB_CLIENT_SECRET", ""))
+    microsoft_client_id: str = field(default_factory=lambda: os.getenv("MICROSOFT_CLIENT_ID", ""))
+    microsoft_client_secret: str = field(default_factory=lambda: os.getenv("MICROSOFT_CLIENT_SECRET", ""))
+    apple_client_id: str = field(default_factory=lambda: os.getenv("APPLE_CLIENT_ID", ""))
+    apple_client_secret: str = field(default_factory=lambda: os.getenv("APPLE_CLIENT_SECRET", ""))
+
+    # Email service
+    smtp_host: str = field(default_factory=lambda: os.getenv("SMTP_HOST", ""))
+    smtp_port: int = field(default_factory=lambda: int(os.getenv("SMTP_PORT", "587")))
+    smtp_username: str = field(default_factory=lambda: os.getenv("SMTP_USERNAME", ""))
+    smtp_password: str = field(default_factory=lambda: os.getenv("SMTP_PASSWORD", ""))
+    smtp_from_email: str = field(default_factory=lambda: os.getenv("SMTP_FROM_EMAIL", ""))
+    smtp_from_name: str = field(default_factory=lambda: os.getenv("SMTP_FROM_NAME", "Nebula Search"))
+    smtp_use_tls: bool = field(
+        default_factory=lambda: os.getenv("SMTP_USE_TLS", "true").lower() == "true"
     )
 
     @property
