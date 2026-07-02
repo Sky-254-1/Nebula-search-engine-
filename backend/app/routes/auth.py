@@ -24,6 +24,7 @@ from app.services.auth import (
     validate_password,
     verify_password,
 )
+from app.services.email import email_service
 
 settings = get_settings()
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
@@ -38,7 +39,7 @@ def _set_auth_cookies(response: Response, access_token: str, refresh_token: str)
         httponly=True,
         secure=settings.cookie_secure,
         samesite=settings.cookie_samesite,
-        max_age=settings.jwt_expiry_hours * 3600,
+        max_age=settings.jwt_expiry_minutes * 60,
     )
     response.set_cookie(
         key="refresh_token",
@@ -58,22 +59,39 @@ async def signup(request: Request, body: AuthRequest, db=Depends(get_db)):
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
 
-    await users.create(str(body.email), hash_password(body.password))
+    hashed_password = hash_password(body.password)
+    await users.create(str(body.email), hashed_password)
+
+    # Create email verification token
+    verification_token = secrets.token_urlsafe(32)
+    token_hash = hash_token(verification_token)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=settings.email_verification_expiry_hours)
+    
+    from app.database.repositories.verification import EmailVerificationRepository
+    verification_repo = EmailVerificationRepository(db)
+    await verification_repo.create(
+        user_id=(await users.get_by_email(str(body.email)))["id"],
+        token_hash=token_hash,
+        expires_at=expires_at,
+    )
+
+    # Send verification email
+    if email_service.enabled:
+        verification_link = f"{settings.jwt_issuer}/verify-email?token={verification_token}"
+        await email_service.send_verification_email(str(body.email), verification_link)
 
     if settings.enable_audit_logs:
         audit = AuditRepository(db)
         new_user = await users.get_by_email(str(body.email))
-        if not new_user:
-            # Should not happen but for safety
-            return {"message": "User created successfully"}
-        await audit.create(
-            new_user["id"],
-            "signup",
-            ip=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
-        )
+        if new_user:
+            await audit.create(
+                new_user["id"],
+                "signup",
+                ip=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+            )
 
-    return {"message": "User created successfully"}
+    return {"message": "User created successfully. Please check your email to verify your account."}
 
 
 @router.post("/login", response_model=AuthResponse, dependencies=[Depends(limit_login)])
@@ -88,7 +106,21 @@ async def login(request: Request, response: Response, body: AuthRequest, db=Depe
         await record_login_failure(ip, str(body.email))
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
+    # Check if account is locked
+    if row.get("is_locked"):
+        raise HTTPException(status_code=403, detail="Account is locked. Contact support.")
+
+    # Check if email is verified (if required)
+    if settings.require_email_verification and not row.get("email_verified"):
+        raise HTTPException(
+            status_code=403,
+            detail="Email verification required. Please check your email."
+        )
+
     await clear_login_attempts(ip, str(body.email))
+
+    # Update last login
+    await users.update_last_login(row["id"])
 
     access_token = create_access_token(str(body.email), role=row["role"])
     refresh_token = create_refresh_token()
@@ -102,6 +134,7 @@ async def login(request: Request, response: Response, body: AuthRequest, db=Depe
         expires_at,
         session_id=session_id,
         device_name=request.headers.get("user-agent"),
+        ip_address=ip,
     )
 
     if settings.enable_audit_logs:
@@ -134,17 +167,12 @@ async def refresh(request: Request, response: Response, body: RefreshRequest | N
     session = await sessions.get_by_hash(token_hash)
 
     if not session:
-        # Check for reuse if detection is enabled
-        # In a real scenario, we'd need a way to find which session this token *belonged* to
-        # For now, we'll just treat it as invalid.
-        # Advanced reuse detection usually requires keeping a record of old tokens.
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     if session["revoked_reason"]:
         raise HTTPException(status_code=401, detail=f"Session revoked: {session['revoked_reason']}")
 
     if session["rotated_at"]:
-        # Token already used! Potential theft.
         if settings.enable_refresh_reuse_detection:
             await sessions.revoke_session_family(session["session_id"], "Refresh token reuse detected")
             if settings.enable_audit_logs:
@@ -170,13 +198,15 @@ async def refresh(request: Request, response: Response, body: RefreshRequest | N
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
+    # Check if account is locked
+    if user.get("is_locked"):
+        raise HTTPException(status_code=403, detail="Account is locked")
+
     access_token = create_access_token(user["email"], role=user["role"])
     new_refresh = create_refresh_token()
 
-    # Mark old token as rotated
     await sessions.update_rotation(session["id"], datetime.now(timezone.utc))
 
-    # Create new session entry in the same family
     new_expires = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_days)
     await sessions.create(
         session["user_id"],
@@ -212,7 +242,6 @@ async def logout(request: Request, response: Response, body: RefreshRequest | No
         sessions = SessionRepository(db)
         session = await sessions.get_by_hash(hash_token(refresh_token))
         if session:
-            # Delete the whole session family on logout
             await sessions.delete_by_session_id(session["session_id"])
             if settings.enable_audit_logs:
                 audit = AuditRepository(db)
@@ -253,5 +282,16 @@ async def logout_all(request: Request, response: Response, db=Depends(get_db), e
 
 
 @router.get("/me")
-async def get_me(email: str = Depends(get_current_user)):
-    return {"email": email}
+async def get_me(email: str = Depends(get_current_user), db=Depends(get_db)):
+    users = UserRepository(db)
+    user = await users.get_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "email": user["email"],
+        "role": user["role"],
+        "email_verified": user.get("email_verified", False),
+        "created_at": user.get("created_at"),
+        "last_login": user.get("last_login"),
+    }
