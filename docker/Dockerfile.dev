@@ -14,7 +14,9 @@ RUN addgroup --system nebula && adduser --system --ingroup nebula nebula
 
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
+COPY backend/requirements-dev.txt .
+RUN pip install --no-cache-dir -r requirements-dev.txt
+COPY backend/pytest.ini .
 COPY backend/app ./app
 COPY backend/vector ./vector
 

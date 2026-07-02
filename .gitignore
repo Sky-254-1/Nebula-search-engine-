@@ -1,25 +1,127 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+wheels/
+
+# Environment
 .env
+.env.local
+.env.*.local
 *.db
 test_nebula.db
 nebula.db
+
+# OS Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings
+
+# Logs
 *.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.pytest_cache_v2/
+junit/
+test-results/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Cache
+.cache/
+.temp/
+.tmp/
 storage/cache/*
 storage/uploads/*
 storage/index/*
 !storage/cache/.gitkeep
 !storage/uploads/.gitkeep
 !storage/index/.gitkeep
-.coverage
-htmlcov/
-.pytest_cache/
-node_modules/
-docker-compose.override.yml
+
+# Process IDs
 *.pid
-*.seed
 *.pid.lock
+*.seed
+
+# AI Context Files (should not be in repo)
+CLAUDE.md
+
+# Generated files
+full_structure.txt
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Coverage
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# Generated documentation
+site/
+docs/_build/
