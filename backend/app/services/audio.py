@@ -10,7 +10,13 @@ from io import BytesIO
 from pathlib import Path
 from typing import AsyncIterator, BinaryIO
 
-from elevenlabs.client import ElevenLabs
+try:
+    from elevenlabs.client import ElevenLabs
+    ELEVENLABS_AVAILABLE = True
+except ImportError:
+    ELEVENLABS_AVAILABLE = False
+    ElevenLabs = None
+
 from fastapi import HTTPException
 
 from app.config import get_settings
@@ -24,6 +30,11 @@ class AudioService:
     
     def __init__(self):
         """Initialize ElevenLabs client."""
+        if not ELEVENLABS_AVAILABLE:
+            logger.warning("elevenlabs package not installed - audio features disabled")
+            self.client = None
+            return
+            
         api_key = os.getenv("ELEVENLABS_API_KEY")
         if not api_key:
             logger.warning("ELEVENLABS_API_KEY not set - audio features disabled")
