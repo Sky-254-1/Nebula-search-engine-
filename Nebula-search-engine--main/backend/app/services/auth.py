@@ -59,7 +59,8 @@ def verify_password(password: str, stored: str) -> bool:
 
 
 def hash_token(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()
+    """Hash a token using HMAC-SHA256 with the JWT secret as the key."""
+    return hmac.new(settings.jwt_secret.encode("utf-8"), token.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 def create_access_token(email: str, role: str = "user") -> str:

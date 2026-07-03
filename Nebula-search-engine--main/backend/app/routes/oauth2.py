@@ -60,12 +60,19 @@ _ERROR_WHITELIST = {
 
 
 def _is_safe_redirect_url(url: str) -> bool:
+    """Validate that a redirect URL is safe and points to an allowed host."""
     parsed = urlparse(url)
+    
+    # Reject URLs with schemes other than http/https
     if parsed.scheme and parsed.scheme not in ("http", "https"):
         return False
-    if parsed.netloc:
-        return parsed.netloc.lower() in _ALLOWED_FRONTEND_HOSTS
-    return True
+    
+    # Require a netloc (host) to prevent open redirects to relative paths
+    if not parsed.netloc:
+        return False
+    
+    # Check if the host is in the allowed list
+    return parsed.netloc.lower() in _ALLOWED_FRONTEND_HOSTS
 
 
 def _sanitize_error_message(error: str) -> str:

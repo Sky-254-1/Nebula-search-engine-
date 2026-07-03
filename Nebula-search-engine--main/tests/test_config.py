@@ -110,6 +110,9 @@ class TestCORSParsing:
         origins = get_settings().cors_origin_list
         assert len(origins) == 3
         parsed = {__import__("urllib.parse").urlparse(o).netloc.lower() for o in origins}
+        # Validate that parsed values are proper hostnames without paths or query strings
+        for hostname in parsed:
+            assert hostname and "/" not in hostname and "?" not in hostname and "#" not in hostname
         assert "a.com" in parsed
 
     def test_cors_wildcard(self, monkeypatch: pytest.MonkeyPatch):

@@ -16,7 +16,9 @@ async def test_oauth2_login_redirect(client: AsyncClient):
     assert resp.status_code == 302
     location = resp.headers.get("location", "")
     parsed = __import__("urllib.parse").urlparse(location)
+    # Validate the hostname is exactly the expected OAuth provider
     assert parsed.hostname == "accounts.google.com"
+    # Ensure the URL contains required OAuth parameters
     assert "client_id=" in location
     assert "response_type=code" in location
 

@@ -158,6 +158,9 @@ async def test_cors_allows_multiple_origins(monkeypatch: pytest.MonkeyPatch):
     s = get_settings()
     origins = s.cors_origin_list
     parsed = {__import__("urllib.parse").urlparse(o).netloc.lower() for o in origins if o}
+    # Validate that we're checking actual hostnames, not paths or other components
+    for hostname in parsed:
+        assert hostname and "/" not in hostname and "?" not in hostname
     assert "a.com" in parsed
     assert "b.com" in parsed
     get_settings.cache_clear()
