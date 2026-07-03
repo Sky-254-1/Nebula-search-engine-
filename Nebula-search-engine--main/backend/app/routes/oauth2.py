@@ -1,8 +1,9 @@
 """OAuth2 routes for Google and GitHub social login."""
 
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -32,6 +33,50 @@ from app.services.oauth2 import (
 settings = get_settings()
 router = APIRouter(prefix="/api/v1/auth/oauth2", tags=["OAuth2"])
 
+_ALLOWED_FRONTEND_HOSTS = {
+    urlparse(uri).netloc.lower()
+    for uri in settings.cors_origin_list
+    if urlparse(uri).netloc
+}
+
+_ERROR_WHITELIST = {
+    "access_denied",
+    "invalid_request",
+    "unauthorized_client",
+    "unsupported_response_type",
+    "invalid_scope",
+    "server_error",
+    "temporarily_unavailable",
+    "Authorization code missing",
+    "State parameter missing",
+    "Invalid or expired state parameter",
+    "Token exchange failed",
+    "Failed to obtain access token",
+    "Failed to fetch user info",
+    "Email not provided by OAuth provider",
+    "Failed to create user",
+    "User not found",
+}
+
+
+def _is_safe_redirect_url(url: str) -> bool:
+    parsed = urlparse(url)
+    if parsed.scheme and parsed.scheme not in ("http", "https"):
+        return False
+    if parsed.netloc:
+        return parsed.netloc.lower() in _ALLOWED_FRONTEND_HOSTS
+    return True
+
+
+def _sanitize_error_message(error: str) -> str:
+    if not error:
+        return ""
+    error = error.strip()
+    if error in _ERROR_WHITELIST:
+        return error
+    sanitized = re.sub(r'[^a-zA-Z0-9\s\-_\.]', '', error)
+    return sanitized[:100]
+
 
 @router.get("/{provider}/login")
 async def oauth2_login(provider: str):
@@ -60,29 +105,32 @@ async def oauth2_callback(
         raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
 
     frontend_base = settings.oauth2_frontend_redirect_uri
+    if not _is_safe_redirect_url(frontend_base):
+        raise HTTPException(status_code=500, detail="Frontend redirect URI is not configured")
 
     if error:
+        safe_error = _sanitize_error_message(error)
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': error})}",
+            url=f"{frontend_base}?error={urlencode({'error': safe_error})}",
             status_code=302,
         )
 
     if not code:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'Authorization code missing'})}",
+            url=f"{frontend_base}?error={urlencode({'error': _sanitize_error_message('Authorization code missing')})}",
             status_code=302,
         )
 
     if not state:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'State parameter missing'})}",
+            url=f"{frontend_base}?error={urlencode({'error': _sanitize_error_message('State parameter missing')})}",
             status_code=302,
         )
 
     stored_provider = await cache_service.get(f"oauth2_state:{state}")
     if not stored_provider or stored_provider != provider:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'Invalid or expired state parameter'})}",
+            url=f"{frontend_base}?error={urlencode({'error': _sanitize_error_message('Invalid or expired state parameter')})}",
             status_code=302,
         )
     await cache_service.delete(f"oauth2_state:{state}")
@@ -91,14 +139,14 @@ async def oauth2_callback(
         token_data = await exchange_code(provider, code)
     except Exception as exc:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': f'Token exchange failed: {exc}'})}",
+            url=f"{frontend_base}?error={urlencode({'error': _sanitize_error_message(f'Token exchange failed: {exc}')})}",
             status_code=302,
         )
 
     access_token = token_data.get("access_token")
     if not access_token:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'Failed to obtain access token'})}",
+            url=f"{frontend_base}?error={urlencode({'error': _sanitize_error_message('Failed to obtain access token')})}",
             status_code=302,
         )
 
@@ -106,7 +154,7 @@ async def oauth2_callback(
         user_info = await get_user_info(provider, access_token)
     except Exception as exc:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': f'Failed to fetch user info: {exc}'})}",
+            url=f"{frontend_base}?error={urlencode({'error': _sanitize_error_message(f'Failed to fetch user info: {exc}')})}",
             status_code=302,
         )
 
@@ -117,7 +165,7 @@ async def oauth2_callback(
 
     if not email:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'Email not provided by OAuth provider'})}",
+            url=f"{frontend_base}?error={urlencode({'error': _sanitize_error_message('Email not provided by OAuth provider')})}",
             status_code=302,
         )
 
@@ -144,7 +192,7 @@ async def oauth2_callback(
             user_row = await user_repo.get_by_email(email)
             if not user_row:
                 return RedirectResponse(
-                    url=f"{frontend_base}?error={urlencode({'error': 'Failed to create user'})}",
+                    url=f"{frontend_base}?error={urlencode({'error': _sanitize_error_message('Failed to create user')})}",
                     status_code=302,
                 )
             user_id = user_row["id"]
@@ -159,7 +207,7 @@ async def oauth2_callback(
     user_row = await user_repo.get_by_id(user_id)
     if not user_row:
         return RedirectResponse(
-            url=f"{frontend_base}?error={urlencode({'error': 'User not found'})}",
+            url=f"{frontend_base}?error={urlencode({'error': _sanitize_error_message('User not found')})}",
             status_code=302,
         )
 

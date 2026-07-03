@@ -20,8 +20,17 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.database import init_db
+from app.docs.openapi_config import configure_openapi
 from app.middleware.security import SecurityHeadersMiddleware
+from app.middleware.versioning import VersioningMiddleware
+from app.middleware.response import ResponseStandardizationMiddleware
+from app.middleware.rate_limit import RateLimitHeadersMiddleware
+from app.services.monitoring import MetricsMiddleware
 from app.routes import admin, ai, audio, auth, health, search, storage, vector
+from app.routes.auth_extended import router as auth_extended_router
+from app.routes.mfa import router as mfa_router
+from app.routes.oauth import router as oauth_router
+from app.routes.webhooks import router as webhooks_router
 from app.services.cache import cache_service
 from app.services.queue import job_queue
 
@@ -125,29 +134,52 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Nebula Search API",
     description="A private, AI-powered, hybrid search engine backend.",
-    version="1.1.0",
+    version="2.0.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
+    openapi_tags=[
+        {"name": "Health", "description": "Health check endpoints"},
+        {"name": "Auth", "description": "Authentication and authorization"},
+        {"name": "Search", "description": "Web and hybrid search"},
+        {"name": "Vector", "description": "Vector search and RAG"},
+        {"name": "AI", "description": "AI-powered features"},
+        {"name": "Audio", "description": "Audio transcription and processing"},
+        {"name": "Storage", "description": "File upload and management"},
+        {"name": "Webhooks", "description": "Webhook management"},
+        {"name": "Admin", "description": "Administrative endpoints"},
+    ],
 )
 
+# Add middleware in order (last added = first executed)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(VersioningMiddleware)
+app.add_middleware(ResponseStandardizationMiddleware)
+app.add_middleware(RateLimitHeadersMiddleware)
+app.add_middleware(MetricsMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(auth_extended_router)
+app.include_router(mfa_router)
+app.include_router(oauth_router)
 app.include_router(admin.router)
 app.include_router(search.router)
 app.include_router(ai.router)
 app.include_router(audio.router)
 app.include_router(storage.router)
 app.include_router(vector.router)
+app.include_router(webhooks_router)
+
+# Configure OpenAPI documentation
+configure_openapi(app)
 
 
 @app.exception_handler(HTTPException)

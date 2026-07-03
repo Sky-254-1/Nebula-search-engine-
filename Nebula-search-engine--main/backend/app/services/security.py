@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import logging
 import os
+import re
 import secrets
 from typing import Optional, Tuple
 
@@ -12,6 +13,11 @@ from app.config import get_settings
 
 logger = logging.getLogger("nebula.security")
 settings = get_settings()
+
+_API_KEY_HASH_KEY = settings.jwt_secret.encode("utf-8")
+
+def _hash_api_key(data: str) -> str:
+    return hmac.new(_API_KEY_HASH_KEY, data.encode("utf-8"), hashlib.sha256).hexdigest()
 
 # ---------------------------------------------------------------------------
 # Password hashing — bcrypt with PBKDF2 backward compatibility
@@ -213,19 +219,19 @@ def generate_api_key() -> Tuple[str, str]:
     """
     raw = secrets.token_urlsafe(settings.api_key_length)
     prefixed = f"{settings.api_key_prefix}{raw}"
-    hashed = hashlib.sha256(prefixed.encode()).hexdigest()
+    hashed = _hash_api_key(prefixed)
     return prefixed, hashed
 
 
 def validate_api_key(raw_key: str, hashed_key: str) -> bool:
     """Validate a raw API key against its stored hash."""
-    computed = hashlib.sha256(raw_key.encode()).hexdigest()
+    computed = _hash_api_key(raw_key)
     return secrets.compare_digest(computed, hashed_key)
 
 
 def hash_api_key(raw_key: str) -> str:
-    """Return the SHA-256 digest of an API key (for storage comparison)."""
-    return hashlib.sha256(raw_key.encode()).hexdigest()
+    """Return the HMAC-SHA256 digest of an API key (for storage comparison)."""
+    return _hash_api_key(raw_key)
 
 
 # ---------------------------------------------------------------------------

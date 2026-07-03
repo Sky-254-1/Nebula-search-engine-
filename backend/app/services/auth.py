@@ -62,13 +62,18 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def create_access_token(email: str, role: str = "user") -> str:
+def create_access_token(email: str, role: str = "user", jti: str | None = None) -> str:
+    """Create a JWT access token with standard claims."""
+    now = datetime.now(timezone.utc)
     payload = {
         "sub": email,
         "role": role,
         "type": "access",
-        "iat": datetime.now(timezone.utc),
-        "exp": datetime.now(timezone.utc) + timedelta(hours=settings.jwt_expiry_hours),
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.jwt_expiry_minutes),
+        "iss": settings.jwt_issuer,
+        "aud": settings.jwt_audience,
+        "jti": jti or secrets.token_urlsafe(16),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
@@ -110,14 +115,21 @@ async def clear_login_attempts(ip: str, email: str) -> None:
 
 
 def decode_token(token: str, expected_type: str | None = None) -> dict:
+    """Decode and validate a JWT token with audience, issuer, and type checking."""
     try:
         payload = jwt.decode(
             token,
             settings.jwt_secret,
             algorithms=[settings.jwt_algorithm],
+            audience=settings.jwt_audience,
+            issuer=settings.jwt_issuer,
         )
     except jwt.ExpiredSignatureError as exc:
         raise HTTPException(status_code=401, detail="Token expired") from exc
+    except jwt.InvalidAudienceError as exc:
+        raise HTTPException(status_code=401, detail="Invalid token audience") from exc
+    except jwt.InvalidIssuerError as exc:
+        raise HTTPException(status_code=401, detail="Invalid token issuer") from exc
     except jwt.InvalidTokenError as exc:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
 
@@ -170,6 +182,27 @@ def require_role(role: str):
         return payload
 
     return role_checker
+
+
+def require_permission(permission: str):
+    """Check if user has a specific permission (for future RBAC implementation)."""
+    async def permission_checker(request: Request):
+        payload = await get_current_user_token_payload(request)
+        user_role = payload.get("role", "user")
+        
+        # TODO: Implement full permission checking against database
+        # For now, admin has all permissions
+        if user_role == "admin":
+            return payload
+        
+        # Check permissions from payload (if included in token)
+        user_permissions = payload.get("permissions", [])
+        if permission not in user_permissions:
+            raise HTTPException(status_code=403, detail=f"Permission required: {permission}")
+        
+        return payload
+
+    return permission_checker
 
 
 require_admin = require_role("admin")
