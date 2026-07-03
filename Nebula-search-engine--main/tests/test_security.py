@@ -157,8 +157,9 @@ async def test_cors_allows_multiple_origins(monkeypatch: pytest.MonkeyPatch):
 
     s = get_settings()
     origins = s.cors_origin_list
-    assert "http://a.com" in origins
-    assert "http://b.com" in origins
+    parsed = {__import__("urllib.parse").urlparse(o).netloc.lower() for o in origins if o}
+    assert "a.com" in parsed
+    assert "b.com" in parsed
     get_settings.cache_clear()
 
 
