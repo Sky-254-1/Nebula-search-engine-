@@ -125,6 +125,15 @@ class VectorAskResponse(BaseModel):
 
 
 # Storage schemas
+class DocumentResponse(BaseModel):
+    """Document response."""
+    id: int
+    filename: str
+    content_type: Optional[str] = None
+    created_at: str
+    indexed_at: Optional[str] = None
+
+
 class DocumentUploadResponse(BaseModel):
     """Document upload response."""
     id: int
@@ -135,10 +144,44 @@ class DocumentUploadResponse(BaseModel):
     status: str
 
 
+class DocumentListResponse(BaseModel):
+    """Document list response."""
+    documents: list[DocumentResponse]
+
+
+class ExportCreateRequest(BaseModel):
+    """Export creation request."""
+    export_type: str
+    data: Optional[dict] = None
+
+
+class ExportResponse(BaseModel):
+    """Export response."""
+    id: int
+    export_type: str
+    storage_path: str
+    created_at: str
+
+
+class ExportListResponse(BaseModel):
+    """Export list response."""
+    exports: list[ExportResponse]
+
+
+class SettingsResponse(BaseModel):
+    """Settings response."""
+    settings: dict
+
+
+class SettingsUpdateRequest(BaseModel):
+    """Settings update request."""
+    settings: dict
+
+
 # Webhook schemas
 class WebhookCreate(BaseModel):
     """Webhook creation request."""
-    url: str = Field(..., regex=r'^https?://')
+    url: str = Field(..., pattern=r'^https?://')
     events: list[str] = Field(..., min_items=1)
     secret: Optional[str] = None
     description: Optional[str] = None
@@ -171,6 +214,7 @@ class HealthResponse(BaseModel):
     """Health check response."""
     status: str
     version: str
+    environment: str
     database: str
     cache: str
     timestamp: datetime
@@ -188,6 +232,17 @@ class SystemStats(BaseModel):
 
 
 # AI schemas
+class AIRequest(BaseModel):
+    """AI request."""
+    prompt: str = Field(..., min_length=1, max_length=10000)
+
+
+class AIResponse(BaseModel):
+    """AI response."""
+    answer: str
+    provider: str
+
+
 class AICompletionRequest(BaseModel):
     """AI completion request."""
     prompt: str = Field(..., min_length=1, max_length=10000)
@@ -204,10 +259,33 @@ class AICompletionResponse(BaseModel):
     finish_reason: str
 
 
+class SynthesizeRequest(BaseModel):
+    """Synthesize request."""
+    query: str = Field(..., min_length=1, max_length=1000)
+    snippets: list[str] = Field(..., min_items=1)
+
+
+class SynthesizeResponse(BaseModel):
+    """Synthesize response."""
+    answer: str
+    sources: list[str]
+
+
+class ChatMessage(BaseModel):
+    """Chat message."""
+    role: str
+    content: str
+
+
+class ChatHistoryResponse(BaseModel):
+    """Chat history response."""
+    messages: list[ChatMessage]
+
+
 # Audio schemas
 class AudioTranscriptionRequest(BaseModel):
     """Audio transcription request."""
-    language: Optional[str] = Field(None, regex=r'^[a-z]{2}$')
+    language: Optional[str] = Field(None, pattern=r'^[a-z]{2}$')
 
 
 class AudioTranscriptionResponse(BaseModel):
@@ -222,3 +300,52 @@ class AudioTranscriptionResponse(BaseModel):
 class MessageResponse(BaseModel):
     """Simple message response."""
     message: str
+
+
+# Vector schemas (additional)
+class VectorSearchResult(BaseModel):
+    """Vector search result."""
+    document_id: Optional[int] = None
+    chunk_id: Optional[int] = None
+    filename: str = ""
+    content: str = ""
+    score: float = 0.0
+    vector_score: Optional[float] = 0.0
+    keyword_score: Optional[float] = 0.0
+
+
+class VectorSearchResponse(BaseModel):
+    """Vector search response."""
+    query: str
+    results: list[VectorSearchResult]
+    total: int
+
+
+class VectorCitationResponse(BaseModel):
+    """Vector citation response."""
+    id: int
+    document_id: Optional[int] = None
+    chunk_id: Optional[int] = None
+    query: str
+    snippet: Optional[str] = None
+    score: float = 0.0
+    created_at: str
+
+
+class VectorCitationListResponse(BaseModel):
+    """Vector citation list response."""
+    citations: list[VectorCitationResponse]
+
+
+class VectorReindexRequest(BaseModel):
+    """Vector reindex request."""
+    limit: Optional[int] = 100
+
+
+class DocumentIndexStatusResponse(BaseModel):
+    """Document index status response."""
+    id: int
+    filename: str
+    status: str
+    indexed_at: Optional[str] = None
+    error_message: Optional[str] = None

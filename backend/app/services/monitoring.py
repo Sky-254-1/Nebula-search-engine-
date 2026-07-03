@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
+from starlette.middleware.base import BaseHTTPMiddleware
+
 from app.config import get_settings
 
 settings = get_settings()
@@ -184,10 +186,10 @@ class MetricsCollector:
 metrics = MetricsCollector()
 
 
-class MetricsMiddleware:
+class MetricsMiddleware(BaseHTTPMiddleware):
     """Middleware to collect request metrics."""
     
-    async def __call__(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next):
         """Record metrics for each request."""
         start_time = time.time()
         
@@ -215,3 +217,4 @@ class MetricsMiddleware:
 
 # Import here to avoid circular dependency
 from fastapi import Request
+from starlette.requests import Request as StarletteRequest
