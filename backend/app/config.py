@@ -28,6 +28,19 @@ def _resolve_jwt_secret() -> str:
     return generated
 
 
+def _resolve_encryption_key() -> bytes:
+    raw = os.getenv("ENCRYPTION_KEY", "")
+    if raw:
+        return raw.encode("utf-8")
+    if os.getenv("APP_ENV", "development") == "production":
+        print(
+            "WARNING: ENCRYPTION_KEY is not set in production. "
+            "Data at rest will use a derived key.",
+            file=sys.stderr,
+        )
+    return secrets.token_bytes(32)
+
+
 @dataclass(frozen=True)
 class Settings:
     """Validated runtime settings for Nebula Search API."""
@@ -35,13 +48,11 @@ class Settings:
     database_url: str = field(default_factory=lambda: os.getenv("DATABASE_URL", "nebula.db"))
     jwt_secret: str = field(default_factory=_resolve_jwt_secret)
     jwt_algorithm: str = "HS256"
-    jwt_expiry_minutes: int = field(
-        default_factory=lambda: int(os.getenv("JWT_EXPIRY_MINUTES", "30"))
+    jwt_expiry_hours: int = field(
+        default_factory=lambda: int(os.getenv("JWT_EXPIRY_HOURS", "24"))
     )
-    jwt_issuer: str = field(default_factory=lambda: os.getenv("JWT_ISSUER", "nebula-search"))
-    jwt_audience: str = field(default_factory=lambda: os.getenv("JWT_AUDIENCE", "nebula-api"))
     refresh_token_days: int = field(
-        default_factory=lambda: int(os.getenv("REFRESH_TOKEN_DAYS", "7"))
+        default_factory=lambda: int(os.getenv("REFRESH_TOKEN_DAYS", "30"))
     )
     openai_api_key: str = field(default_factory=lambda: os.getenv("OPENAI_API_KEY", ""))
     openai_base_url: str = field(
@@ -91,15 +102,6 @@ class Settings:
     enable_audit_logs: bool = field(
         default_factory=lambda: os.getenv("ENABLE_AUDIT_LOGS", "true").lower() == "true"
     )
-    require_email_verification: bool = field(
-        default_factory=lambda: os.getenv("REQUIRE_EMAIL_VERIFICATION", "false").lower() == "true"
-    )
-    enable_mfa: bool = field(
-        default_factory=lambda: os.getenv("ENABLE_MFA", "false").lower() == "true"
-    )
-    enable_oauth: bool = field(
-        default_factory=lambda: os.getenv("ENABLE_OAUTH", "false").lower() == "true"
-    )
 
     # Brute-force protection
     max_login_attempts: int = field(
@@ -118,36 +120,152 @@ class Settings:
         default_factory=lambda: int(os.getenv("REFRESH_RATE_LIMIT", "10"))
     )
 
-    # Email verification
-    email_verification_expiry_hours: int = field(
-        default_factory=lambda: int(os.getenv("EMAIL_VERIFICATION_EXPIRY_HOURS", "24"))
+    # === Content Security Policy ===
+    csp_default_src: str = field(
+        default_factory=lambda: os.getenv("CSP_DEFAULT_SRC", "'self'")
     )
-    password_reset_expiry_hours: int = field(
-        default_factory=lambda: int(os.getenv("PASSWORD_RESET_EXPIRY_HOURS", "1"))
+    csp_script_src: str = field(
+        default_factory=lambda: os.getenv("CSP_SCRIPT_SRC", "'self'")
+    )
+    csp_style_src: str = field(
+        default_factory=lambda: os.getenv("CSP_STYLE_SRC", "'self'")
+    )
+    csp_img_src: str = field(
+        default_factory=lambda: os.getenv("CSP_IMG_SRC", "'self' data:")
+    )
+    csp_connect_src: str = field(
+        default_factory=lambda: os.getenv("CSP_CONNECT_SRC", "'self'")
+    )
+    csp_font_src: str = field(
+        default_factory=lambda: os.getenv("CSP_FONT_SRC", "'self'")
+    )
+    csp_frame_src: str = field(
+        default_factory=lambda: os.getenv("CSP_FRAME_SRC", "'none'")
+    )
+    csp_object_src: str = field(
+        default_factory=lambda: os.getenv("CSP_OBJECT_SRC", "'none'")
+    )
+    csp_report_uri: str = field(
+        default_factory=lambda: os.getenv("CSP_REPORT_URI", "")
     )
 
-    # MFA
-    mfa_issuer: str = field(default_factory=lambda: os.getenv("MFA_ISSUER", "Nebula Search"))
+    # === Feature Flags ===
+    enable_csrf: bool = field(
+        default_factory=lambda: os.getenv("ENABLE_CSRF", "true").lower() == "true"
+    )
+    enable_2fa: bool = field(
+        default_factory=lambda: os.getenv("ENABLE_2FA", "false").lower() == "true"
+    )
+    enable_webauthn: bool = field(
+        default_factory=lambda: os.getenv("ENABLE_WEBAUTHN", "false").lower() == "true"
+    )
 
-    # OAuth providers
-    google_client_id: str = field(default_factory=lambda: os.getenv("GOOGLE_CLIENT_ID", ""))
-    google_client_secret: str = field(default_factory=lambda: os.getenv("GOOGLE_CLIENT_SECRET", ""))
-    github_client_id: str = field(default_factory=lambda: os.getenv("GITHUB_CLIENT_ID", ""))
-    github_client_secret: str = field(default_factory=lambda: os.getenv("GITHUB_CLIENT_SECRET", ""))
-    microsoft_client_id: str = field(default_factory=lambda: os.getenv("MICROSOFT_CLIENT_ID", ""))
-    microsoft_client_secret: str = field(default_factory=lambda: os.getenv("MICROSOFT_CLIENT_SECRET", ""))
-    apple_client_id: str = field(default_factory=lambda: os.getenv("APPLE_CLIENT_ID", ""))
-    apple_client_secret: str = field(default_factory=lambda: os.getenv("APPLE_CLIENT_SECRET", ""))
+    # === 2FA / TOTP ===
+    totp_issuer: str = field(
+        default_factory=lambda: os.getenv("TOTP_ISSUER", "Nebula Search")
+    )
 
-    # Email service
-    smtp_host: str = field(default_factory=lambda: os.getenv("SMTP_HOST", ""))
-    smtp_port: int = field(default_factory=lambda: int(os.getenv("SMTP_PORT", "587")))
-    smtp_username: str = field(default_factory=lambda: os.getenv("SMTP_USERNAME", ""))
-    smtp_password: str = field(default_factory=lambda: os.getenv("SMTP_PASSWORD", ""))
-    smtp_from_email: str = field(default_factory=lambda: os.getenv("SMTP_FROM_EMAIL", ""))
-    smtp_from_name: str = field(default_factory=lambda: os.getenv("SMTP_FROM_NAME", "Nebula Search"))
-    smtp_use_tls: bool = field(
-        default_factory=lambda: os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+    # === Encryption Key for data at rest ===
+    encryption_key: bytes = field(default_factory=_resolve_encryption_key)
+
+    # === OAuth2 / SSO ===
+    google_oauth2_client_id: str = field(
+        default_factory=lambda: os.getenv("GOOGLE_OAUTH2_CLIENT_ID", "")
+    )
+    google_oauth2_client_secret: str = field(
+        default_factory=lambda: os.getenv("GOOGLE_OAUTH2_CLIENT_SECRET", "")
+    )
+    github_oauth2_client_id: str = field(
+        default_factory=lambda: os.getenv("GITHUB_OAUTH2_CLIENT_ID", "")
+    )
+    github_oauth2_client_secret: str = field(
+        default_factory=lambda: os.getenv("GITHUB_OAUTH2_CLIENT_SECRET", "")
+    )
+    oauth2_redirect_base_uri: str = field(
+        default_factory=lambda: os.getenv("OAUTH2_REDIRECT_BASE_URI", "http://localhost:8000/api/v1/auth/oauth2")
+    )
+    oauth2_frontend_redirect_uri: str = field(
+        default_factory=lambda: os.getenv("OAUTH2_FRONTEND_REDIRECT_URI", "http://localhost:5173/oauth/callback")
+    )
+
+    # === API Key Settings ===
+    api_key_length: int = field(
+        default_factory=lambda: int(os.getenv("API_KEY_LENGTH", "32"))
+    )
+    api_key_prefix: str = field(
+        default_factory=lambda: os.getenv("API_KEY_PREFIX", "nb_")
+    )
+
+    # === Observability: Sentry ===
+    sentry_dsn: str = field(default_factory=lambda: os.getenv("SENTRY_DSN", ""))
+
+    # === Observability: OpenTelemetry ===
+    otel_service_name: str = field(
+        default_factory=lambda: os.getenv("OTEL_SERVICE_NAME", "nebula-search")
+    )
+    otel_exporter_otlp_endpoint: str = field(
+        default_factory=lambda: os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+    )
+
+    # === Logging ===
+    log_level: str = field(
+        default_factory=lambda: os.getenv("LOG_LEVEL", "INFO" if os.getenv("APP_ENV", "development") == "production" else "DEBUG")
+    )
+    log_json_format: bool = field(
+        default_factory=lambda: os.getenv("LOG_JSON_FORMAT", "false").lower() == "true"
+    )
+
+    # === Rate Limit Tiers (requests per minute) ===
+    rate_limit_tier_basic: int = field(
+        default_factory=lambda: int(os.getenv("RATE_LIMIT_TIER_BASIC", "30"))
+    )
+    rate_limit_tier_pro: int = field(
+        default_factory=lambda: int(os.getenv("RATE_LIMIT_TIER_PRO", "120"))
+    )
+    rate_limit_tier_enterprise: int = field(
+        default_factory=lambda: int(os.getenv("RATE_LIMIT_TIER_ENTERPRISE", "600"))
+    )
+    rate_limit_burst_multiplier: int = field(
+        default_factory=lambda: int(os.getenv("RATE_LIMIT_BURST_MULTIPLIER", "2"))
+    )
+
+    # === Cross-Origin Headers ===
+    cross_origin_embedder_policy: str = field(
+        default_factory=lambda: os.getenv("CROSS_ORIGIN_EMBEDDER_POLICY", "require-corp")
+    )
+    cross_origin_opener_policy: str = field(
+        default_factory=lambda: os.getenv("CROSS_ORIGIN_OPENER_POLICY", "same-origin")
+    )
+    cross_origin_resource_policy: str = field(
+        default_factory=lambda: os.getenv("CROSS_ORIGIN_RESOURCE_POLICY", "same-origin")
+    )
+
+    # === Crawler Settings ===
+    crawler_user_agent: str = field(
+        default_factory=lambda: os.getenv("CRAWLER_USER_AGENT", "NebulaSearch/1.0")
+    )
+    crawler_max_concurrency: int = field(
+        default_factory=lambda: int(os.getenv("CRAWLER_MAX_CONCURRENCY", "10"))
+    )
+    crawler_default_delay: float = field(
+        default_factory=lambda: float(os.getenv("CRAWLER_DEFAULT_DELAY", "1.0"))
+    )
+    crawler_max_depth: int = field(
+        default_factory=lambda: int(os.getenv("CRAWLER_MAX_DEPTH", "3"))
+    )
+    crawler_max_pages_per_job: int = field(
+        default_factory=lambda: int(os.getenv("CRAWLER_MAX_PAGES_PER_JOB", "100"))
+    )
+    crawler_robots_ttl: int = field(
+        default_factory=lambda: int(os.getenv("CRAWLER_ROBOTS_TTL", "86400"))
+    )
+
+    # === Permissions-Policy ===
+    permissions_policy: str = field(
+        default_factory=lambda: os.getenv(
+            "PERMISSIONS_POLICY",
+            "geolocation=(), microphone=(), camera=()",
+        )
     )
 
     @property
@@ -189,6 +307,30 @@ class Settings:
     @property
     def storage_exports(self) -> Path:
         return Path(self.storage_root) / "exports"
+
+    @property
+    def csp_policy(self) -> str:
+        directives = [
+            f"default-src {self.csp_default_src}",
+            f"script-src {self.csp_script_src}",
+            f"style-src {self.csp_style_src}",
+            f"img-src {self.csp_img_src}",
+            f"connect-src {self.csp_connect_src}",
+            f"font-src {self.csp_font_src}",
+            f"frame-src {self.csp_frame_src}",
+            f"object-src {self.csp_object_src}",
+        ]
+        if self.csp_report_uri:
+            directives.append(f"report-uri {self.csp_report_uri}")
+            directives.append(f"report-to {self.csp_report_uri}")
+        return "; ".join(directives)
+
+    @property
+    def encryption_key_bytes(self) -> bytes:
+        key = self.encryption_key
+        if len(key) < 32:
+            key = key.ljust(32, b"\0")
+        return key[:32]
 
 
 @lru_cache
