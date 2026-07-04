@@ -27,9 +27,16 @@ from app.middleware.response import ResponseStandardizationMiddleware
 from app.middleware.rate_limit import RateLimitHeadersMiddleware
 from app.services.monitoring import MetricsMiddleware
 from app.routes import admin, ai, audio, auth, health, search, storage, vector
+from app.routes.analytics import router as analytics_router
 from app.routes.auth_extended import router as auth_extended_router
+from app.routes.documents import router as documents_router
 from app.routes.mfa import router as mfa_router
+from app.routes.notifications import router as notifications_router
 from app.routes.oauth import router as oauth_router
+from app.routes.recommendations import router as recommendations_router
+from app.routes.search_unified import router as search_unified_router
+from app.routes.search_v2 import router as search_v2_router
+from app.routes.users import router as users_router
 from app.routes.webhooks import router as webhooks_router
 from app.services.cache import cache_service
 from app.services.queue import job_queue
@@ -145,7 +152,8 @@ app = FastAPI(
         {"name": "Vector", "description": "Vector search and RAG"},
         {"name": "AI", "description": "AI-powered features"},
         {"name": "Audio", "description": "Audio transcription and processing"},
-        {"name": "Storage", "description": "File upload and management"},
+        {"name": "Documents", "description": "Document upload and management"},
+        {"name": "Storage", "description": "File upload and management (legacy)"},
         {"name": "Webhooks", "description": "Webhook management"},
         {"name": "Admin", "description": "Administrative endpoints"},
     ],
@@ -172,9 +180,16 @@ app.include_router(mfa_router)
 app.include_router(oauth_router)
 app.include_router(admin.router)
 app.include_router(search.router)
+app.include_router(search_unified_router)  # New unified search API
+app.include_router(search_v2_router)  # Intelligent search v2
 app.include_router(ai.router)
 app.include_router(audio.router)
-app.include_router(storage.router)
+app.include_router(users_router)  # New users domain
+app.include_router(notifications_router)  # New notifications domain
+app.include_router(analytics_router)  # New analytics domain
+app.include_router(recommendations_router)  # New recommendations domain
+app.include_router(documents_router)  # New documents domain
+app.include_router(storage.router)  # Legacy storage routes (backward compatible)
 app.include_router(vector.router)
 app.include_router(webhooks_router)
 

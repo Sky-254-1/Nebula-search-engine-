@@ -31,6 +31,12 @@ logger = logging.getLogger("nebula.search.v2")
 router = APIRouter(prefix="/api/v2/search", tags=["Search v2"])
 
 
+async def _inject_db(db):
+    """Inject database connection into intelligence singletons for DB-backed operations."""
+    search_analytics._set_db(db)
+    query_suggestion_engine.analytics._set_db(db)
+
+
 @router.get("/suggest", dependencies=[Depends(rate_limit)])
 async def get_suggestions(
     q: str = Query(..., min_length=2, max_length=100, description="Partial query"),
@@ -45,13 +51,15 @@ async def get_suggestions(
     - User history
     - Trending queries
     """
+    await _inject_db(db)
+
     user_id = None
     if email:
         users = UserRepository(db)
         user_id = await users.get_id_by_email(email)
-    
-    suggestions = await query_suggestion_engine.get_suggestions(q, user_id, limit)
-    
+
+    suggestions = await query_suggestion_engine.get_suggestions(q, user_id, limit, db=db)
+
     return {
         "query": q,
         "suggestions": [
@@ -70,10 +78,12 @@ async def get_suggestions(
 async def autocomplete(
     q: str = Query(..., min_length=2, max_length=100),
     limit: int = Query(10, ge=1, le=20),
+    db=Depends(get_db),
 ):
     """Fast autocomplete suggestions"""
+    await _inject_db(db)
     suggestions = await autocomplete_engine.suggest(q, limit)
-    
+
     return {
         "query": q,
         "completions": [s.suggestion for s in suggestions],
@@ -86,7 +96,7 @@ async def spell_check(
 ):
     """Check spelling and suggest corrections"""
     corrected, was_corrected = await spell_corrector.correct_query(q)
-    
+
     return {
         "original": q,
         "corrected": corrected,
@@ -116,30 +126,32 @@ async def intelligent_search(
     - Diversity promotion
     - Intent classification
     """
+    await _inject_db(db)
+
     # Get user
     users = UserRepository(db)
     user_id = await users.get_id_by_email(email)
-    
+
     original_query = q
-    
+
     # 1. Spell correction
     if enable_spell_check:
         corrected_query, was_corrected = await spell_corrector.correct_query(q)
         if was_corrected:
             logger.info(f"Query corrected: '{q}' -> '{corrected_query}'")
             q = corrected_query
-    
+
     # 2. Get initial results from orchestrator
     backend_list = [b.strip() for b in backends.split(",") if b.strip()]
     search_response = await orchestrate_search(q, backend_list, 1, page_size * 2)
-    
+
     results = search_response.get("results", [])
-    
+
     if not results:
         # Log and return empty
         search_repo = SearchRepository(db)
         await search_repo.log_search(user_id, q, backends, 0)
-        
+
         return {
             "query": q,
             "original_query": original_query,
@@ -150,23 +162,23 @@ async def intelligent_search(
             "spell_corrected": original_query != q,
             "intent": intent_classifier.classify(q),
         }
-    
+
     # 3. Classify query intent
     intent = intent_classifier.classify(q)
     logger.info(f"Query intent: {intent}")
-    
+
     # 4. Apply advanced ranking
     user_profile = None
     if enable_personalization and user_id:
         user_profile = await personalization_engine.get_user_profile(user_id)
-    
+
     ranked_results = await hybrid_ranker.rank(
         query=q,
         results=results,
         user_profile=user_profile,
         enable_diversity=enable_diversity,
     )
-    
+
     # 5. Semantic reranking
     if enable_semantic:
         try:
@@ -177,40 +189,40 @@ async def intelligent_search(
             )
         except Exception as e:
             logger.warning(f"Semantic reranking failed: {e}")
-    
+
     # 6. Apply intent-based boosts
     for result in ranked_results:
         intent_boost = intent_classifier.get_intent_boost(q, result)
         if 'combined_score' in result:
             result['combined_score'] *= intent_boost
-    
+
     # Re-sort after intent boost
     ranked_results.sort(
         key=lambda x: x.get('combined_score', x.get('semantic_score', 0)),
         reverse=True
     )
-    
+
     # 7. Personalization
     if enable_personalization and user_profile:
         ranked_results = await personalization_engine.personalize_results(
             user_id, q, ranked_results
         )
-    
+
     # 8. Pagination
     start = (page - 1) * page_size
     page_results = ranked_results[start : start + page_size]
-    
+
     # 9. Log search
     search_repo = SearchRepository(db)
     await search_repo.log_search(user_id, q, backends, len(page_results))
-    
+
     # 10. Log analytics
     await search_analytics.log_search_event(
         user_id=user_id,
         query=q,
         results_count=len(page_results),
     )
-    
+
     return {
         "query": q,
         "original_query": original_query,
@@ -244,18 +256,18 @@ async def semantic_search(
     # Get base results first
     search_response = await orchestrate_search(q, ["wikipedia"], 1, top_k * 2)
     results = search_response.get("results", [])
-    
+
     if not results:
         return {
             "query": q,
             "results": [],
             "total": 0,
         }
-    
+
     # Index and search semantically
     await semantic_engine.index_documents(results)
     semantic_results = await semantic_engine.search(q, top_k, threshold)
-    
+
     return {
         "query": q,
         "results": semantic_results,
@@ -268,10 +280,12 @@ async def semantic_search(
 async def get_trending(
     limit: int = Query(10, ge=1, le=50),
     hours: int = Query(24, ge=1, le=168),
+    db=Depends(get_db),
 ):
     """Get trending search queries"""
+    await _inject_db(db)
     trending = await search_analytics.get_trending_queries(limit, hours)
-    
+
     return {
         "trending": trending,
         "period_hours": hours,
@@ -281,10 +295,12 @@ async def get_trending(
 @router.get("/popular", dependencies=[Depends(rate_limit)])
 async def get_popular(
     limit: int = Query(10, ge=1, le=50),
+    db=Depends(get_db),
 ):
     """Get most popular search queries"""
+    await _inject_db(db)
     popular = await search_analytics.get_popular_queries(limit)
-    
+
     return {
         "popular": popular,
     }
@@ -303,9 +319,11 @@ async def log_click(
     Log click event for analytics and personalization.
     Call this when user clicks on a search result.
     """
+    await _inject_db(db)
+
     users = UserRepository(db)
     user_id = await users.get_id_by_email(email)
-    
+
     # Log for analytics
     await search_analytics.log_search_event(
         user_id=user_id,
@@ -315,7 +333,7 @@ async def log_click(
         clicked_url=url,
         session_id=session_id,
     )
-    
+
     # Update personalization profile
     await personalization_engine.update_profile_from_click(
         user_id=user_id,
@@ -323,7 +341,7 @@ async def log_click(
         clicked_position=position,
         clicked_url=url,
     )
-    
+
     return {
         "message": "Click logged",
         "query": query,
@@ -337,12 +355,14 @@ async def get_search_profile(
     db=Depends(get_db),
 ):
     """Get user's search profile and preferences"""
+    await _inject_db(db)
+
     users = UserRepository(db)
     user_id = await users.get_id_by_email(email)
-    
+
     profile = await personalization_engine.get_user_profile(user_id)
     history = await search_analytics.get_user_search_history(user_id, limit=20)
-    
+
     return {
         "profile": profile,
         "recent_searches": history,
@@ -352,19 +372,22 @@ async def get_search_profile(
 @router.get("/analytics", dependencies=[Depends(rate_limit)])
 async def get_analytics(
     query: Optional[str] = Query(None),
+    db=Depends(get_db),
 ):
     """Get analytics for a query or overall stats"""
+    await _inject_db(db)
+
     if query:
         ctr = await search_analytics.calculate_ctr(query)
         return {
             "query": query,
             "ctr": ctr,
         }
-    
+
     # Overall stats
     trending = await search_analytics.get_trending_queries(10, 24)
     popular = await search_analytics.get_popular_queries(10)
-    
+
     return {
         "trending_24h": trending,
         "popular_overall": popular,

@@ -147,6 +147,7 @@ class DocumentUploadResponse(BaseModel):
 class DocumentListResponse(BaseModel):
     """Document list response."""
     documents: list[DocumentResponse]
+    pagination: Optional[PaginationMeta] = None
 
 
 class ExportCreateRequest(BaseModel):
@@ -166,6 +167,7 @@ class ExportResponse(BaseModel):
 class ExportListResponse(BaseModel):
     """Export list response."""
     exports: list[ExportResponse]
+    pagination: Optional[PaginationMeta] = None
 
 
 class SettingsResponse(BaseModel):
@@ -335,6 +337,7 @@ class VectorCitationResponse(BaseModel):
 class VectorCitationListResponse(BaseModel):
     """Vector citation list response."""
     citations: list[VectorCitationResponse]
+    pagination: Optional[PaginationMeta] = None
 
 
 class VectorReindexRequest(BaseModel):

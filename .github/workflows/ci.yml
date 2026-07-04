@@ -36,11 +36,20 @@ jobs:
           JWT_SECRET: ci-test-secret
           APP_ENV: testing
           DATABASE_URL: test_nebula.db
-        run: pytest --cov=app --cov-report=term-missing --cov-fail-under=75
+        run: |
+          pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=75
+          pytest tests/test_new_api_domains.py -v --cov=app --cov-append
 
       - name: Verify app imports
         working-directory: backend
         run: python -c "from app.main import app; from vector.pipeline import index_document; print(app.title)"
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          files: backend/coverage.xml
+          flags: backend
+          name: backend-coverage
 
   frontend:
     runs-on: ubuntu-latest
