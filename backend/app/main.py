@@ -29,7 +29,9 @@ from app.services.monitoring import MetricsMiddleware
 from app.routes import admin, ai, audio, auth, health, search, storage, vector
 from app.routes.analytics import router as analytics_router
 from app.routes.auth_extended import router as auth_extended_router
+from app.routes.crawler import router as crawler_router
 from app.routes.documents import router as documents_router
+from app.routes.features import router as features_router
 from app.routes.mfa import router as mfa_router
 from app.routes.notifications import router as notifications_router
 from app.routes.oauth import router as oauth_router
@@ -120,6 +122,8 @@ def _ensure_storage_dirs() -> None:
 async def lifespan(app: FastAPI):
     _ensure_storage_dirs()
     await init_db()
+    from app.database.engine import init_pool
+    await init_pool()
     await cache_service.connect()
     await job_queue.connect()
     worker_task = asyncio.create_task(_background_worker_loop())
@@ -134,6 +138,8 @@ async def lifespan(app: FastAPI):
         await worker_task
     except asyncio.CancelledError:
         pass
+    from app.database.engine import close_pool
+    await close_pool()
     await cache_service.close()
     await job_queue.close()
 
@@ -165,6 +171,14 @@ app.add_middleware(VersioningMiddleware)
 app.add_middleware(ResponseStandardizationMiddleware)
 app.add_middleware(RateLimitHeadersMiddleware)
 app.add_middleware(MetricsMiddleware)
+
+# Register CSRF protection for cookie-based auth
+from app.middleware.security import CSRFProtectionMiddleware
+app.add_middleware(CSRFProtectionMiddleware)
+
+# Register compression middleware
+from app.middleware.compression import CompressionMiddleware
+app.add_middleware(CompressionMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -179,9 +193,10 @@ app.include_router(auth_extended_router)
 app.include_router(mfa_router)
 app.include_router(oauth_router)
 app.include_router(admin.router)
+# Consolidated search API - search_unified includes all features from v1 and v2
+app.include_router(search_unified_router)
+# Legacy search routes (deprecated, kept for backward compatibility)
 app.include_router(search.router)
-app.include_router(search_unified_router)  # New unified search API
-app.include_router(search_v2_router)  # Intelligent search v2
 app.include_router(ai.router)
 app.include_router(audio.router)
 app.include_router(users_router)  # New users domain
@@ -192,6 +207,8 @@ app.include_router(documents_router)  # New documents domain
 app.include_router(storage.router)  # Legacy storage routes (backward compatible)
 app.include_router(vector.router)
 app.include_router(webhooks_router)
+app.include_router(crawler_router)  # Crawler management
+app.include_router(features_router)  # Collections, bookmarks, saved searches
 
 # Configure OpenAPI documentation
 configure_openapi(app)

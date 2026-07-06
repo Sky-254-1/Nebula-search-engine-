@@ -1,5 +1,8 @@
 -- Migration 009: Search enhancements (saved searches, search suggestions)
 
+CREATE SCHEMA IF NOT EXISTS search;
+CREATE SCHEMA IF NOT EXISTS notifications;
+
 -- Saved searches table
 CREATE TABLE IF NOT EXISTS search.saved_searches (
     id BIGSERIAL PRIMARY KEY,
@@ -80,8 +83,5 @@ CREATE TABLE IF NOT EXISTS notifications.notification_preferences (
 );
 
 CREATE INDEX IF NOT EXISTS idx_notif_prefs_user
-    ON notifications.notification_preferences(user_id)
+    ON notification_preferences(user_id)
     WHERE is_deleted = FALSE;
-
--- Record migration version
-INSERT INTO public.migrations (version, name) VALUES ('009', 'Search enhancements') ON CONFLICT DO NOTHING;

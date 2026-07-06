@@ -6,6 +6,7 @@ from typing import Optional, List, Dict, Any
 
 from app.database import get_db
 from app.database.repositories.audit import AuditRepository
+from app.database.repositories.document import DocumentRepository
 from app.database.repositories.session import SessionRepository
 from app.database.repositories.user import UserRepository
 from app.models.schemas import PaginationMeta

@@ -58,7 +58,8 @@ class SemanticEngine:
         self._embedding_provider = None
         self._vector_store = vector_store
         self._cache = {}
-        
+        self._vector_store_backend = kwargs.get("vector_store_backend") or "local"
+
         # Initialize embedding provider
         if embedding_provider:
             self._initialize_embedding_provider(embedding_provider, **kwargs)
@@ -99,15 +100,29 @@ class SemanticEngine:
         Returns:
             Vector store instance
         """
-        if not self._vector_store:
-            # Default to PGVector
-            connection_string = self.config.get('database_url')
-            if not connection_string:
-                raise ValueError("database_url required for default PGVector store")
-            
-            self._vector_store = PGVectorStore(connection_string)
-            await self._vector_store.connect()
+        if self._vector_store:
+            return self._vector_store
+
+        backend = self._vector_store_backend
+        connection_string = self.config.get("database_url", "")
         
+        if backend == "pgvector":
+            self._vector_store = PGVectorStore(connection_string)
+        elif backend == "qdrant":
+            self._vector_store = QdrantStore(connection_string)
+        elif backend == "milvus":
+            self._vector_store = MilvusStore(connection_string)
+        elif backend == "elasticsearch":
+            self._vector_store = ElasticsearchVectorStore(connection_string)
+        else:
+            raise ValueError(
+                f"Unsupported vector store backend: {backend}. "
+                "Use 'local' for file-based vectors (handled by vector/pipeline) "
+                "or configure 'pgvector'/'qdrant'/'milvus'."
+            )
+        
+        await self._vector_store.connect()
+        logger.info("SemanticEngine vector store initialized: %s", backend)
         return self._vector_store
     
     async def index_documents(self, documents: list[dict]) -> list[str]:

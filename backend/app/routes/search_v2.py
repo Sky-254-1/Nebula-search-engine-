@@ -23,7 +23,7 @@ from app.search.intelligence import (
 )
 from app.search.orchestrator import orchestrate_search
 from app.search.ranking import hybrid_ranker
-from app.search.semantic import intent_classifier, semantic_engine
+from app.search.semantic import SemanticEngine
 from app.services.auth import get_current_user
 
 logger = logging.getLogger("nebula.search.v2")

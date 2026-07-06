@@ -1,7 +1,12 @@
 """Saved search repository."""
+
 from datetime import datetime, timezone
 
+from app.config import get_settings
 from app.database.engine import DatabaseConnection
+
+settings = get_settings()
+_TABLE = "search.saved_searches" if settings.uses_postgres else "saved_searches"
 
 
 class SavedSearchRepository:
@@ -11,13 +16,13 @@ class SavedSearchRepository:
     async def create(self, user_id: int, query: str, mode: str = "hybrid",
                      filters: dict | None = None, is_alert: bool = False) -> int:
         await self._db.execute(
-            "INSERT INTO search.saved_searches "
+            f"INSERT INTO {_TABLE} "
             "(user_id, query, mode, filters, is_alert) VALUES (?, ?, ?, ?, ?)",
             (user_id, query, mode, filters or {}, is_alert),
         )
         await self._db.commit()
         row = await self._db.fetchone(
-            "SELECT id FROM search.saved_searches WHERE user_id = ? AND query = ? "
+            f"SELECT id FROM {_TABLE} WHERE user_id = ? AND query = ? "
             "AND is_deleted = FALSE ORDER BY id DESC LIMIT 1",
             (user_id, query),
         )
@@ -25,8 +30,8 @@ class SavedSearchRepository:
 
     async def list_for_user(self, user_id: int, limit: int = 50) -> list[dict]:
         rows = await self._db.fetchall(
-            "SELECT id, query, mode, filters, is_alert, created_at, updated_at "
-            "FROM search.saved_searches WHERE user_id = ? AND is_deleted = FALSE "
+            f"SELECT id, query, mode, filters, is_alert, created_at, updated_at "
+            f"FROM {_TABLE} WHERE user_id = ? AND is_deleted = FALSE "
             "ORDER BY created_at DESC LIMIT ?",
             (user_id, limit),
         )
@@ -34,8 +39,8 @@ class SavedSearchRepository:
 
     async def get_by_id(self, saved_id: int, user_id: int) -> dict | None:
         row = await self._db.fetchone(
-            "SELECT id, user_id, query, mode, filters, is_alert, created_at, updated_at "
-            "FROM search.saved_searches WHERE id = ? AND user_id = ? AND is_deleted = FALSE",
+            f"SELECT id, user_id, query, mode, filters, is_alert, created_at, updated_at "
+            f"FROM {_TABLE} WHERE id = ? AND user_id = ? AND is_deleted = FALSE",
             (saved_id, user_id),
         )
         return dict(row) if row else None
@@ -43,7 +48,7 @@ class SavedSearchRepository:
     async def delete(self, saved_id: int, user_id: int) -> None:
         now = datetime.now(timezone.utc).isoformat()
         await self._db.execute(
-            "UPDATE search.saved_searches SET is_deleted = TRUE, deleted_at = ? "
+            f"UPDATE {_TABLE} SET is_deleted = TRUE, deleted_at = ? "
             "WHERE id = ? AND user_id = ? AND is_deleted = FALSE",
             (now, saved_id, user_id),
         )

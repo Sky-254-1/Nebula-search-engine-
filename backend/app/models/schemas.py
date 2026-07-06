@@ -269,7 +269,7 @@ class SynthesizeRequest(BaseModel):
 
 class SynthesizeResponse(BaseModel):
     """Synthesize response."""
-    answer: str
+    synthesis: str
     sources: list[str]
 
 
@@ -352,3 +352,124 @@ class DocumentIndexStatusResponse(BaseModel):
     status: str
     indexed_at: Optional[str] = None
     error_message: Optional[str] = None
+
+
+# Features schemas (collections, bookmarks, notifications)
+class SavedSearchCreate(BaseModel):
+    """Saved search creation request."""
+    query: str = Field(..., min_length=1, max_length=500)
+    filters: Optional[dict] = None
+    label: Optional[str] = None
+
+
+class SavedSearchResponse(BaseModel):
+    """Saved search response."""
+    id: int
+    user_id: int
+    query: str
+    filters: Optional[dict] = None
+    label: Optional[str] = None
+    created_at: str
+    updated_at: str
+
+
+class SavedSearchListResponse(BaseModel):
+    """Saved search list response."""
+    saved_searches: list[SavedSearchResponse]
+
+
+class CollectionCreate(BaseModel):
+    """Collection creation request."""
+    name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    is_public: bool = False
+
+
+class CollectionUpdate(BaseModel):
+    """Collection update request."""
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = None
+    is_public: Optional[bool] = None
+
+
+class CollectionResponse(BaseModel):
+    """Collection response."""
+    id: int
+    user_id: int
+    name: str
+    description: Optional[str] = None
+    is_public: bool
+    created_at: str
+    updated_at: str
+
+
+class CollectionListResponse(BaseModel):
+    """Collection list response."""
+    collections: list[CollectionResponse]
+
+
+class CollectionItemCreate(BaseModel):
+    """Collection item creation request."""
+    document_id: Optional[int] = None
+    search_result_id: Optional[int] = None
+    note: Optional[str] = None
+
+
+class CollectionItemResponse(BaseModel):
+    """Collection item response."""
+    id: int
+    collection_id: int
+    document_id: Optional[int] = None
+    search_result_id: Optional[int] = None
+    note: Optional[str] = None
+    created_at: str
+
+
+class BookmarkCreate(BaseModel):
+    """Bookmark creation request."""
+    title: str = Field(..., min_length=1, max_length=500)
+    url: str = Field(..., min_length=1, max_length=2000)
+    snippet: Optional[str] = None
+    tags: Optional[list[str]] = None
+
+
+class BookmarkUpdate(BaseModel):
+    """Bookmark update request."""
+    title: Optional[str] = Field(None, min_length=1, max_length=500)
+    snippet: Optional[str] = None
+    tags: Optional[list[str]] = None
+
+
+class BookmarkResponse(BaseModel):
+    """Bookmark response."""
+    id: int
+    user_id: int
+    title: str
+    url: str
+    snippet: Optional[str] = None
+    tags: Optional[list[str]] = None
+    created_at: str
+    updated_at: str
+
+
+class BookmarkListResponse(BaseModel):
+    """Bookmark list response."""
+    bookmarks: list[BookmarkResponse]
+
+
+class NotificationResponse(BaseModel):
+    """Notification response."""
+    id: int
+    user_id: int
+    type: str
+    title: str
+    message: str
+    data: Optional[dict] = None
+    is_read: bool
+    created_at: str
+
+
+class NotificationListResponse(BaseModel):
+    """Notification list response."""
+    notifications: list[NotificationResponse]
+    unread_count: int

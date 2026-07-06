@@ -1,7 +1,8 @@
-"""Web search provider integrations."""
+"""Web search provider integrations with SSRF protection."""
 
+import ipaddress
 import re
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import httpx
 from fastapi import HTTPException
@@ -10,6 +11,69 @@ from app.config import get_settings
 
 settings = get_settings()
 ALLOWED_BACKENDS = frozenset({"wikipedia", "brave", "serpapi"})
+
+# Allowed domains for SSRF protection
+ALLOWED_DOMAINS = {
+    "en.wikipedia.org",
+    "api.search.brave.com",
+    "serpapi.com",
+    "www.google.com",
+}
+
+# Block private IP ranges
+BLOCKED_IP_RANGES = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("0.0.0.0/8"),
+]
+
+
+def _validate_url(url: str) -> None:
+    """Validate URL to prevent SSRF attacks."""
+    try:
+        parsed = urlparse(url)
+        
+        # Only allow HTTPS (except localhost for development)
+        if parsed.scheme not in ("https", "http"):
+            raise HTTPException(status_code=400, detail="Invalid URL scheme")
+        
+        # Check domain whitelist
+        hostname = parsed.hostname
+        if not hostname:
+            raise HTTPException(status_code=400, detail="Invalid URL: no hostname")
+        
+        # Allow localhost in development
+        if hostname in ("localhost", "127.0.0.1", "::1"):
+            if not settings.is_production:
+                return
+            raise HTTPException(status_code=400, detail="Localhost not allowed in production")
+        
+        # Check domain whitelist
+        if hostname not in ALLOWED_DOMAINS:
+            raise HTTPException(status_code=400, detail=f"Domain not allowed: {hostname}")
+        
+        # Resolve hostname to IP and check if it's private
+        try:
+            import socket
+            ip_str = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(ip_str)
+            
+            for network in BLOCKED_IP_RANGES:
+                if ip in network:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail="Request to private IP address blocked"
+                    )
+        except socket.gaierror:
+            raise HTTPException(status_code=400, detail="Cannot resolve hostname")
+            
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"URL validation failed: {str(exc)}")
 
 
 def sanitize_query(query: str) -> str:
@@ -28,6 +92,7 @@ async def search_wikipedia(query: str, page: int, page_size: int) -> list[dict]:
         f"&srlimit={page_size}&sroffset={offset}"
         "&format=json&origin=*"
     )
+    _validate_url(url)
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(url)
         resp.raise_for_status()
@@ -57,6 +122,7 @@ async def search_brave(query: str, page: int, page_size: int) -> list[dict]:
         "https://api.search.brave.com/res/v1/web/search"
         f"?q={quote(query)}&count={page_size}&offset={offset}"
     )
+    _validate_url(url)
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(
             url,
@@ -89,6 +155,7 @@ async def search_serpapi(query: str, page: int, page_size: int) -> list[dict]:
         f"?q={quote(query)}&api_key={settings.serpapi_key}&engine=google"
         f"&start={start}&num={page_size}"
     )
+    _validate_url(url)
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(url)
         resp.raise_for_status()

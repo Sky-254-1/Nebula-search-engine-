@@ -26,6 +26,7 @@ from app.search.intelligence import (
 )
 from app.search.orchestrator import orchestrate_search
 from app.search.ranking import hybrid_ranker
+from app.search.search_service import search_service
 from vector.pipeline import hybrid_search
 from app.services.ai import get_ai_answer, synthesize_snippets
 
@@ -182,118 +183,47 @@ async def unified_search(
     start_time = time.time()
     user_id = await _user_id(db, email)
 
-    # Spell correction
-    corrected_query = body.query
-    if body.spell_check:
-        corrected_query, was_corrected = await spell_corrector.correct_query(body.query)
-        if was_corrected:
-            logger.info("Query corrected: '%s' -> '%s'", body.query, corrected_query)
+    response = await search_service.search(
+        db=db,
+        user_id=user_id,
+        query=body.query,
+        mode=body.mode.value,
+        page=body.page,
+        page_size=body.limit,
+        enable_spell_check=body.spell_check,
+        enable_personalization=True,
+        enable_diversity=True,
+        filters=body.filters.dict() if body.filters else None,
+        include_ai_answer=body.include_ai_answer,
+        include_suggestions=body.include_suggestions,
+    )
 
-    query = corrected_query
-    results: List[SearchResult] = []
-    ai_answer: Optional[AIAnswer] = None
-    suggestions: Optional[List[str]] = None
-    facets_out: Optional[List[FacetCount]] = None
+    search_results = response.get("results", [])
+    results = [
+        SearchResult(
+            id=r.get("id", i),
+            title=r.get("title", ""),
+            snippet=r.get("snippet", "")[:200],
+            url=r.get("url", ""),
+            source=r.get("source", ""),
+            score=r.get("score", 0.0),
+            document_id=r.get("document_id"),
+            highlights=_highlight(r.get("snippet") or r.get("content", ""), response.get("query", body.query))
+            if body.include_highlights else [],
+        )
+        for i, r in enumerate(search_results, 1)
+    ]
 
-    try:
-        if body.mode == SearchMode.web:
-            web_results = await run_web_search(
-                query, backend="wikipedia", page=body.page, page_size=body.limit
-            )
-            results = [
-                SearchResult(
-                    id=i,
-                    title=r.get("title", ""),
-                    snippet=r.get("snippet", ""),
-                    url=r.get("url", ""),
-                    source="web",
-                    score=r.get("score", 0.0),
-                    highlights=[{"text": t, "start": 0, "end": len(t)}
-                               for t in query.split() if t][:5]
-                    if body.include_highlights else [],
-                )
-                for i, r in enumerate(web_results, 1)
-            ]
+    ai_answer_data = response.get("ai_answer")
+    ai_answer = AIAnswer(
+        answer=ai_answer_data["answer"],
+        provider=ai_answer_data.get("provider", ""),
+        citations=ai_answer_data.get("citations") or [],
+    ) if ai_answer_data else None
 
-        elif body.mode == SearchMode.vector:
-            vector_results = await hybrid_search(db, user_id, query, top_k=body.limit)
-            results = [
-                SearchResult(
-                    id=r.get("chunk_id", i),
-                    title=r.get("filename", ""),
-                    snippet=r.get("content", "")[:200],
-                    url=f"/documents/{r.get('document_id')}",
-                    source="vector",
-                    score=r.get("score", 0.0),
-                    document_id=r.get("document_id"),
-                    highlights=[],
-                )
-                for i, r in enumerate(vector_results, 1)
-            ]
-
-        elif body.mode == SearchMode.hybrid:
-            web_results, vector_results = await asyncio.gather(
-                run_web_search(query, backend="wikipedia", page=1, page_size=body.limit // 2),
-                hybrid_search(db, user_id, query, top_k=body.limit // 2),
-            )
-            for i, r in enumerate(web_results, 1):
-                results.append(SearchResult(
-                    id=i, title=r.get("title", ""), snippet=r.get("snippet", ""),
-                    url=r.get("url", ""), source="web", score=r.get("score", 0.0),
-                    highlights=[],
-                ))
-            for i, r in enumerate(vector_results, len(results) + 1):
-                results.append(SearchResult(
-                    id=i, title=r.get("filename", ""),
-                    snippet=r.get("content", "")[:200],
-                    url=f"/documents/{r.get('document_id')}",
-                    source="vector", score=r.get("score", 0.0),
-                    document_id=r.get("document_id"), highlights=[],
-                ))
-            results.sort(key=lambda x: x.score, reverse=True)
-            results = results[:body.limit]
-
-        elif body.mode == SearchMode.ai:
-            answer, provider = await get_ai_answer(query)
-            if answer:
-                ai_answer = AIAnswer(answer=answer, provider=provider, citations=[])
-
-        # Apply advanced ranking (BM25 + ML + diversity)
-        if results:
-            try:
-                ranked = await hybrid_ranker.rank(
-                    query=query, results=[r.dict() for r in results],
-                    user_profile=None, enable_diversity=True,
-                )
-                results = [SearchResult(**r) for r in ranked[:body.limit]]
-            except Exception as exc:
-                logger.debug("Advanced ranking failed: %s", exc)
-
-        # Facets
-        if body.facets and results:
-            facets_out = _compute_facets(results, body.facets)
-
-        # AI answer
-        if body.include_ai_answer and body.mode != SearchMode.ai and results:
-            ai_answer = await _safe_ai_synthesis(query, results)
-
-        # Suggestions
-        if body.include_suggestions:
-            try:
-                suggestions = [
-                    s["text"] for s in
-                    (await query_suggestion_engine.get_suggestions(query, user_id, limit=5))
-                ]
-            except Exception:
-                suggestions = []
-
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(exc)}")
-
-    response_time_ms = (time.time() - start_time) * 1000
-
-    search_repo = SearchRepository(db)
-    await search_repo.log_search(user_id, query, body.mode.value, len(results))
+    suggestions = response.get("suggestions")
+    facets_out = _compute_facets(results, body.facets) if body.facets and results else None
+    response_time_ms = response.get("response_time_ms", 0.0)
 
     return SearchResponse(
         query=query,
