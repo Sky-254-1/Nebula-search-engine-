@@ -13,8 +13,9 @@ settings = get_settings()
 
 class JobQueue:
     def __init__(self) -> None:
-        self._memory: deque[dict] = deque()
+        self._queue: deque[dict] = deque()
         self._redis = None
+        self._paused = False
 
     async def connect(self) -> None:
         if not settings.redis_url:
@@ -38,14 +39,16 @@ class JobQueue:
         if self._redis:
             await self._redis.rpush("queue:jobs", json.dumps(job))
             return
-        self._memory.append(job)
+        self._queue.append(job)
         logger.debug("Enqueued job %s (in-memory)", job_type)
 
     async def dequeue(self) -> dict | None:
+        if self._paused:
+            return None
         if self._redis:
             raw = await self._redis.lpop("queue:jobs")
             return json.loads(raw) if raw else None
-        return self._memory.popleft() if self._memory else None
+        return self._queue.popleft() if self._queue else None
 
 
 job_queue = JobQueue()

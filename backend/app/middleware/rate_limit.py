@@ -6,7 +6,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
 from app.services.cache import cache_service

@@ -203,3 +203,16 @@ class UserRepository:
                WHERE user_id = ? AND is_deleted = FALSE""",
             (user_id,),
         )
+
+    async def list_all(self, limit: int = 100, offset: int = 0) -> list[dict]:
+        """List all users (for admin)."""
+        rows = await self._db.fetchall(
+            """SELECT id, email, role, email_verified, is_active, is_locked,
+                      failed_login_attempts, last_login, created_at, updated_at
+               FROM users 
+               WHERE is_deleted = FALSE
+               ORDER BY created_at DESC 
+               LIMIT ? OFFSET ?""",
+            (limit, offset),
+        )
+        return [dict(row) for row in rows]

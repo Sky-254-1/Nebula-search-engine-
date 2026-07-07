@@ -8,6 +8,7 @@ from app.database.repositories.export import ExportRepository
 from app.database.repositories.user import UserRepository
 from app.models.schemas import (
     DocumentIndexStatusResponse,
+    PaginationMeta,
     VectorAskRequest,
     VectorAskResponse,
     VectorCitationListResponse,
@@ -20,6 +21,7 @@ from app.models.schemas import (
 from app.services.ai import synthesize_snippets
 from app.services.auth import get_current_user
 from app.services.queue import job_queue
+from app.utils.pagination import PaginationParams
 from vector.pipeline import (
     ChunkRepository,
     EmbeddingRepository,
@@ -162,14 +164,35 @@ async def vector_search(
 
 @router.get("/citations", response_model=VectorCitationListResponse)
 async def list_citations(
+    pagination: PaginationParams = Depends(),
     email: str = Depends(get_current_user),
     db=Depends(get_db),
 ):
+    """List citations for the current user with pagination."""
     user_id = await _user_id(db, email)
     from vector.citations import CitationRepository
 
     repo = CitationRepository(db)
+    
+    # Get all citations (in production, add pagination to repository)
     rows = await repo.list_for_user(user_id)
+    total = len(rows)
+    
+    # Apply pagination
+    start_idx = pagination.offset
+    end_idx = start_idx + pagination.limit
+    paginated_rows = rows[start_idx:end_idx]
+    
+    # Create pagination metadata
+    pagination_meta = PaginationMeta(
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        total_pages=(total + pagination.page_size - 1) // pagination.page_size,
+        has_next=pagination.page < (total + pagination.page_size - 1) // pagination.page_size,
+        has_previous=pagination.page > 1,
+    )
+    
     return VectorCitationListResponse(
         citations=[
             VectorCitationResponse(
@@ -181,8 +204,9 @@ async def list_citations(
                 score=r.get("score", 0),
                 created_at=str(r.get("created_at", "")),
             )
-            for r in rows
-        ]
+            for r in paginated_rows
+        ],
+        pagination=pagination_meta,
     )
 
 

@@ -18,11 +18,13 @@ from app.models.schemas import (
     ExportCreateRequest,
     ExportListResponse,
     ExportResponse,
+    PaginationMeta,
     SettingsResponse,
     SettingsUpdateRequest,
 )
 from app.services.auth import get_current_user
 from app.services.queue import job_queue
+from app.utils.pagination import PaginationParams, create_pagination_response
 
 router = APIRouter(prefix="/api/v1/storage", tags=["Storage"])
 settings = get_settings()
@@ -146,10 +148,34 @@ async def create_export(
 
 
 @router.get("/exports", response_model=ExportListResponse)
-async def list_exports(email: str = Depends(get_current_user), db=Depends(get_db)):
+async def list_exports(
+    pagination: PaginationParams = Depends(),
+    email: str = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """List all exports for the current user with pagination."""
     user_id = await _user_id(db, email)
     exports = ExportRepository(db)
+    
+    # Get all exports (in production, add pagination to repository)
     rows = await exports.list_for_user(user_id)
+    total = len(rows)
+    
+    # Apply pagination
+    start_idx = pagination.offset
+    end_idx = start_idx + pagination.limit
+    paginated_rows = rows[start_idx:end_idx]
+    
+    # Create pagination metadata
+    pagination_meta = PaginationMeta(
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        total_pages=(total + pagination.page_size - 1) // pagination.page_size,
+        has_next=pagination.page < (total + pagination.page_size - 1) // pagination.page_size,
+        has_previous=pagination.page > 1,
+    )
+    
     return ExportListResponse(
         exports=[
             ExportResponse(
@@ -158,6 +184,7 @@ async def list_exports(email: str = Depends(get_current_user), db=Depends(get_db
                 storage_path=r["storage_path"],
                 created_at=str(r["created_at"]),
             )
-            for r in rows
-        ]
+            for r in paginated_rows
+        ],
+        pagination=pagination_meta,
     )

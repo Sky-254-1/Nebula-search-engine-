@@ -4,7 +4,7 @@ import logging
 from enum import Enum
 from typing import Optional
 
-from fastapi import HTTPException, Request, Response
+from fastapi import HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
@@ -55,10 +55,9 @@ class VersioningMiddleware(BaseHTTPMiddleware):
                 return response
         
         # If no version in path, return error
-        return Response(
+        raise HTTPException(
             status_code=400,
-            content={"detail": "API version required. Use /api/v1/ or /api/v2/"},
-            media_type="application/json",
+            detail="API version required. Use /api/v1/ or /api/v2/",
         )
 
 

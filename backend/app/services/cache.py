@@ -60,14 +60,33 @@ class CacheService:
             await self._redis.delete(key)
         self._memory.pop(key, None)
 
-    async def invalidate_prefix(self, prefix: str) -> None:
+    async def get_stats(self) -> dict:
         if self._redis:
-            keys = [key async for key in self._redis.scan_iter(match=f"{prefix}*")]
+            info = await self._redis.info()
+            return {
+                "connected": True,
+                "hit_ratio": 0.0,
+                "memory_usage_mb": info.get("used_memory", 0) / (1024 * 1024),
+                "keys_count": await self._redis.dbsize(),
+            }
+        return {
+            "connected": False,
+            "hit_ratio": 0.0,
+            "memory_usage_mb": 0.0,
+            "keys_count": len(self._memory),
+        }
+
+    async def invalidate_prefix(self, prefix: str) -> None:
+        await self.invalidate_pattern(prefix)
+
+    async def invalidate_pattern(self, pattern: str) -> None:
+        if self._redis:
+            keys = [key async for key in self._redis.scan_iter(match=f"{pattern}*")]
             if keys:
                 await self._redis.delete(*keys)
             return
         for key in list(self._memory):
-            if key.startswith(prefix):
+            if key.startswith(pattern):
                 del self._memory[key]
 
 

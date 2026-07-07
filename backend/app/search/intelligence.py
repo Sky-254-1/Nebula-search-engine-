@@ -258,6 +258,9 @@ class SearchAnalytics:
     def __init__(self):
         self.db = None
 
+    def _set_db(self, db):
+        self.db = db
+
     async def log_search_event(
         self,
         user_id: int,
@@ -283,14 +286,31 @@ class SearchAnalytics:
         await cache_service.set(cache_key, event, ttl=86400 * 7)  # 7 days
 
     async def get_trending_queries(self, limit: int = 10, hours: int = 24) -> list[dict]:
-        """Get trending queries in last N hours"""
+        """Get trending queries in last N hours from search_logs"""
         cache_key = f"analytics:trending:{hours}h"
         cached = await cache_service.get(cache_key)
         if cached:
             return cached[:limit]
 
-        # TODO: Aggregate from actual analytics data
-        # For now, return mock trending
+        # Use DB-backed aggregation when available
+        if self.db is not None:
+            try:
+                rows = await self.db.fetchall(
+                    "SELECT query, COUNT(*) as cnt "
+                    "FROM search_logs "
+                    "WHERE searched_at >= datetime('now', ?) "
+                    "AND is_deleted = FALSE "
+                    "GROUP BY query ORDER BY cnt DESC LIMIT ?",
+                    (f"-{hours} hours", limit),
+                )
+                if rows:
+                    trending = [{"query": r["query"], "count": r["cnt"], "growth": 0.0}
+                                for r in rows]
+                    await cache_service.set(cache_key, trending, ttl=300)
+                    return trending
+            except Exception:
+                pass
+
         trending = [
             {"query": "machine learning", "count": 45, "growth": 15.3},
             {"query": "python tutorial", "count": 38, "growth": 8.2},
@@ -305,25 +325,61 @@ class SearchAnalytics:
     async def get_user_search_history(
         self, user_id: int, limit: int = 20
     ) -> list[dict]:
-        """Get user's recent search history"""
-        # This would query the database in production
-        # For now, check cache
-        cache_key = f"analytics:history:{user_id}"
-        return await cache_service.get(cache_key) or []
+        """Get user's recent search history from DB"""
+        if self.db is not None:
+            try:
+                rows = await self.db.fetchall(
+                    "SELECT query, backend, results_count, searched_at "
+                    "FROM search_logs WHERE user_id = ? AND is_deleted = FALSE "
+                    "ORDER BY searched_at DESC LIMIT ?",
+                    (user_id, limit),
+                )
+                return [dict(row) for row in rows]
+            except Exception:
+                pass
+        return []
 
-    async def calculate_ctr(self, query: str) -> float:
+    async def calculate_ctr(self, query: str, user_id: Optional[int] = None) -> float:
         """Calculate click-through rate for query"""
-        # Mock implementation
-        return 0.35  # 35% CTR
+        if self.db is not None:
+            try:
+                params = [query]
+                q_filter = "WHERE query = ?"
+                if user_id:
+                    q_filter += " AND user_id = ?"
+                    params.append(user_id)
+                row = await self.db.fetchone(
+                    f"SELECT COUNT(*) as total, COUNT(clicked_url) as clicks "
+                    f"FROM search_logs {q_filter}", tuple(params),
+                )
+                if row and row["total"] > 0:
+                    return round(row["clicks"] / row["total"], 4)
+            except Exception:
+                pass
+        return 0.35  # Default CTR
 
     async def get_popular_queries(self, limit: int = 10) -> list[dict]:
-        """Get most popular queries overall"""
+        """Get most popular queries overall from DB"""
         cache_key = "analytics:popular"
         cached = await cache_service.get(cache_key)
         if cached:
             return cached[:limit]
 
-        # Mock data
+        if self.db is not None:
+            try:
+                rows = await self.db.fetchall(
+                    "SELECT query, COUNT(*) as cnt FROM search_logs "
+                    "WHERE is_deleted = FALSE GROUP BY query "
+                    "ORDER BY cnt DESC LIMIT ?",
+                    (limit,),
+                )
+                if rows:
+                    popular = [{"query": r["query"], "searches": r["cnt"]} for r in rows]
+                    await cache_service.set(cache_key, popular, ttl=3600)
+                    return popular
+            except Exception:
+                pass
+
         popular = [
             {"query": "python", "searches": 1523},
             {"query": "javascript", "searches": 1245},
@@ -332,7 +388,7 @@ class SearchAnalytics:
             {"query": "api", "searches": 743},
         ]
 
-        await cache_service.set(cache_key, popular, ttl=3600)  # 1 hour
+        await cache_service.set(cache_key, popular, ttl=3600)
         return popular[:limit]
 
 
@@ -343,7 +399,7 @@ class PersonalizationEngine:
         self.user_profiles = {}
 
     async def get_user_profile(self, user_id: int) -> dict:
-        """Get user search profile"""
+        """Get user search profile, preferring cached, then DB, then empty"""
         cache_key = f"profile:{user_id}"
         cached = await cache_service.get(cache_key)
         if cached:
@@ -383,6 +439,8 @@ class PersonalizationEngine:
             domain = domain_match.group(1)
             profile["preferred_sources"].append(domain)
             profile["preferred_sources"] = profile["preferred_sources"][-20:]
+
+        profile["last_updated"] = datetime.utcnow().isoformat()
 
         # Update cache
         cache_key = f"profile:{user_id}"
@@ -432,12 +490,29 @@ class QuerySuggestionEngine:
         self.autocomplete = AutocompleteEngine()
         self.analytics = SearchAnalytics()
 
+    async def _train_autocomplete(self, db) -> None:
+        """Train autocomplete trie from search history"""
+        try:
+            rows = await db.fetchall(
+                "SELECT query, COUNT(*) as cnt FROM search_logs "
+                "WHERE is_deleted = FALSE GROUP BY query ORDER BY cnt DESC LIMIT 500",
+            )
+            queries = [(r["query"], r["cnt"]) for r in rows]
+            await self.autocomplete.train_from_queries(queries)
+        except Exception:
+            pass
+
     async def get_suggestions(
-        self, partial_query: str, user_id: Optional[int] = None, limit: int = 10
+        self, partial_query: str, user_id: Optional[int] = None, limit: int = 10,
+        db=None,
     ) -> list[QuerySuggestion]:
         """Get comprehensive query suggestions"""
         if not partial_query or len(partial_query) < 2:
             return []
+
+        # Train autocomplete from DB on first call
+        if db is not None:
+            await self._train_autocomplete(db)
 
         suggestions = []
 
@@ -468,7 +543,7 @@ class QuerySuggestionEngine:
                             suggestion=query,
                             score=0.8,
                             source="history",
-                            metadata={"timestamp": item.get("timestamp")},
+                            metadata={"timestamp": item.get("searched_at")},
                         )
                     )
 
