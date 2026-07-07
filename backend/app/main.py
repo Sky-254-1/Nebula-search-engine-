@@ -193,8 +193,9 @@ app.include_router(auth_extended_router)
 app.include_router(mfa_router)
 app.include_router(oauth_router)
 app.include_router(admin.router)
-# Consolidated search API - search_unified includes all features from v1 and v2
 app.include_router(search_unified_router)
+# Enhanced search routes (v2) with semantic search, trending, analytics
+app.include_router(search_v2_router)
 # Legacy search routes (deprecated, kept for backward compatibility)
 app.include_router(search.router)
 app.include_router(ai.router)

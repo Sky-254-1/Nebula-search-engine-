@@ -157,7 +157,7 @@ class Settings:
     @property
     def db_path(self) -> str:
         if self.uses_postgres:
-            return "nebula.db"
+            return self.database_url
         return self.database_url
 
     @property

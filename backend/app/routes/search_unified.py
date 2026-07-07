@@ -226,7 +226,7 @@ async def unified_search(
     response_time_ms = response.get("response_time_ms", 0.0)
 
     return SearchResponse(
-        query=query,
+        query=body.query,
         mode=body.mode.value,
         results=results,
         ai_answer=ai_answer,

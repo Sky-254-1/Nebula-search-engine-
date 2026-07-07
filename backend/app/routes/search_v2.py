@@ -22,8 +22,10 @@ from app.search.intelligence import (
     spell_corrector,
 )
 from app.search.orchestrator import orchestrate_search
+from app.search.query_understanding.intent_classifier import intent_classifier
 from app.search.ranking import hybrid_ranker
 from app.search.semantic import SemanticEngine
+from app.search.semantic.engine import semantic_engine
 from app.services.auth import get_current_user
 
 logger = logging.getLogger("nebula.search.v2")

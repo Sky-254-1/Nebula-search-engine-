@@ -236,7 +236,8 @@ async def get_system_stats(db=Depends(get_db)):
     
     # Calculate uptime (simplified - in production, track actual start time)
     import time
-    uptime_seconds = time.time() - app.state.start_time if hasattr(app.state, 'start_time') else 0
+    from app.main import app as main_app
+    uptime_seconds = time.time() - main_app.state.start_time if hasattr(main_app.state, 'start_time') else 0
     
     return SystemStatsResponse(
         total_users=total_users,
