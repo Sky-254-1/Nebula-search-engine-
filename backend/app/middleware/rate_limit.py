@@ -168,6 +168,42 @@ class RateLimiter:
 rate_limiter = RateLimiter()
 
 
+# ---------------------------------------------------------------------------
+# SlowAPI compatibility wrappers
+# ---------------------------------------------------------------------------
+
+
+def get_limiter():
+    """
+    Compatibility wrapper for SlowAPI's get_limiter().
+    Returns the global rate limiter instance.
+    """
+    return rate_limiter
+
+
+async def rate_limit_exceeded_handler(request: Request, exc: HTTPException):
+    """
+    Compatibility wrapper for SlowAPI's rate limit exceeded handler.
+    Returns a proper JSON response with rate limit headers.
+    """
+    retry_after = exc.headers.get("Retry-After", "60")
+    return JSONResponse(
+        status_code=429,
+        content={"detail": exc.detail},
+        headers={
+            "X-RateLimit-Limit": exc.headers.get("X-RateLimit-Limit", str(settings.rate_limit_per_minute)),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": exc.headers.get("X-RateLimit-Reset", str(int(time.time() + 60))),
+            "Retry-After": retry_after,
+        },
+    )
+
+
+# Note: slowapi_middleware is not needed as we use our custom middleware
+# This is kept as None for backward compatibility in imports
+slowapi_middleware = None
+
+
 async def rate_limit(
     request: Request,
     limit: Optional[int] = None,
