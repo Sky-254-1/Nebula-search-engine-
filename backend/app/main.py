@@ -429,7 +429,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"],
     allow_headers=["Authorization", "Content-Type", "X-CSRF-Token", "X-Request-ID"],
 )
-app.add_middleware(CSRFProtectionMiddleware)
 
 # --- OpenTelemetry instrumentation (wraps ASGI app) ---
 if _otel_instrumented:
