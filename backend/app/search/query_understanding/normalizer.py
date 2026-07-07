@@ -157,3 +157,6 @@ class QueryNormalizer:
 
 # Singleton instance
 query_normalizer = QueryNormalizer()
+
+# Alias for backward compatibility
+Normalizer = QueryNormalizer

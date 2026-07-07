@@ -24,18 +24,18 @@ class LanguageDetector:
     
     # Common language patterns for quick detection
     LANGUAGE_PATTERNS = {
-        'en': re.compile(r'^[a-zA-Z\s\p{P}]+$', re.IGNORECASE),
-        'es': re.compile(r'^[a-zA-Záéíóúñü\s\p{P}]+$', re.IGNORECASE),
-        'fr': re.compile(r'^[a-zA-Zàâäéèêëïîôùûüÿç\s\p{P}]+$', re.IGNORECASE),
-        'de': re.compile(r'^[a-zA-Zäöüß\s\p{P}]+$', re.IGNORECASE),
-        'it': re.compile(r'^[a-zA-Zàèéìíîòóù\s\p{P}]+$', re.IGNORECASE),
-        'pt': re.compile(r'^[a-zA-Záâãàéêíóôõúüç\s\p{P}]+$', re.IGNORECASE),
-        'ru': re.compile(r'^[\u0400-\u04FF\s\p{P}]+$'),
-        'zh': re.compile(r'^[\u4e00-\u9fff\s\p{P}]+$'),
-        'ja': re.compile(r'^[\u3040-\u309f\u30a0-\u30ff\s\p{P}]+$'),
-        'ko': re.compile(r'^[\uac00-\ud7af\s\p{P}]+$'),
-        'ar': re.compile(r'^[\u0600-\u06ff\s\p{P}]+$'),
-        'hi': re.compile(r'^[\u0900-\u097f\s\p{P}]+$'),
+        'en': re.compile(r'^[a-zA-Z\s]+$', re.IGNORECASE),
+        'es': re.compile(r'^[a-zA-Záéíóúñü\s]+$', re.IGNORECASE),
+        'fr': re.compile(r'^[a-zA-Zàâäéèêëïîôùûüÿç\s]+$', re.IGNORECASE),
+        'de': re.compile(r'^[a-zA-Zäöüß\s]+$', re.IGNORECASE),
+        'it': re.compile(r'^[a-zA-Zàèéìíîòóù\s]+$', re.IGNORECASE),
+        'pt': re.compile(r'^[a-zA-Záâãàéêíóôõúüç\s]+$', re.IGNORECASE),
+        'ru': re.compile(r'^[\u0400-\u04FF\s]+$'),
+        'zh': re.compile(r'^[\u4e00-\u9fff\s]+$'),
+        'ja': re.compile(r'^[\u3040-\u309f\u30a0-\u30ff\s]+$'),
+        'ko': re.compile(r'^[\uac00-\ud7af\s]+$'),
+        'ar': re.compile(r'^[\u0600-\u06ff\s]+$'),
+        'hi': re.compile(r'^[\u0900-\u097f\s]+$'),
     }
     
     # Common words for language detection

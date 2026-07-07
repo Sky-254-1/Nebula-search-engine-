@@ -31,7 +31,7 @@ from app.middleware.versioning import VersioningMiddleware
 from app.middleware.response import ResponseStandardizationMiddleware
 from app.middleware.rate_limit import RateLimitHeadersMiddleware
 from app.services.monitoring import MetricsMiddleware
-from app.routes import admin, ai, audio, auth, crawler, features, health, oauth2, search, storage, vector
+from app.routes import admin, ai, audio, auth, crawler, features, health, oauth, search, storage, vector
 from app.routes.analytics import router as analytics_router
 from app.routes.auth_extended import router as auth_extended_router
 from app.routes.documents import router as documents_router
@@ -455,8 +455,8 @@ app.include_router(documents_router)  # New documents domain
 app.include_router(storage.router)  # Legacy storage routes (backward compatible)
 app.include_router(vector.router)
 app.include_router(webhooks_router)
-app.include_router(crawler_router)  # Crawler management
-app.include_router(features_router)  # Collections, bookmarks, saved searches
+app.include_router(crawler.router)  # Crawler management
+app.include_router(features.router)  # Collections, bookmarks, saved searches
 
 # --- Prometheus /metrics endpoint (mounted after routes) ---
 

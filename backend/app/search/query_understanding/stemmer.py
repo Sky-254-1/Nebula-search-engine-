@@ -151,3 +151,6 @@ class QueryStemmer:
 
 # Singleton instance
 query_stemmer = QueryStemmer()
+
+# Alias for backward compatibility
+Stemmer = QueryStemmer

@@ -213,3 +213,6 @@ class StopWordRemover:
 
 # Singleton instance
 stop_word_remover = StopWordRemover()
+
+# Alias for backward compatibility
+StopwordRemover = StopWordRemover

@@ -188,6 +188,17 @@ class Settings:
         default_factory=lambda: os.getenv("OAUTH2_FRONTEND_REDIRECT_URI", "http://localhost:5173/oauth/callback")
     )
 
+    # === Email/SMTP Settings ===
+    smtp_host: str = field(default_factory=lambda: os.getenv("SMTP_HOST", ""))
+    smtp_port: int = field(default_factory=lambda: int(os.getenv("SMTP_PORT", "587")))
+    smtp_username: str = field(default_factory=lambda: os.getenv("SMTP_USERNAME", ""))
+    smtp_password: str = field(default_factory=lambda: os.getenv("SMTP_PASSWORD", ""))
+    smtp_from_email: str = field(default_factory=lambda: os.getenv("SMTP_FROM_EMAIL", ""))
+    smtp_from_name: str = field(default_factory=lambda: os.getenv("SMTP_FROM_NAME", "Nebula Search"))
+    smtp_use_tls: bool = field(
+        default_factory=lambda: os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+    )
+
     # === API Key Settings ===
     api_key_length: int = field(
         default_factory=lambda: int(os.getenv("API_KEY_LENGTH", "32"))

@@ -226,3 +226,6 @@ class QueryTokenizer:
 
 # Singleton instance
 query_tokenizer = QueryTokenizer()
+
+# Alias for backward compatibility
+Tokenizer = QueryTokenizer
