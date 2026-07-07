@@ -1,27 +1,3 @@
-<<<<<<< HEAD
-# Nebula Search Engine
-
-**Private · Online & Offline-First · AI-Powered · Hybrid Search**
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-7c5cfc.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/React-18-61DAFB.svg?logo=react&logoColor=white)](https://react.dev)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](https://docker.com)
-[![Node](https://img.shields.io/badge/Node-20-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1.svg?logo=postgresql&logoColor=white)](https://postgresql.org)
-[![Redis](https://img.shields.io/badge/Redis-7-DC382D.svg?logo=redis&logoColor=white)](https://redis.io)
-[![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8.svg?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps)
-[![Tests](https://img.shields.io/badge/Tests-pytest%20%7C%20Playwright-0A9EDC.svg)](https://playwright.dev)
-
-A modern search platform combining web search, offline document search, AI-powered answers, and encrypted P2P sharing — with a privacy-first approach and zero tracking.
-
-[Getting Started](#quick-start) · [Architecture](#architecture) · [API Docs](docs/API.md) · [Deployment](docs/DEPLOYMENT.md) · [Roadmap](docs/ROADMAP.md) · [Contributing](CONTRIBUTING.md)
-
----
-
-## Quick Start
-=======
 # 🔮 Nebula Search Engine
 
 <div align="center">
@@ -40,6 +16,21 @@ A modern search platform combining web search, offline document search, AI-power
 [Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Demo](#-demo) • [Investors](#-for-investors)
 
 </div>
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-7c5cfc.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18-61DAFB.svg?logo=react&logoColor=white)](https://react.dev)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](https://docker.com)
+[![Node](https://img.shields.io/badge/Node-20-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1.svg?logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Redis](https://img.shields.io/badge/Redis-7-DC382D.svg?logo=redis&logoColor=white)](https://redis.io)
+[![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8.svg?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps)
+[![Tests](https://img.shields.io/badge/Tests-pytest%20%7C%20Playwright-0A9EDC.svg)](https://playwright.dev)
+
+A modern search platform combining web search, offline document search, AI-powered answers, and encrypted P2P sharing — with a privacy-first approach and zero tracking.
+
+[Getting Started](#quick-start) · [Architecture](#architecture) · [API Docs](docs/API.md) · [Deployment](docs/DEPLOYMENT.md) · [Roadmap](docs/ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
 ---
 
@@ -145,16 +136,20 @@ cd Nebula-search-engine-
 ```bash
 docker-compose up -d
 ```
->>>>>>> refactor/structure-cleanup
 
 ### 3. Or Manual Setup
 ```bash
 # Backend
-<<<<<<< HEAD
-cd backend && pip install -r requirements-dev.txt && uvicorn app.main:app --reload
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
 
-# Frontend
-cd frontend && npm install && npm run dev
+# Frontend (new terminal)
+cd frontend
+npm install
+npm run dev
 ```
 
 - React app: http://localhost:5173
@@ -240,7 +235,7 @@ cd frontend && npm install && npm run dev
 │                    Nginx Reverse Proxy                       │
 │              TLS termination · Static serving                │
 └─────────────────────────┬───────────────────────────────────┘
-                          │
+                           │
 ┌─────────────────────────▼───────────────────────────────────┐
 │                     FastAPI Backend                          │
 │  ┌────────┐ ┌──────────┐ ┌──────────┐ ┌───────┐ ┌────────┐ │
@@ -444,64 +439,8 @@ Key endpoints:
 | GET | `/metrics` | Prometheus metrics | No |
 
 ---
-=======
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-
-# Frontend (new terminal)
-cd frontend
-npm install
-npm run dev
-```
->>>>>>> refactor/structure-cleanup
-
-### 4. Access Application
-- **Frontend:** http://localhost:5173
-- **API Docs:** http://localhost:8000/docs
-- **API Redoc:** http://localhost:8000/redoc
-
-<<<<<<< HEAD
-See `.env.example` for complete list. Critical variables:
-
-```env
-# Core
-APP_ENV=production
-JWT_SECRET=<strong-random-key>
-DATABASE_URL=postgresql://...
-REDIS_URL=redis://...
-
-# Search & AI
-OPENAI_API_KEY=<your-key>
-BRAVE_API_KEY=<your-key>
-SERPAPI_KEY=<your-key>
-
-# Security
-CORS_ORIGINS=https://your-domain.com
-ENABLE_CSRF=true
-ENABLE_2FA=false
-MAX_LOGIN_ATTEMPTS=5
-
-# Observability
-SENTRY_DSN=<your-sentry-dsn>
-OTEL_EXPORTER_OTLP_ENDPOINT=<your-otel-endpoint>
-LOG_LEVEL=INFO
-```
-
----
-
-## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-=======
----
 
 ## 📊 Performance Metrics
->>>>>>> refactor/structure-cleanup
 
 ### Search Performance
 - **Latency (p95):** <200ms
@@ -509,29 +448,6 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 - **Indexing Speed:** 10,000+ documents/minute
 - **Concurrent Users:** 10,000+
 
-<<<<<<< HEAD
-MIT License · Copyright (c) 2026 Sky-254-1
-
----
-
-## Security
-
-For security issues, see [SECURITY.md](SECURITY.md)
-
----
-
-## Roadmap
-
-See [docs/ROADMAP.md](docs/ROADMAP.md) for planned features and releases.
-
----
-
-## Support
-
-- **Documentation:** [docs/](docs/)
-- **Issues:** [GitHub Issues](https://github.com/Sky-254-1/Nebula-search-engine-/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/Sky-254-1/Nebula-search-engine-/discussions)
-=======
 ### System Performance
 - **Database Connection Pool:** 5-20 connections
 - **Cache Hit Ratio:** >70%
@@ -693,6 +609,56 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 
 ---
 
+## Environment Configuration
+
+See `.env.example` for complete list. Critical variables:
+
+```env
+# Core
+APP_ENV=production
+JWT_SECRET=<strong-random-key>
+DATABASE_URL=postgresql://...
+REDIS_URL=redis://...
+
+# Search & AI
+OPENAI_API_KEY=<your-key>
+BRAVE_API_KEY=<your-key>
+SERPAPI_KEY=<your-key>
+
+# Security
+CORS_ORIGINS=https://your-domain.com
+ENABLE_CSRF=true
+ENABLE_2FA=false
+MAX_LOGIN_ATTEMPTS=5
+
+# Observability
+SENTRY_DSN=<your-sentry-dsn>
+OTEL_EXPORTER_OTLP_ENDPOINT=<your-otel-endpoint>
+LOG_LEVEL=INFO
+```
+
+---
+
+## Security
+
+For security issues, see [SECURITY.md](SECURITY.md)
+
+---
+
+## Roadmap
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for planned features and releases.
+
+---
+
+## Support
+
+- **Documentation:** [docs/](docs/)
+- **Issues:** [GitHub Issues](https://github.com/Sky-254-1/Nebula-search-engine-/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/Sky-254-1/Nebula-search-engine-/discussions)
+
+---
+
 <div align="center">
 
 **⭐ Star us on GitHub if you find this project useful!**
@@ -700,4 +666,3 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 Made with ❤️ by the Nebula Team
 
 </div>
->>>>>>> refactor/structure-cleanup

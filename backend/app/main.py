@@ -28,19 +28,14 @@ from app.database import init_db
 from app.middleware.csrf import CSRFProtectionMiddleware
 from app.middleware.rate_limit import get_limiter, rate_limit_exceeded_handler, slowapi_middleware
 from app.middleware.security import SecurityHeadersMiddleware
-<<<<<<< HEAD
-from app.routes import admin, ai, auth, crawler, features, health, oauth2, search, storage, vector
-=======
 from app.middleware.versioning import VersioningMiddleware
 from app.middleware.response import ResponseStandardizationMiddleware
 from app.middleware.rate_limit import RateLimitHeadersMiddleware
 from app.services.monitoring import MetricsMiddleware
-from app.routes import admin, ai, audio, auth, health, search, storage, vector
+from app.routes import admin, ai, audio, auth, crawler, features, health, oauth2, search, storage, vector
 from app.routes.analytics import router as analytics_router
 from app.routes.auth_extended import router as auth_extended_router
-from app.routes.crawler import router as crawler_router
 from app.routes.documents import router as documents_router
-from app.routes.features import router as features_router
 from app.routes.mfa import router as mfa_router
 from app.routes.notifications import router as notifications_router
 from app.routes.oauth import router as oauth_router
@@ -49,7 +44,6 @@ from app.routes.search_unified import router as search_unified_router
 from app.routes.search_v2 import router as search_v2_router
 from app.routes.users import router as users_router
 from app.routes.webhooks import router as webhooks_router
->>>>>>> refactor/structure-cleanup
 from app.services.cache import cache_service
 from app.services.queue import job_queue
 from slowapi.errors import RateLimitExceeded
@@ -394,8 +388,6 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
-<<<<<<< HEAD
-=======
     openapi_tags=[
         {"name": "Health", "description": "Health check endpoints"},
         {"name": "Auth", "description": "Authentication and authorization"},
@@ -408,7 +400,6 @@ app = FastAPI(
         {"name": "Webhooks", "description": "Webhook management"},
         {"name": "Admin", "description": "Administrative endpoints"},
     ],
->>>>>>> refactor/structure-cleanup
 )
 
 # --- SlowAPI rate limiter ---
@@ -418,8 +409,6 @@ app.add_middleware(SlowAPIMiddleware)
 
 # --- Middleware stack (order matters) ---
 app.add_middleware(SecurityHeadersMiddleware)
-<<<<<<< HEAD
-=======
 app.add_middleware(VersioningMiddleware)
 app.add_middleware(ResponseStandardizationMiddleware)
 app.add_middleware(RateLimitHeadersMiddleware)
@@ -432,7 +421,7 @@ app.add_middleware(CSRFProtectionMiddleware)
 # Register compression middleware
 from app.middleware.compression import CompressionMiddleware
 app.add_middleware(CompressionMiddleware, minimum_size=1024)
->>>>>>> refactor/structure-cleanup
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -462,13 +451,6 @@ app.include_router(search_v2_router)
 # Legacy search routes (deprecated, kept for backward compatibility)
 app.include_router(search.router)
 app.include_router(ai.router)
-<<<<<<< HEAD
-app.include_router(storage.router)
-app.include_router(vector.router)
-app.include_router(crawler.router)
-app.include_router(features.router)
-app.include_router(oauth2.router)
-=======
 app.include_router(audio.router)
 app.include_router(users_router)  # New users domain
 app.include_router(notifications_router)  # New notifications domain
@@ -480,7 +462,6 @@ app.include_router(vector.router)
 app.include_router(webhooks_router)
 app.include_router(crawler_router)  # Crawler management
 app.include_router(features_router)  # Collections, bookmarks, saved searches
->>>>>>> refactor/structure-cleanup
 
 # --- Prometheus /metrics endpoint (mounted after routes) ---
 
@@ -550,12 +531,3 @@ if os.name != "nt":  # Signals not fully supported on Windows
 # Entrypoint
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=not settings.is_production,
-    )
