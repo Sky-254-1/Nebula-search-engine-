@@ -25,9 +25,8 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.config import get_settings
 from app.database import init_db
-from app.middleware.csrf import CSRFProtectionMiddleware
 from app.middleware.rate_limit import get_limiter, rate_limit_exceeded_handler, slowapi_middleware
-from app.middleware.security import SecurityHeadersMiddleware
+from app.middleware.security import SecurityHeadersMiddleware, CSRFProtectionMiddleware
 from app.middleware.versioning import VersioningMiddleware
 from app.middleware.response import ResponseStandardizationMiddleware
 from app.middleware.rate_limit import RateLimitHeadersMiddleware
@@ -413,9 +412,6 @@ app.add_middleware(VersioningMiddleware)
 app.add_middleware(ResponseStandardizationMiddleware)
 app.add_middleware(RateLimitHeadersMiddleware)
 app.add_middleware(MetricsMiddleware)
-
-# Register CSRF protection for cookie-based auth
-from app.middleware.security import CSRFProtectionMiddleware
 app.add_middleware(CSRFProtectionMiddleware)
 
 # Register compression middleware
