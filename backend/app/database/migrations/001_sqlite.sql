@@ -12,8 +12,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     user_id INTEGER NOT NULL,
     refresh_token_hash TEXT NOT NULL,
     expires_at TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
@@ -24,8 +23,7 @@ CREATE TABLE IF NOT EXISTS search_logs (
     query TEXT NOT NULL,
     backend TEXT,
     results_count INTEGER DEFAULT 0,
-    searched_at TEXT NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    searched_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_search_logs_user_id ON search_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_search_logs_searched_at ON search_logs(searched_at);
@@ -35,8 +33,7 @@ CREATE TABLE IF NOT EXISTS chat_history (
     user_id INTEGER,
     role TEXT NOT NULL,
     content TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_chat_history_user_id ON chat_history(user_id);
 
@@ -47,8 +44,7 @@ CREATE TABLE IF NOT EXISTS documents (
     content_type TEXT,
     storage_path TEXT NOT NULL,
     indexed_at TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_documents_user_id ON documents(user_id);
 
@@ -56,8 +52,7 @@ CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER UNIQUE,
     data_json TEXT NOT NULL DEFAULT '{}',
-    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS exports (
@@ -65,7 +60,6 @@ CREATE TABLE IF NOT EXISTS exports (
     user_id INTEGER,
     export_type TEXT NOT NULL,
     storage_path TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_exports_user_id ON exports(user_id);
