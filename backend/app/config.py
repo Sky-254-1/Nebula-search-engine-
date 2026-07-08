@@ -51,6 +51,9 @@ class Settings:
     jwt_expiry_hours: int = field(
         default_factory=lambda: int(os.getenv("JWT_EXPIRY_HOURS", "24"))
     )
+    jwt_expiry_minutes: int = field(
+        default_factory=lambda: int(os.getenv("JWT_EXPIRY_MINUTES", "1440"))
+    )
     refresh_token_days: int = field(
         default_factory=lambda: int(os.getenv("REFRESH_TOKEN_DAYS", "30"))
     )
@@ -159,10 +162,19 @@ class Settings:
     enable_webauthn: bool = field(
         default_factory=lambda: os.getenv("ENABLE_WEBAUTHN", "false").lower() == "true"
     )
+    require_email_verification: bool = field(
+        default_factory=lambda: os.getenv("REQUIRE_EMAIL_VERIFICATION", "false").lower() == "true"
+    )
 
     # === 2FA / TOTP ===
     totp_issuer: str = field(
         default_factory=lambda: os.getenv("TOTP_ISSUER", "Nebula Search")
+    )
+    jwt_issuer: str = field(
+        default_factory=lambda: os.getenv("JWT_ISSUER", "Nebula Search")
+    )
+    jwt_audience: str = field(
+        default_factory=lambda: os.getenv("JWT_AUDIENCE", "nebula-search-api")
     )
 
     # === Encryption Key for data at rest ===
@@ -197,6 +209,9 @@ class Settings:
     smtp_from_name: str = field(default_factory=lambda: os.getenv("SMTP_FROM_NAME", "Nebula Search"))
     smtp_use_tls: bool = field(
         default_factory=lambda: os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+    )
+    email_verification_expiry_hours: int = field(
+        default_factory=lambda: int(os.getenv("EMAIL_VERIFICATION_EXPIRY_HOURS", "24"))
     )
 
     # === API Key Settings ===

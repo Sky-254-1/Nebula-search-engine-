@@ -46,7 +46,7 @@ async def test_ai_ask_not_found(client: AsyncClient, auth_headers: dict):
 async def test_synthesize(client: AsyncClient, auth_headers: dict):
     with patch(
         "app.routes.ai.synthesize_snippets",
-        new=AsyncMock(return_value=SynthesizeResponse(synthesis="Summary text.")),
+        new=AsyncMock(return_value=SynthesizeResponse(synthesis="Summary text.", sources=["source1", "source2"])),
     ):
         response = await client.post(
             "/api/v1/ai/synthesize",

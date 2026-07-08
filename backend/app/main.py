@@ -402,9 +402,10 @@ app = FastAPI(
 )
 
 # --- SlowAPI rate limiter ---
-app.state.limiter = get_limiter()
-app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
-app.add_middleware(SlowAPIMiddleware)
+# Note: Using custom rate limiter implementation, not SlowAPIMiddleware
+# app.state.limiter = get_limiter()  # Not needed for custom implementation
+# app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # Not used
+# app.add_middleware(SlowAPIMiddleware)  # Removed - using custom RateLimitHeadersMiddleware instead
 
 # --- Middleware stack (order matters) ---
 app.add_middleware(SecurityHeadersMiddleware)

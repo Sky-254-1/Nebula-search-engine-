@@ -53,8 +53,8 @@ async def test_search_history_no_user(search_client):
     with patch("app.routes.search.UserRepository.get_id_by_email", new_callable=AsyncMock) as mock_get_id:
         mock_get_id.return_value = None
         response = await search_client.get("/api/v1/search/history")
-        assert response.status_code == 200
-        assert response.json()["history"] == []
+        assert response.status_code == 404
+        assert "detail" in response.json()
 
     app.dependency_overrides = {}
 

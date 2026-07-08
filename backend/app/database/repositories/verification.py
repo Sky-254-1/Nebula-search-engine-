@@ -11,7 +11,7 @@ class EmailVerificationRepository:
 
     async def create(self, user_id: int, token_hash: str, expires_at: datetime) -> int:
         """Create an email verification token."""
-        sql = """INSERT INTO auth.email_verification 
+        sql = """INSERT INTO email_verification 
                  (user_id, token_hash, expires_at) 
                  VALUES (?, ?, ?)"""
         cursor = await self._db.execute(sql, (user_id, token_hash, expires_at.isoformat()))
@@ -25,7 +25,7 @@ class EmailVerificationRepository:
         """Get verification token by hash."""
         return await self._db.fetchone(
             """SELECT id, user_id, token_hash, is_used, expires_at, created_at 
-               FROM auth.email_verification 
+               FROM email_verification 
                WHERE token_hash = ? AND is_used = FALSE AND is_deleted = FALSE""",
             (token_hash,),
         )
@@ -35,14 +35,14 @@ class EmailVerificationRepository:
         if active_only:
             return await self._db.fetchall(
                 """SELECT id, token_hash, is_used, expires_at, created_at 
-                   FROM auth.email_verification 
+                   FROM email_verification 
                    WHERE user_id = ? AND is_used = FALSE AND is_deleted = FALSE 
                    ORDER BY created_at DESC""",
                 (user_id,),
             )
         return await self._db.fetchall(
             """SELECT id, token_hash, is_used, expires_at, created_at 
-               FROM auth.email_verification 
+               FROM email_verification 
                WHERE user_id = ? AND is_deleted = FALSE 
                ORDER BY created_at DESC""",
             (user_id,),
@@ -52,7 +52,7 @@ class EmailVerificationRepository:
         """Mark verification token as used."""
         now = datetime.now(timezone.utc).isoformat()
         await self._db.execute(
-            "UPDATE auth.email_verification SET is_used = TRUE, used_at = ? WHERE id = ?",
+            "UPDATE email_verification SET is_used = TRUE, used_at = ? WHERE id = ?",
             (now, token_id),
         )
         await self._db.commit()
@@ -60,7 +60,7 @@ class EmailVerificationRepository:
     async def invalidate_user_tokens(self, user_id: int) -> None:
         """Invalidate all unused verification tokens for a user."""
         await self._db.execute(
-            "UPDATE auth.email_verification SET is_deleted = TRUE WHERE user_id = ? AND is_used = FALSE",
+            "UPDATE email_verification SET is_deleted = TRUE WHERE user_id = ? AND is_used = FALSE",
             (user_id,),
         )
         await self._db.commit()
@@ -69,7 +69,7 @@ class EmailVerificationRepository:
         """Delete expired verification tokens."""
         now = datetime.now(timezone.utc).isoformat()
         await self._db.execute(
-            "DELETE FROM auth.email_verification WHERE expires_at < ? AND is_deleted = FALSE",
+            "DELETE FROM email_verification WHERE expires_at < ? AND is_deleted = FALSE",
             (now,),
         )
         await self._db.commit()
@@ -82,7 +82,7 @@ class PasswordResetRepository:
     async def create(self, user_id: int, token_hash: str, expires_at: datetime, 
                      ip_address: str = None, user_agent: str = None) -> int:
         """Create a password reset token."""
-        sql = """INSERT INTO auth.password_reset 
+        sql = """INSERT INTO password_reset 
                  (user_id, token_hash, expires_at, ip_address, user_agent) 
                  VALUES (?, ?, ?, ?, ?)"""
         cursor = await self._db.execute(
@@ -99,7 +99,7 @@ class PasswordResetRepository:
         """Get reset token by hash."""
         return await self._db.fetchone(
             """SELECT id, user_id, token_hash, is_used, expires_at, ip_address, user_agent, created_at 
-               FROM auth.password_reset 
+               FROM password_reset 
                WHERE token_hash = ? AND is_used = FALSE AND is_deleted = FALSE""",
             (token_hash,),
         )
@@ -109,14 +109,14 @@ class PasswordResetRepository:
         if active_only:
             return await self._db.fetchall(
                 """SELECT id, token_hash, is_used, expires_at, created_at 
-                   FROM auth.password_reset 
+                   FROM password_reset 
                    WHERE user_id = ? AND is_used = FALSE AND is_deleted = FALSE 
                    ORDER BY created_at DESC""",
                 (user_id,),
             )
         return await self._db.fetchall(
             """SELECT id, token_hash, is_used, expires_at, created_at 
-               FROM auth.password_reset 
+               FROM password_reset 
                WHERE user_id = ? AND is_deleted = FALSE 
                ORDER BY created_at DESC""",
             (user_id,),
@@ -126,7 +126,7 @@ class PasswordResetRepository:
         """Mark reset token as used."""
         now = datetime.now(timezone.utc).isoformat()
         await self._db.execute(
-            "UPDATE auth.password_reset SET is_used = TRUE, used_at = ? WHERE id = ?",
+            "UPDATE password_reset SET is_used = TRUE, used_at = ? WHERE id = ?",
             (now, token_id),
         )
         await self._db.commit()
@@ -134,7 +134,7 @@ class PasswordResetRepository:
     async def invalidate_user_tokens(self, user_id: int) -> None:
         """Invalidate all unused reset tokens for a user."""
         await self._db.execute(
-            "UPDATE auth.password_reset SET is_deleted = TRUE WHERE user_id = ? AND is_used = FALSE",
+            "UPDATE password_reset SET is_deleted = TRUE WHERE user_id = ? AND is_used = FALSE",
             (user_id,),
         )
         await self._db.commit()
@@ -143,7 +143,7 @@ class PasswordResetRepository:
         """Delete expired reset tokens."""
         now = datetime.now(timezone.utc).isoformat()
         await self._db.execute(
-            "DELETE FROM auth.password_reset WHERE expires_at < ? AND is_deleted = FALSE",
+            "DELETE FROM password_reset WHERE expires_at < ? AND is_deleted = FALSE",
             (now,),
         )
         await self._db.commit()

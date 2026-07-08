@@ -2,6 +2,7 @@
 
 import json
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -144,7 +145,8 @@ async def create_export(
 
     exports = ExportRepository(db)
     export_id = await exports.create(user_id, body.export_type, str(dest))
-    return ExportResponse(id=export_id, export_type=body.export_type, storage_path=str(dest))
+    now = datetime.now(timezone.utc).isoformat()
+    return ExportResponse(id=export_id, export_type=body.export_type, storage_path=str(dest), created_at=now)
 
 
 @router.get("/exports", response_model=ExportListResponse)

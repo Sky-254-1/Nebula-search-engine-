@@ -44,6 +44,9 @@ CREATE TABLE IF NOT EXISTS documents (
     content_type TEXT,
     storage_path TEXT NOT NULL,
     indexed_at TEXT,
+    status TEXT DEFAULT 'pending' NOT NULL,
+    content_hash TEXT,
+    error_message TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_documents_user_id ON documents(user_id);

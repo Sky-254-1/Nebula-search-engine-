@@ -16,10 +16,13 @@ async def test_web_search_requires_auth(client: AsyncClient):
 async def test_web_search_wikipedia(client: AsyncClient, auth_headers: dict):
     mock_results = [
         {
-            "title": "Python",
-            "snippet": "A programming language",
-            "url": "https://en.wikipedia.org/wiki/Python",
-            "source": "wikipedia",
+            "document_id": 1,
+            "chunk_id": 1,
+            "filename": "wikipedia-python",
+            "content": "Python is a programming language",
+            "score": 0.95,
+            "vector_score": 0.9,
+            "keyword_score": 1.0,
         }
     ]
     with patch("app.routes.search.run_web_search", new=AsyncMock(return_value=mock_results)):
@@ -31,7 +34,7 @@ async def test_web_search_wikipedia(client: AsyncClient, auth_headers: dict):
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data[0]["source"] == "wikipedia"
+    assert data[0]["filename"] == "wikipedia-python"
 
 
 @pytest.mark.asyncio

@@ -149,7 +149,11 @@ async def login(request: Request, response: Response, body: AuthRequest, db=Depe
         )
 
     _set_auth_cookies(response, access_token, refresh_token)
-    return AuthResponse(access_token=access_token, refresh_token=refresh_token)
+    return AuthResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=settings.jwt_expiry_minutes * 60,
+    )
 
 
 @router.post("/refresh", response_model=AuthResponse, dependencies=[Depends(limit_refresh)])
@@ -209,11 +213,13 @@ async def refresh(request: Request, response: Response, body: RefreshRequest | N
     await sessions.update_rotation(session["id"], datetime.now(timezone.utc))
 
     new_expires = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_days)
+    # Generate new session_id for the rotated session
+    new_session_id = str(uuid.uuid4())
     await sessions.create(
         session["user_id"],
         hash_token(new_refresh),
         new_expires,
-        session_id=session["session_id"],
+        session_id=new_session_id,
         device_name=session["device_name"],
         parent_refresh_id=session["id"],
     )
@@ -228,7 +234,11 @@ async def refresh(request: Request, response: Response, body: RefreshRequest | N
         )
 
     _set_auth_cookies(response, access_token, new_refresh)
-    return AuthResponse(access_token=access_token, refresh_token=new_refresh)
+    return AuthResponse(
+        access_token=access_token,
+        refresh_token=new_refresh,
+        expires_in=settings.jwt_expiry_minutes * 60,
+    )
 
 
 @router.post("/logout")

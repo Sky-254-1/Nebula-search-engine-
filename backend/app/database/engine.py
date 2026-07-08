@@ -59,11 +59,13 @@ class SQLiteConnection(DatabaseConnection):
 
     async def fetchone(self, sql: str, params: tuple = ()) -> Any:
         cursor = await self._conn.execute(sql, params)
-        return await cursor.fetchone()
+        row = await cursor.fetchone()
+        return dict(row) if row else None
 
     async def fetchall(self, sql: str, params: tuple = ()) -> list[Any]:
         cursor = await self._conn.execute(sql, params)
-        return await cursor.fetchall()
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
 
     async def commit(self) -> None:
         await self._conn.commit()

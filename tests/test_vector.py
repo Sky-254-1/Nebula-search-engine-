@@ -34,11 +34,11 @@ async def vector_client():
 async def vector_auth(vector_client: AsyncClient):
     await vector_client.post(
         "/api/v1/auth/signup",
-        json={"email": "vector@test.com", "password": "secret123"},
+        json={"email": "vector@test.com", "password": "SecurePass1!"},
     )
     login = await vector_client.post(
         "/api/v1/auth/login",
-        json={"email": "vector@test.com", "password": "secret123"},
+        json={"email": "vector@test.com", "password": "SecurePass1!"},
     )
     token = login.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

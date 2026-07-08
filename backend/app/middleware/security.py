@@ -5,7 +5,7 @@ from typing import Optional
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
 from app.config import get_settings
 
@@ -76,21 +76,24 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         if auth_header.startswith("Bearer "):
             return await call_next(request)
         
+        # Skip CSRF check if no auth header present - let auth middleware handle it
+        # This allows auth middleware to return proper 401 instead of CSRF returning 403
+        if not auth_header:
+            return await call_next(request)
+        
         # Check CSRF token for cookie-based auth
         csrf_token = request.headers.get("X-CSRF-Token", "")
         if not csrf_token:
-            return Response(
+            return JSONResponse(
                 status_code=403,
                 content={"detail": "CSRF token missing"},
-                media_type="application/json",
             )
         
         # Validate CSRF token
         if not self._validate_csrf_token(csrf_token):
-            return Response(
+            return JSONResponse(
                 status_code=403,
                 content={"detail": "Invalid CSRF token"},
-                media_type="application/json",
             )
         
         return await call_next(request)
@@ -131,10 +134,9 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
         # Also check actual content length
         if hasattr(request, "content_length") and request.content_length:
             if request.content_length > self.max_size:
-                return Response(
+                return JSONResponse(
                     status_code=413,
                     content={"detail": "Request too large"},
-                    media_type="application/json",
                 )
         
         return await call_next(request)
@@ -153,10 +155,9 @@ class IPWhitelistMiddleware(BaseHTTPMiddleware):
         
         client_ip = request.client.host if request.client else "unknown"
         if client_ip not in self.allowed_ips:
-            return Response(
+            return JSONResponse(
                 status_code=403,
                 content={"detail": "Access denied from this IP"},
-                media_type="application/json",
             )
         
         return await call_next(request)
