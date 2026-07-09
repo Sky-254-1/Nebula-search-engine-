@@ -49,6 +49,66 @@ export interface OrchestratedSearchResponse {
   total: number;
 }
 
+// Search v2 Types
+export interface IntelligentSearchResponse {
+  query: string;
+  original_query: string;
+  results: SearchResult[];
+  total: number;
+  page: number;
+  page_size: number;
+  spell_corrected: boolean;
+  intent: string;
+  backends: string[];
+  features: {
+    semantic_enabled: boolean;
+    personalization_enabled: boolean;
+    diversity_enabled: boolean;
+  };
+}
+
+export interface SearchSuggestion {
+  text: string;
+  score: number;
+  source: string;
+  metadata?: Record<string, any>;
+}
+
+export interface SuggestionsResponse {
+  query: string;
+  suggestions: SearchSuggestion[];
+}
+
+export interface AutocompleteResponse {
+  query: string;
+  completions: string[];
+}
+
+export interface SpellCheckResponse {
+  original: string;
+  corrected: string;
+  was_corrected: boolean;
+}
+
+export interface TrendingQuery {
+  query: string;
+  count: number;
+}
+
+export interface TrendingResponse {
+  trending: TrendingQuery[];
+  period_hours: number;
+}
+
+export interface PopularResponse {
+  popular: TrendingQuery[];
+}
+
+export interface SearchProfile {
+  profile: Record<string, any>;
+  recent_searches: SearchHistoryItem[];
+}
+
 export interface SearchHistoryItem {
   id: number;
   query: string;

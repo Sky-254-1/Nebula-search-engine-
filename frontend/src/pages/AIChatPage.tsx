@@ -4,6 +4,7 @@ import { Send, Loader2, User, Bot, Trash2, Copy, Check } from 'lucide-react';
 import { useAIChatStore } from '@/state';
 import { toast } from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
+import { useAuth } from '@/context/AuthContext';
 
 export const AIChatPage: React.FC = () => {
   const { messages, isStreaming, currentStreamMessage, sendMessage, sendMessageStream, clearChatHistory, fetchChatHistory } = useAIChatStore();

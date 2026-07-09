@@ -47,7 +47,7 @@ export const useAIChatStore = create<AIChatStore>()(
           }));
 
           // Get AI response
-          const response = await aiApi.ask({ prompt });
+          const response = await aiApi.ask(prompt);
           
           // Add assistant message
           const assistantMessage: ChatMessage = {
@@ -85,34 +85,27 @@ export const useAIChatStore = create<AIChatStore>()(
           }));
 
           // Stream AI response
-          await aiApi.askStream({
+          await aiApi.askStream(
             prompt,
-            onChunk: (chunk: string) => {
+            (chunk: string) => {
               set((state) => ({
                 currentStreamMessage: state.currentStreamMessage + chunk,
               }));
-            },
-            onComplete: () => {
-              const assistantMessage: ChatMessage = {
-                role: 'assistant',
-                content: get().currentStreamMessage,
-                timestamp: new Date().toISOString(),
-              };
-              
-              set((state) => ({
-                messages: [...state.messages, assistantMessage],
-                isStreaming: false,
-                currentStreamMessage: '',
-              }));
-            },
-            onError: (error: Error) => {
-              set({
-                error: error.message,
-                isStreaming: false,
-                currentStreamMessage: '',
-              });
-            },
-          });
+            }
+          );
+          
+          // After streaming completes, add the assistant message
+          const assistantMessage: ChatMessage = {
+            role: 'assistant',
+            content: get().currentStreamMessage,
+            timestamp: new Date().toISOString(),
+          };
+          
+          set((state) => ({
+            messages: [...state.messages, assistantMessage],
+            isStreaming: false,
+            currentStreamMessage: '',
+          }));
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : 'Failed to send message',

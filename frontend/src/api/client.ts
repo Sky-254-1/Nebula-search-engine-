@@ -6,10 +6,13 @@ import { AuthResponse, APIError } from '@/types';
 // ============================================
 export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 const API_TIMEOUT = 30000;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
 
 class APIClient {
   private client: AxiosInstance;
   private refreshTokenPromise: Promise<string> | null = null;
+  private isOnline: boolean = navigator.onLine;
 
   constructor() {
     this.client = axios.create({
@@ -21,6 +24,57 @@ class APIClient {
     });
 
     this.setupInterceptors();
+    this.setupNetworkListeners();
+  }
+
+  private setupNetworkListeners(): void {
+    window.addEventListener('online', () => {
+      this.isOnline = true;
+      this.processOfflineQueue();
+    });
+
+    window.addEventListener('offline', () => {
+      this.isOnline = false;
+    });
+  }
+
+  private async processOfflineQueue(): Promise<void> {
+    const queue = this.getOfflineQueue();
+    for (const action of queue) {
+      try {
+        await this.executeQueuedAction(action);
+        this.removeFromOfflineQueue(action.id);
+      } catch (error) {
+        console.error('Failed to process queued action:', error);
+      }
+    }
+  }
+
+  private async executeQueuedAction(action: any): Promise<void> {
+    switch (action.type) {
+      case 'search':
+        await this.post('/v2/search', action.payload);
+        break;
+      case 'chat':
+        await this.post('/ai/ask', action.payload);
+        break;
+      default:
+        console.warn('Unknown queued action type:', action.type);
+    }
+  }
+
+  private getOfflineQueue(): any[] {
+    try {
+      const queue = localStorage.getItem('offline_queue');
+      return queue ? JSON.parse(queue) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private removeFromOfflineQueue(id: string): void {
+    const queue = this.getOfflineQueue().filter((item) => item.id !== id);
+    localStorage.setItem('offline_queue', JSON.stringify(queue));
   }
 
   private setupInterceptors(): void {
@@ -36,14 +90,28 @@ class APIClient {
       (error: AxiosError) => Promise.reject(error)
     );
 
-    // Response interceptor to handle token refresh
+    // Response interceptor to handle token refresh and retries
     this.client.interceptors.response.use(
       (response: AxiosResponse) => response,
       async (error: AxiosError<APIError>) => {
-        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _retryCount?: number };
+
+        // Handle network errors
+        if (!error.response) {
+          if (this.isOnline) {
+            return Promise.reject(error);
+          }
+          
+          // Queue request for later if offline
+          if (originalRequest.method && originalRequest.url && !originalRequest.url.includes('/auth/')) {
+            this.queueOfflineAction(originalRequest);
+          }
+          
+          return Promise.reject(new Error('Network error - request queued for retry'));
+        }
 
         // If error is 401 and we haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
           try {
@@ -60,9 +128,41 @@ class APIClient {
           }
         }
 
+        // Retry on 5xx errors
+        if (error.response.status >= 500 && !originalRequest._retry) {
+          originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
+          
+          if (originalRequest._retryCount < MAX_RETRIES) {
+            await this.delay(RETRY_DELAY * originalRequest._retryCount);
+            return this.client(originalRequest);
+          }
+        }
+
         return Promise.reject(error);
       }
     );
+  }
+
+  private queueOfflineAction(config: InternalAxiosRequestConfig): void {
+    try {
+      const queue = this.getOfflineQueue();
+      queue.push({
+        id: crypto.randomUUID(),
+        type: 'generic',
+        method: config.method,
+        url: config.url,
+        data: config.data,
+        timestamp: Date.now(),
+        retries: 0,
+      });
+      localStorage.setItem('offline_queue', JSON.stringify(queue));
+    } catch (error) {
+      console.error('Failed to queue offline action:', error);
+    }
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   private getAccessToken(): string | null {

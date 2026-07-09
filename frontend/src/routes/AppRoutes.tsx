@@ -3,7 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from '@/components/layout';
-import { useAuthStore } from '@/state';
+import { ProtectedRoute } from '@/components/common/ProtectedRoute';
+import { useAuth } from '@/context/AuthContext';
 import { LandingPage, LoginPage, RegisterPage, DashboardPage, SearchPage, AIChatPage, DocumentsPage, HistoryPage, AnalyticsPage, SettingsPage, NotificationsPage } from '@/pages';
 
 // Create a client for React Query
@@ -17,20 +18,17 @@ const queryClient = new QueryClient({
   },
 });
 
-// Protected Route Component
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuthStore();
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return <>{children}</>;
-};
-
 // Public Route Component (redirects to dashboard if already authenticated)
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
   
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;

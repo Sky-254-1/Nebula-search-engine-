@@ -44,7 +44,7 @@ class OfflineService {
         // Chat history store
         if (!db.objectStoreNames.contains('chat-history')) {
           const chatStore = db.createObjectStore('chat-history', { keyPath: 'id', autoIncrement: true });
-          chatStore.createIndex('timestamp', 'timestamp', { unique: false });
+          (chatStore as any).createIndex('timestamp', 'timestamp', { unique: false });
         }
       },
     });

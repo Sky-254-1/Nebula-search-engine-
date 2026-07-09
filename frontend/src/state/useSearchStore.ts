@@ -30,6 +30,7 @@ interface SearchActions {
   
   webSearch: (query: string, backend?: string) => Promise<void>;
   orchestratedSearch: (query: string, backends?: string) => Promise<void>;
+  intelligentSearch: (query: string, options?: { enable_semantic?: boolean; enable_personalization?: boolean }) => Promise<void>;
   fetchSearchHistory: () => Promise<void>;
   clearResults: () => void;
   clearError: () => void;
@@ -74,8 +75,6 @@ export const useSearchStore = create<SearchStore>()(
           const results = await searchApi.webSearch({
             q: query,
             backend: backend || get().selectedBackend,
-            page: get().page,
-            page_size: get().pageSize,
           });
           set({ results, isSearching: false });
         } catch (error) {
@@ -93,10 +92,29 @@ export const useSearchStore = create<SearchStore>()(
           const results = await searchApi.orchestratedSearch({
             q: query,
             backends: backends || 'wikipedia',
-            page: get().page,
-            page_size: get().pageSize,
           });
           set({ orchestratedResults: results, isSearching: false });
+        } catch (error) {
+          set({
+            searchError: error instanceof Error ? error.message : 'Search failed',
+            isSearching: false,
+          });
+          throw error;
+        }
+      },
+
+      intelligentSearch: async (query: string, options?: { enable_semantic?: boolean; enable_personalization?: boolean }) => {
+        try {
+          set({ isSearching: true, searchError: null, query });
+          const results = await searchApi.search({
+            q: query,
+            backends: 'wikipedia',
+            page: 1,
+            page_size: get().pageSize,
+            enable_semantic: options?.enable_semantic ?? true,
+            enable_personalization: options?.enable_personalization ?? true,
+          });
+          set({ results: results.results, isSearching: false });
         } catch (error) {
           set({
             searchError: error instanceof Error ? error.message : 'Search failed',

@@ -16,7 +16,7 @@ export const storageApi = {
     return apiClient.upload<DocumentResponse>('/storage/documents', file, onProgress);
   },
 
-  async deleteDocument(documentId: number): Promise<void> {
+  async deleteDocument(documentId: number): Promise<{ message: string }> {
     return apiClient.delete(`/storage/documents/${documentId}`);
   },
 

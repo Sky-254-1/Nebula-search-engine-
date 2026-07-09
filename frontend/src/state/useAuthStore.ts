@@ -17,7 +17,7 @@ interface AuthActions {
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   logoutAll: () => Promise<void>;
-  refreshToken: () => Promise<void>;
+  refreshTokenAction: () => Promise<void>;
   fetchCurrentUser: () => Promise<void>;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
@@ -116,7 +116,7 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      refreshToken: async () => {
+      refreshTokenAction: async () => {
         const { refreshToken } = get();
         if (!refreshToken) {
           throw new Error('No refresh token available');
@@ -152,7 +152,7 @@ export const useAuthStore = create<AuthStore>()(
           const { refreshToken } = get();
           if (refreshToken) {
             try {
-              await get().refreshToken();
+              await get().refreshTokenAction();
               // Retry fetching user
               const user = await authApi.getCurrentUser();
               set({ user });

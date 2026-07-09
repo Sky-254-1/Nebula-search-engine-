@@ -5,10 +5,9 @@ import { useSearchStore } from '@/state';
 import { SearchResult } from '@/types';
 
 export const SearchPage: React.FC = () => {
-  const { query, results, isSearching, searchError, selectedBackend, orchestratedResults, webSearch, orchestratedSearch, setQuery, setSelectedBackend } = useSearchStore();
+  const { query, results, isSearching, searchError, intelligentSearch, setQuery } = useSearchStore();
   const [localQuery, setLocalQuery] = useState(query);
   const [showFilters, setShowFilters] = useState(false);
-  const [searchMode, setSearchMode] = useState<'web' | 'orchestrated'>('web');
 
   useEffect(() => {
     setLocalQuery(query);
@@ -18,14 +17,13 @@ export const SearchPage: React.FC = () => {
     e.preventDefault();
     if (!localQuery.trim()) return;
 
-    if (searchMode === 'web') {
-      await webSearch(localQuery, selectedBackend);
-    } else {
-      await orchestratedSearch(localQuery, 'wikipedia');
-    }
+    await intelligentSearch(localQuery, {
+      enable_semantic: true,
+      enable_personalization: true,
+    });
   };
 
-  const displayResults = searchMode === 'orchestrated' ? orchestratedResults?.results || [] : results;
+  const displayResults = results;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -37,30 +35,6 @@ export const SearchPage: React.FC = () => {
         <p className="text-gray-600 dark:text-gray-300">
           Search the web with AI-powered semantic understanding
         </p>
-      </div>
-
-      {/* Search Mode Toggle */}
-      <div className="flex gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
-        <button
-          onClick={() => setSearchMode('web')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            searchMode === 'web'
-              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-          }`}
-        >
-          Web Search
-        </button>
-        <button
-          onClick={() => setSearchMode('orchestrated')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            searchMode === 'orchestrated'
-              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-          }`}
-        >
-          Hybrid Search
-        </button>
       </div>
 
       {/* Search Form */}
@@ -82,21 +56,6 @@ export const SearchPage: React.FC = () => {
         </div>
 
         <div className="flex gap-3">
-          {searchMode === 'web' && (
-            <div className="relative">
-              <select
-                value={selectedBackend}
-                onChange={(e) => setSelectedBackend(e.target.value)}
-                className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-2 px-4 pr-10 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="wikipedia">Wikipedia</option>
-                <option value="brave">Brave Search</option>
-                <option value="serpapi">SerpAPI</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-            </div>
-          )}
-          
           <button
             type="submit"
             disabled={isSearching || !localQuery.trim()}
@@ -156,13 +115,9 @@ export const SearchPage: React.FC = () => {
       {/* Results */}
       {displayResults.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {searchMode === 'orchestrated' && orchestratedResults
-                ? `Found ${orchestratedResults.total} results from ${orchestratedResults.backends_used.join(', ')}`
-                : `Found ${results.length} results`}
-            </h2>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Found {results.length} results
+          </h2>
 
           <div className="space-y-4">
             {displayResults.map((result: SearchResult, index: number) => (

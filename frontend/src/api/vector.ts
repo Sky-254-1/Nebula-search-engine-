@@ -29,7 +29,7 @@ export const vectorApi = {
     return apiClient.get<DocumentIndexStatusResponse>(`/vector/documents/${documentId}/status`);
   },
 
-  async reindexDocument(documentId: number): Promise<void> {
+  async reindexDocument(documentId: number): Promise<{ message: string; document_id: number }> {
     return apiClient.post(`/vector/documents/${documentId}/reindex`);
   },
 
