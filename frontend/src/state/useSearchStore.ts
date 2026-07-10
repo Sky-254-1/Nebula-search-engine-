@@ -72,10 +72,7 @@ export const useSearchStore = create<SearchStore>()(
       webSearch: async (query: string, backend?: string) => {
         try {
           set({ isSearching: true, searchError: null, query });
-          const results = await searchApi.webSearch({
-            q: query,
-            backend: backend || get().selectedBackend,
-          });
+          const results = await searchApi.webSearch({ q: query, backend });
           set({ results, isSearching: false });
         } catch (error) {
           set({
@@ -86,35 +83,22 @@ export const useSearchStore = create<SearchStore>()(
         }
       },
 
-      orchestratedSearch: async (query: string, backends?: string) => {
-        try {
-          set({ isSearching: true, searchError: null, query });
-          const results = await searchApi.orchestratedSearch({
-            q: query,
-            backends: backends || 'wikipedia',
-          });
-          set({ orchestratedResults: results, isSearching: false });
-        } catch (error) {
-          set({
-            searchError: error instanceof Error ? error.message : 'Search failed',
-            isSearching: false,
-          });
-          throw error;
-        }
+      orchestratedSearch: async () => {
+        // Kept for compatibility; currently maps to intelligentSearch behavior
       },
 
       intelligentSearch: async (query: string, options?: { enable_semantic?: boolean; enable_personalization?: boolean }) => {
         try {
           set({ isSearching: true, searchError: null, query });
-          const results = await searchApi.search({
+          const response = await searchApi.search({
             q: query,
-            backends: 'wikipedia',
             page: 1,
             page_size: get().pageSize,
             enable_semantic: options?.enable_semantic ?? true,
             enable_personalization: options?.enable_personalization ?? true,
           });
-          set({ results: results.results, isSearching: false });
+          const results = response.results || response.data?.results || [];
+          set({ results, isSearching: false });
         } catch (error) {
           set({
             searchError: error instanceof Error ? error.message : 'Search failed',

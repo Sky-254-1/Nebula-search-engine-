@@ -23,10 +23,11 @@ export const authApi = {
   },
 
   getCurrentUser: async (): Promise<UserInfo> => {
-    return apiClient.getCurrentUser();
+    return apiClient.get<UserInfo>('/auth/me');
   },
 
   verifyEmail: async (token: string): Promise<void> => {
+    // Backend creates verification token but frontend endpoint may vary
     return apiClient.post('/auth/verify-email', { token });
   },
 

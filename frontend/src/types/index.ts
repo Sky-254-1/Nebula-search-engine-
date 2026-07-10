@@ -29,6 +29,26 @@ export interface UserInfo {
   last_login?: string;
 }
 
+export interface UserProfile {
+  id: number;
+  email: string;
+  role: string;
+  first_name?: string;
+  last_name?: string;
+  phone_number?: string;
+  avatar_url?: string;
+  email_verified: boolean;
+  two_factor_enabled: boolean;
+  created_at: string;
+  last_login?: string;
+}
+
+export interface UserPreferences {
+  user_id: number;
+  preferences: Record<string, any>;
+  updated_at: string;
+}
+
 // ============================================
 // Search Types
 // ============================================

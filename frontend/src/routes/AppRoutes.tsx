@@ -5,7 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { Layout } from '@/components/layout';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
-import { LandingPage, LoginPage, RegisterPage, DashboardPage, SearchPage, AIChatPage, DocumentsPage, HistoryPage, AnalyticsPage, SettingsPage, NotificationsPage } from '@/pages';
+import { LandingPage, LoginPage, RegisterPage, DashboardPage, SearchPage, AIChatPage, DocumentsPage, HistoryPage, AnalyticsPage, SettingsPage, NotificationsPage, ProfilePage, OfflineLibraryPage } from '@/pages';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -101,6 +101,20 @@ export const AppRoutes: React.FC = () => {
             <ProtectedRoute>
               <Layout>
                 <NotificationsPage />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Layout>
+                <ProfilePage />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/offline-library" element={
+            <ProtectedRoute>
+              <Layout>
+                <OfflineLibraryPage />
               </Layout>
             </ProtectedRoute>
           } />

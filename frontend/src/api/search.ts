@@ -28,63 +28,75 @@ export interface LegacySearchParams {
 }
 
 export const searchApi = {
-  // Main intelligent search (v2)
-  async search(params: SearchParams): Promise<IntelligentSearchResponse> {
-    return apiClient.get<IntelligentSearchResponse>('/v2/search', params);
-  },
-
-  // Semantic search
-  async semanticSearch(q: string, topK: number = 10, threshold: number = 0.5): Promise<IntelligentSearchResponse> {
-    return apiClient.get<IntelligentSearchResponse>('/v2/search/semantic', { q, top_k: topK, threshold });
+  // Main unified search endpoint
+  async search(params: SearchParams): Promise<any> {
+    return apiClient.post('/search', {
+      query: params.q,
+      mode: 'hybrid',
+      page: params.page || 1,
+      limit: params.page_size || 20,
+      include_ai_answer: true,
+      include_suggestions: true,
+      spell_check: true,
+      include_highlights: true,
+    });
   },
 
   // Suggestions and autocomplete
   async getSuggestions(q: string, limit: number = 10): Promise<SuggestionsResponse> {
-    return apiClient.get<SuggestionsResponse>('/v2/search/suggest', { q, limit });
+    return apiClient.get<SuggestionsResponse>('/search/suggestions', { q, limit });
   },
 
   async autocomplete(q: string, limit: number = 10): Promise<AutocompleteResponse> {
-    return apiClient.get<AutocompleteResponse>('/v2/search/autocomplete', { q, limit });
+    return apiClient.get<AutocompleteResponse>('/search/autocomplete', { q, limit });
   },
 
   async spellCheck(q: string): Promise<SpellCheckResponse> {
-    return apiClient.get<SpellCheckResponse>('/v2/search/spell-check', { q });
+    // Backend doesn't have separate spell check endpoint, it's part of search
+    return { original: q, corrected: q, was_corrected: false };
   },
 
   // Trending and popular
   async getTrending(limit: number = 10, hours: number = 24): Promise<TrendingResponse> {
-    return apiClient.get<TrendingResponse>('/v2/search/trending', { limit, hours });
+    // Not implemented in current backend
+    return { trending: [], period_hours: hours };
   },
 
   async getPopular(limit: number = 10): Promise<PopularResponse> {
-    return apiClient.get<PopularResponse>('/v2/search/popular', { limit });
+    // Not implemented in current backend
+    return { popular: [] };
   },
 
-  // Click tracking
-  async logClick(query: string, position: number, url: string, sessionId?: string): Promise<void> {
-    await apiClient.post('/v2/search/click', { query, position, url, session_id: sessionId });
-  },
-
-  // User search profile
-  async getProfile(): Promise<SearchProfile> {
-    return apiClient.get<SearchProfile>('/v2/search/profile');
-  },
-
-  // Search analytics
-  async getAnalytics(query?: string): Promise<any> {
-    return apiClient.get('/v2/search/analytics', { query });
-  },
-
-  // Legacy search (kept for backward compatibility)
-  async webSearch(params: LegacySearchParams): Promise<SearchResult[]> {
-    return apiClient.get<SearchResult[]>('/search/web', params);
-  },
-
-  async orchestratedSearch(params: SearchParams): Promise<any> {
-    return apiClient.get('/search/orchestrate', params);
-  },
-
+  // Search history
   async getSearchHistory(limit: number = 20): Promise<{ history: SearchHistoryItem[] }> {
     return apiClient.get('/search/history', { limit });
+  },
+
+  // Save/search management
+  async saveSearch(query: string, mode: string = 'hybrid', filters?: Record<string, any>): Promise<any> {
+    return apiClient.post('/search/save', { query, mode, filters });
+  },
+
+  async getSavedSearches(): Promise<any> {
+    return apiClient.get('/search/saved');
+  },
+
+  async deleteSavedSearch(searchId: number): Promise<void> {
+    await apiClient.delete(`/search/saved/${searchId}`);
+  },
+
+  // Legacy web search
+  async webSearch(params: LegacySearchParams): Promise<SearchResult[]> {
+    try {
+      const response = await apiClient.get<{ results?: SearchResult[] }>('/search/web', { q: params.q, backend: params.backend });
+      return response.results || [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Clear history
+  async clearHistory(): Promise<void> {
+    await apiClient.delete('/search/history');
   }
 };

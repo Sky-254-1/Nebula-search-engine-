@@ -41,7 +41,7 @@ export const useDocumentStore = create<DocumentStore>()(
         try {
           set({ isLoading: true, error: null });
           const response = await storageApi.getDocuments();
-          set({ documents: response.documents, isLoading: false });
+          set({ documents: response.documents || [], isLoading: false });
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : 'Failed to fetch documents',

@@ -8,16 +8,16 @@ export interface UploadDocumentParams {
 
 export const storageApi = {
   async getDocuments(): Promise<DocumentListResponse> {
-    return apiClient.get<DocumentListResponse>('/storage/documents');
+    return apiClient.get<DocumentListResponse>('/documents');
   },
 
   async uploadDocument(params: UploadDocumentParams): Promise<DocumentResponse> {
     const { file, onProgress } = params;
-    return apiClient.upload<DocumentResponse>('/storage/documents', file, onProgress);
+    return apiClient.upload<DocumentResponse>('/documents', file, onProgress);
   },
 
   async deleteDocument(documentId: number): Promise<{ message: string }> {
-    return apiClient.delete(`/storage/documents/${documentId}`);
+    return apiClient.delete(`/documents/${documentId}`);
   },
 
   async getSettings(): Promise<SettingsResponse> {

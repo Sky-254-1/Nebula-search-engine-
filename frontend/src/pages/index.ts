@@ -10,3 +10,5 @@ export { HistoryPage } from './HistoryPage';
 export { AnalyticsPage } from './AnalyticsPage';
 export { SettingsPage } from './SettingsPage';
 export { NotificationsPage } from './NotificationsPage';
+export { ProfilePage } from './ProfilePage';
+export { OfflineLibraryPage } from './OfflineLibraryPage';
