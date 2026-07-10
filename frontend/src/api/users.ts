@@ -1,55 +1,61 @@
 import { apiClient } from './client';
-import { UserProfile, UserPreferences } from '@/types';
+import { 
+  UserProfile, 
+  UserPreferences, 
+  UpdateProfileRequest, 
+  ActivityResponse 
+} from '@/types';
 
-export interface UpdateProfileParams {
-  first_name?: string;
-  last_name?: string;
-  phone_number?: string;
-}
-
-export interface UpdatePreferencesParams {
-  preferences: Record<string, any>;
+export interface AvatarUploadResponse {
+  success: boolean;
+  data: {
+    avatar_url: string;
+    message: string;
+  };
 }
 
 export const usersApi = {
-  // Profile
-  async getProfile(): Promise<UserProfile> {
+  // Get current user profile
+  getProfile: async (): Promise<UserProfile> => {
     return apiClient.get<UserProfile>('/users/profile');
   },
 
-  async updateProfile(params: UpdateProfileParams): Promise<UserProfile> {
-    return apiClient.put<UserProfile>('/users/profile', params);
+  // Update profile
+  updateProfile: async (data: UpdateProfileRequest): Promise<UserProfile> => {
+    return apiClient.put<UserProfile>('/users/profile', data);
   },
 
-  // Preferences
-  async getPreferences(): Promise<UserPreferences> {
+  // Get user preferences
+  getPreferences: async (): Promise<UserPreferences> => {
     return apiClient.get<UserPreferences>('/users/preferences');
   },
 
-  async updatePreferences(params: UpdatePreferencesParams): Promise<UserPreferences> {
-    return apiClient.put<UserPreferences>('/users/preferences', params);
+  // Update preferences
+  updatePreferences: async (preferences: Record<string, any>): Promise<UserPreferences> => {
+    return apiClient.put<UserPreferences>('/users/preferences', { preferences });
   },
 
-  // Activity
-  async getActivity(limit: number = 20, actionType?: string): Promise<{ activities: any[]; total: number }> {
-    const params: any = { limit };
-    if (actionType) params.action_type = actionType;
-    return apiClient.get('/users/activity', params);
+  // Get user activity
+  getActivity: async (limit: number = 20, actionType?: string): Promise<ActivityResponse> => {
+    const params: Record<string, any> = { limit };
+    if (actionType) {
+      params.action_type = actionType;
+    }
+    return apiClient.get<ActivityResponse>('/users/activity', params);
   },
 
-  // Avatar
-  async uploadAvatar(file: File): Promise<{ avatar_url: string }> {
-    const formData = new FormData();
-    formData.append('file', file);
-    return apiClient.post('/users/avatar', formData);
+  // Upload avatar
+  uploadAvatar: async (file: File): Promise<AvatarUploadResponse> => {
+    return apiClient.upload<AvatarUploadResponse>('/users/avatar', file);
   },
 
-  async deleteAvatar(): Promise<void> {
-    await apiClient.delete('/users/avatar');
+  // Delete avatar
+  deleteAvatar: async (): Promise<AvatarUploadResponse> => {
+    return apiClient.delete<AvatarUploadResponse>('/users/avatar');
   },
 
-  // Account
-  async deleteAccount(): Promise<void> {
-    await apiClient.delete('/users/account');
-  }
+  // Delete account
+  deleteAccount: async (password: string): Promise<{ success: boolean; data: { message: string } }> => {
+    return apiClient.post('/users/account', { password });
+  },
 };

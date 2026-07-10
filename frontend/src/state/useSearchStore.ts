@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { SearchResult, SearchHistoryItem, OrchestratedSearchResponse } from '@/types';
 import { searchApi } from '@/api/search';
+import { historyApi } from '@/api/history';
 
 interface SearchState {
   // Current search
@@ -110,7 +111,7 @@ export const useSearchStore = create<SearchStore>()(
 
       fetchSearchHistory: async () => {
         try {
-          const response = await searchApi.getSearchHistory(20);
+          const response = await historyApi.getSearchHistory(20);
           set({ searchHistory: response.history });
         } catch (error) {
           console.error('Failed to fetch search history:', error);

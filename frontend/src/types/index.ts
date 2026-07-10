@@ -43,10 +43,30 @@ export interface UserProfile {
   last_login?: string;
 }
 
+export interface UpdateProfileRequest {
+  first_name?: string;
+  last_name?: string;
+  phone_number?: string;
+}
+
 export interface UserPreferences {
   user_id: number;
   preferences: Record<string, any>;
   updated_at: string;
+}
+
+export interface ActivityItem {
+  id: number;
+  action: string;
+  resource_type?: string;
+  resource_id?: number;
+  ip_address?: string;
+  created_at: string;
+}
+
+export interface ActivityResponse {
+  activities: ActivityItem[];
+  total: number;
 }
 
 // ============================================

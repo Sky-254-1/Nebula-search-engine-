@@ -25,10 +25,12 @@ class VersioningMiddleware(BaseHTTPMiddleware):
     
     # Endpoints that are version-agnostic
     VERSION_AGNOSTIC_PATHS = {
+        "/",
         "/health",
         "/docs",
         "/redoc",
         "/openapi.json",
+        "/favicon.ico",
     }
     
     async def dispatch(self, request: Request, call_next) -> Response:

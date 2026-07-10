@@ -365,14 +365,6 @@ async def lifespan(app: FastAPI):
 
     await crawl_scheduler.stop()
 
-    # Close any remaining database connections
-    from app.database.engine import close_db
-
-    try:
-        await close_db()
-    except Exception:
-        pass
-
     logger.info("Nebula Search API shut down cleanly")
 
 
