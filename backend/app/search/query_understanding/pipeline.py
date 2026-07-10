@@ -75,15 +75,15 @@ class QueryPreprocessor:
         """
         try:
             # 1. Language detection
-            language = self.language_detector.detect(query)
+            language = await self.language_detector.detect(query)
             logger.debug(f"Detected language: {language}")
             
             # 2. Normalization
-            normalized = self.normalizer.normalize(query)
+            normalized = await self.normalizer.normalize(query)
             logger.debug(f"Normalized query: {normalized}")
             
             # 3. Tokenization
-            tokens = self.tokenizer.tokenize(normalized)
+            tokens = await self.tokenizer.tokenize(normalized)
             logger.debug(f"Tokens: {tokens}")
             
             # 4. Stopword removal
