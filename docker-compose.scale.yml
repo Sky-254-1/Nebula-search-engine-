@@ -1,0 +1,46 @@
+# Nebula Search Engine - Scaling Configuration
+# Usage: docker compose -f docker-compose.prod.yml -f docker-compose.scale.yml up -d
+
+services:
+  backend:
+    deploy:
+      replicas: 3
+    environment:
+      - MAX_WORKERS=2
+      - WORKERS_PER_CORE=1
+
+  worker:
+    deploy:
+      replicas: 2
+
+  scheduler:
+    deploy:
+      replicas: 1
+
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 4G
+        reservations:
+          cpus: "2"
+          memory: 2G
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+    command: >
+      redis-server
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly yes
+      --appendfsync everysec
+      --replica-read-only no
