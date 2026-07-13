@@ -43,11 +43,6 @@ export const useAuthStore = create<AuthStore>()(
           const response: AuthResponse = await authApi.login({ email, password });
           
           set({
-            user: {
-              email: response.access_token, // We'll fetch actual user data
-              role: 'user',
-              email_verified: false,
-            },
             accessToken: response.access_token,
             refreshToken: response.refresh_token,
             isAuthenticated: true,

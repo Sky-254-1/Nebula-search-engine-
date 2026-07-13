@@ -12,7 +12,7 @@ const RETRY_DELAY = 1000;
 class APIClient {
   private client: AxiosInstance;
   private refreshTokenPromise: Promise<string> | null = null;
-  private isOnline: boolean = navigator.onLine;
+  private isOnline: boolean = true;
 
   constructor() {
     this.client = axios.create({
@@ -28,14 +28,19 @@ class APIClient {
   }
 
   private setupNetworkListeners(): void {
-    window.addEventListener('online', () => {
-      this.isOnline = true;
-      this.processOfflineQueue();
-    });
+    // Initialize online status
+    this.isOnline = navigator.onLine;
 
-    window.addEventListener('offline', () => {
-      this.isOnline = false;
-    });
+    // Track online/offline status
+    const updateOnlineStatus = () => {
+      this.isOnline = navigator.onLine;
+      if (this.isOnline) {
+        this.processOfflineQueue();
+      }
+    };
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
   }
 
   private async processOfflineQueue(): Promise<void> {

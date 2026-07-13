@@ -30,15 +30,14 @@ export interface LegacySearchParams {
 export const searchApi = {
   // Main unified search endpoint
   async search(params: SearchParams): Promise<any> {
-    return apiClient.post('/search', {
-      query: params.q,
-      mode: 'hybrid',
+    return apiClient.post('/search_v2/', {
+      q: params.q,
       page: params.page || 1,
-      limit: params.page_size || 20,
-      include_ai_answer: true,
-      include_suggestions: true,
-      spell_check: true,
-      include_highlights: true,
+      page_size: params.page_size || 20,
+      enable_semantic: params.enable_semantic ?? true,
+      enable_personalization: params.enable_personalization ?? true,
+      enable_spell_check: params.enable_spell_check ?? true,
+      enable_diversity: params.enable_diversity ?? true,
     });
   },
 
@@ -69,20 +68,20 @@ export const searchApi = {
 
   // Search history
   async getSearchHistory(limit: number = 20): Promise<{ history: SearchHistoryItem[] }> {
-    return apiClient.get('/search/history', { limit });
+    return apiClient.get('/search_v2/history', { limit });
   },
 
   // Save/search management
   async saveSearch(query: string, mode: string = 'hybrid', filters?: Record<string, any>): Promise<any> {
-    return apiClient.post('/search/save', { query, mode, filters });
+    return apiClient.post('/search_v2/save', { query, mode, filters });
   },
 
   async getSavedSearches(): Promise<any> {
-    return apiClient.get('/search/saved');
+    return apiClient.get('/search_v2/saved');
   },
 
   async deleteSavedSearch(searchId: number): Promise<void> {
-    await apiClient.delete(`/search/saved/${searchId}`);
+    await apiClient.delete(`/search_v2/saved/${searchId}`);
   },
 
   // Legacy web search
@@ -97,6 +96,6 @@ export const searchApi = {
 
   // Clear history
   async clearHistory(): Promise<void> {
-    await apiClient.delete('/search/history');
+    await apiClient.delete('/search_v2/history');
   }
 };

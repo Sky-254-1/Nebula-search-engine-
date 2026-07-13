@@ -294,6 +294,29 @@ class Settings:
         )
     )
 
+    # === Indexing System Settings ===
+    indexing_max_queue_size: int = field(
+        default_factory=lambda: int(os.getenv("INDEXING_MAX_QUEUE_SIZE", "10000"))
+    )
+    indexing_worker_count: int = field(
+        default_factory=lambda: int(os.getenv("INDEXING_WORKER_COUNT", "2"))
+    )
+    indexing_max_retries: int = field(
+        default_factory=lambda: int(os.getenv("INDEXING_MAX_RETRIES", "5"))
+    )
+    indexing_retry_base_delay: float = field(
+        default_factory=lambda: float(os.getenv("INDEXING_RETRY_BASE_DELAY", "5.0"))
+    )
+    indexing_retry_backoff_multiplier: float = field(
+        default_factory=lambda: float(os.getenv("INDEXING_RETRY_BACKOFF_MULTIPLIER", "3.0"))
+    )
+    indexing_chunk_size: int = field(
+        default_factory=lambda: int(os.getenv("INDEXING_CHUNK_SIZE", "1000"))
+    )
+    indexing_chunk_overlap: int = field(
+        default_factory=lambda: int(os.getenv("INDEXING_CHUNK_OVERLAP", "200"))
+    )
+
     @property
     def uses_postgres(self) -> bool:
         return self.database_url.startswith("postgresql")

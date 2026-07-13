@@ -259,23 +259,8 @@ async def get_suggestions(
     }
 
 
-@router.get("/autocomplete")
-async def autocomplete(
-    q: str = Query(..., min_length=1, max_length=100, description="Query prefix"),
-    limit: int = Query(10, ge=1, le=20, description="Number of suggestions"),
-    email: str = Depends(get_current_user),
-    db=Depends(get_db),
-):
-    """Get autocomplete suggestions for search query."""
-    await _user_id(db, email)
-    suggestions = await autocomplete_engine.suggest(q, limit=limit)
-    return {
-        "success": True,
-        "data": {
-            "query": q,
-            "suggestions": [s.suggestion for s in suggestions],
-        },
-    }
+# Note: /api/v1/search/autocomplete, /recent, and /popular are now provided
+# by the dedicated autocomplete router at app/routes/autocomplete.py
 
 
 @router.get("/history")

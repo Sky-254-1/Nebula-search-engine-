@@ -32,9 +32,15 @@ from app.middleware.response import ResponseStandardizationMiddleware
 from app.middleware.rate_limit import RateLimitHeadersMiddleware
 from app.services.monitoring import MetricsMiddleware
 from app.routes import admin, ai, audio, auth, crawler, features, health, oauth, search, storage, vector
+from app.routes.autocomplete import router as autocomplete_router
+from app.routes.spell import router as spell_router
+from app.routes.suggestions import router as suggestions_router
 from app.routes.analytics import router as analytics_router
+from app.routes.analytics_extended import router as analytics_extended_router
 from app.routes.auth_extended import router as auth_extended_router
 from app.routes.documents import router as documents_router
+from app.routes.indexing import router as indexing_router
+from app.incremental.routes import router as incremental_router
 from app.routes.mfa import router as mfa_router
 from app.routes.notifications import router as notifications_router
 from app.routes.oauth import router as oauth_router
@@ -43,6 +49,7 @@ from app.routes.search_unified import router as search_unified_router
 from app.routes.search_v2 import router as search_v2_router
 from app.routes.users import router as users_router
 from app.routes.webhooks import router as webhooks_router
+from app.hybrid.routes import router as hybrid_router
 from app.services.cache import cache_service
 from app.services.queue import job_queue
 from slowapi.errors import RateLimitExceeded
@@ -286,6 +293,51 @@ try:
     _prom_db_pool_size = Gauge("nebula_db_pool_size", "Database connection pool size")
     _prom_cache_hits = Counter("nebula_cache_hits_total", "Cache hit count")
     _prom_cache_misses = Counter("nebula_cache_misses_total", "Cache miss count")
+
+    # Analytics-specific Prometheus metrics
+    _prom_search_queries_total = Counter(
+        "nebula_search_queries_total",
+        "Total search queries",
+        ["search_type", "backend"],
+    )
+    _prom_popular_queries_total = Counter(
+        "nebula_popular_queries_total",
+        "Popular query counts",
+        ["query"],
+    )
+    _prom_zero_result_queries_total = Counter(
+        "nebula_zero_result_queries_total",
+        "Zero-result query counts",
+        ["query"],
+    )
+    _prom_average_search_latency = Gauge(
+        "nebula_average_search_latency_seconds",
+        "Average search latency in seconds",
+    )
+    _prom_dashboard_generation_time = Histogram(
+        "nebula_dashboard_generation_time_seconds",
+        "Dashboard generation time in seconds",
+        ["period"],
+        buckets=(0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5, 1.0),
+    )
+    _prom_analytics_cache_hits = Counter(
+        "nebula_analytics_cache_hits_total",
+        "Analytics cache hit count",
+    )
+    _prom_analytics_cache_misses = Counter(
+        "nebula_analytics_cache_misses_total",
+        "Analytics cache miss count",
+    )
+    _prom_click_events_total = Counter(
+        "nebula_click_events_total",
+        "Total click events",
+        ["query"],
+    )
+    _prom_ctr_percentage = Gauge(
+        "nebula_ctr_percentage",
+        "Click-through rate percentage",
+        ["period"],
+    )
     _HAS_PROMETHEUS = True
 except ImportError:
     _HAS_PROMETHEUS = False
@@ -337,6 +389,8 @@ async def lifespan(app: FastAPI):
     from app.crawler.scheduler import crawl_scheduler
 
     await crawl_scheduler.start()
+    from app.services.analytics_background import start_analytics_worker
+    await start_analytics_worker()
 
     # Verify deps on startup
     issues = await _verify_dependencies()
@@ -364,6 +418,8 @@ async def lifespan(app: FastAPI):
     from app.crawler.scheduler import crawl_scheduler
 
     await crawl_scheduler.stop()
+    from app.services.analytics_background import stop_analytics_worker
+    await stop_analytics_worker()
 
     logger.info("Nebula Search API shut down cleanly")
 
@@ -390,6 +446,7 @@ app = FastAPI(
         {"name": "Storage", "description": "File upload and management (legacy)"},
         {"name": "Webhooks", "description": "Webhook management"},
         {"name": "Admin", "description": "Administrative endpoints"},
+        {"name": "Analytics", "description": "Search analytics and insights"},
     ],
 )
 
@@ -442,14 +499,21 @@ app.include_router(ai.router)
 app.include_router(audio.router)
 app.include_router(users_router)  # New users domain
 app.include_router(notifications_router)  # New notifications domain
-app.include_router(analytics_router)  # New analytics domain
+app.include_router(analytics_router)  # Legacy analytics
+app.include_router(analytics_extended_router)  # Enhanced analytics dashboard
 app.include_router(recommendations_router)  # New recommendations domain
 app.include_router(documents_router)  # New documents domain
+app.include_router(indexing_router)  # Background indexing system
+app.include_router(incremental_router)  # Incremental re-indexing system
 app.include_router(storage.router)  # Legacy storage routes (backward compatible)
 app.include_router(vector.router)
 app.include_router(webhooks_router)
 app.include_router(crawler.router)  # Crawler management
 app.include_router(features.router)  # Collections, bookmarks, saved searches
+app.include_router(hybrid_router)  # Hybrid search engine
+app.include_router(autocomplete_router)  # Autocomplete system
+app.include_router(spell_router)  # Spell correction system
+app.include_router(suggestions_router)  # Search suggestions system
 
 # --- Prometheus /metrics endpoint (mounted after routes) ---
 
