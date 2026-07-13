@@ -193,8 +193,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
-      - ./backend:/app/app:ro
-      - ./backend/vector:/app/vector:ro
+      - ./backend:/app:ro
       - scheduler-logs:/app/logs
     depends_on:
       postgres:

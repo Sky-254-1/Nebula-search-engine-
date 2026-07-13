@@ -20,8 +20,8 @@ RUN addgroup --system nebula && adduser --system --ingroup nebula nebula
 
 COPY --from=builder /root/.local /root/.local
 
-COPY backend/app ./app
-COPY backend/vector ./vector
+COPY backend/app /app
+COPY backend/vector /app/vector
 COPY docker/scheduler-entrypoint.sh /app/scheduler-entrypoint.sh
 
 RUN mkdir -p /app/storage && chown -R nebula:nebula /app /app/scheduler-entrypoint.sh && chmod +x /app/scheduler-entrypoint.sh
