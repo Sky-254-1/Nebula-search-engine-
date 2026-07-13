@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from app.database import get_db
 from app.database.engine import DatabaseConnection
 from app.database.repositories.user import UserRepository
-from app.middleware.auth import get_current_active_user
+from app.services.auth import get_current_user
 from app.middleware.rate_limit import rate_limit
 from app.models.schemas import APIResponse
 from app.services.analytics_service import AnalyticsService
@@ -117,7 +117,7 @@ class SearchQualityMetrics(BaseModel):
 # Admin authorization guard
 # ---------------------------------------------------------------------------
 
-async def _require_admin(email: str = Depends(get_current_active_user), db: DatabaseConnection = Depends(get_db)) -> str:
+async def _require_admin(email: str = Depends(get_current_user), db: DatabaseConnection = Depends(get_db)) -> str:
     """Require admin role for analytics endpoints."""
     users = UserRepository(db)
     user = await users.get_by_email(email)
@@ -130,8 +130,7 @@ async def _require_admin(email: str = Depends(get_current_active_user), db: Data
 # Endpoints
 # ---------------------------------------------------------------------------
 
-@router.get("/dashboard", response_model=DashboardResponse)
-@rate_limit(limit="60/minute", key="analytics_dashboard")
+@router.get("/dashboard", response_model=DashboardResponse, dependencies=[Depends(rate_limit)])
 async def get_dashboard(
     period: str = Query("24h", description="Time period: 24h, 7d, 30d, 90d"),
     _admin: str = Depends(_require_admin),
@@ -145,8 +144,7 @@ async def get_dashboard(
     return await service.get_dashboard(period=period)
 
 
-@router.get("/popular", response_model=list[PopularQueryResponse])
-@rate_limit(limit="120/minute", key="analytics_popular")
+@router.get("/popular", response_model=list[PopularQueryResponse], dependencies=[Depends(rate_limit)])
 async def get_popular_searches(
     limit: int = Query(10, ge=1, le=100),
     days: int = Query(30, ge=1, le=365),
@@ -158,8 +156,7 @@ async def get_popular_searches(
     return await service.get_popular(limit=limit, days=days)
 
 
-@router.get("/zero-results", response_model=list[ZeroResultQueryResponse])
-@rate_limit(limit="60/minute", key="analytics_zero_results")
+@router.get("/zero-results", response_model=list[ZeroResultQueryResponse], dependencies=[Depends(rate_limit)])
 async def get_zero_result_searches(
     limit: int = Query(10, ge=1, le=100),
     days: int = Query(30, ge=1, le=365),
@@ -171,8 +168,7 @@ async def get_zero_result_searches(
     return await service.get_zero_results(limit=limit, days=days)
 
 
-@router.get("/response-times", response_model=ResponseTimeStats)
-@rate_limit(limit="120/minute", key="analytics_response_times")
+@router.get("/response-times", response_model=ResponseTimeStats, dependencies=[Depends(rate_limit)])
 async def get_response_times(
     days: int = Query(7, ge=1, le=90),
     _admin: str = Depends(_require_admin),
@@ -183,8 +179,7 @@ async def get_response_times(
     return await service.get_response_times(days=days)
 
 
-@router.get("/query-trends", response_model=list[QueryTrend])
-@rate_limit(limit="60/minute", key="analytics_trends")
+@router.get("/query-trends", response_model=list[QueryTrend], dependencies=[Depends(rate_limit)])
 async def get_query_trends(
     period: str = Query("daily", description="Period: hourly, daily, weekly, monthly"),
     days: int = Query(30, ge=1, le=365),
@@ -196,8 +191,7 @@ async def get_query_trends(
     return await service.get_query_trends(period=period, days=days)
 
 
-@router.get("/clicks", response_model=ClickAnalyticsResponse)
-@rate_limit(limit="120/minute", key="analytics_clicks")
+@router.get("/clicks", response_model=ClickAnalyticsResponse, dependencies=[Depends(rate_limit)])
 async def get_click_analytics(
     days: int = Query(7, ge=1, le=90),
     _admin: str = Depends(_require_admin),
@@ -208,11 +202,10 @@ async def get_click_analytics(
     return await service.get_click_analytics(days=days)
 
 
-@router.post("/record-click")
-@rate_limit(limit="300/minute", key="record_click")
+@router.post("/record-click", dependencies=[Depends(rate_limit)])
 async def record_click(
     payload: ClickEventRequest,
-    email: str = Depends(get_current_active_user),
+    email: str = Depends(get_current_user),
     db: DatabaseConnection = Depends(get_db),
 ):
     """Record a click event from a search result."""
@@ -235,8 +228,7 @@ async def record_click(
     return APIResponse(message="Click recorded")
 
 
-@router.get("/users/{user_id}", response_model=UserAnalyticsResponse)
-@rate_limit(limit="60/minute", key="analytics_user")
+@router.get("/users/{user_id}", response_model=UserAnalyticsResponse, dependencies=[Depends(rate_limit)])
 async def get_user_analytics(
     user_id: int,
     days: int = Query(30, ge=1, le=365),
@@ -248,8 +240,7 @@ async def get_user_analytics(
     return await service.get_user_analytics(user_id=user_id, days=days)
 
 
-@router.get("/quality", response_model=SearchQualityMetrics)
-@rate_limit(limit="60/minute", key="analytics_quality")
+@router.get("/quality", response_model=SearchQualityMetrics, dependencies=[Depends(rate_limit)])
 async def get_search_quality(
     days: int = Query(30, ge=1, le=365),
     _admin: str = Depends(_require_admin),
@@ -260,11 +251,10 @@ async def get_search_quality(
     return await service.get_search_quality_metrics(days=days)
 
 
-@router.post("/record-search", response_model=APIResponse)
-@rate_limit(limit="300/minute", key="record_search")
+@router.post("/record-search", response_model=APIResponse, dependencies=[Depends(rate_limit)])
 async def record_search(
     payload: SearchEventRequest,
-    email: str = Depends(get_current_active_user),
+    email: str = Depends(get_current_user),
     db: DatabaseConnection = Depends(get_db),
 ):
     """Record a search event."""

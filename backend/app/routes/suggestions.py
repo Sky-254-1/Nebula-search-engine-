@@ -33,7 +33,7 @@ class SuggestionItem(BaseModel):
 class SuggestionsResponse(BaseModel):
     """Search suggestions response."""
     query: str = Field(..., example="machine")
-    suggestions: list[SuggestionItem] = Field(default_factory=list, max_items=10)
+    suggestions: list[SuggestionItem] = Field(default_factory=list, max_length=10)
     cache_hit: bool = False
     latency_ms: int = Field(..., ge=0, example=45)
 
@@ -91,7 +91,7 @@ def _sanitize_query(query: str) -> str:
 )
 async def get_suggestions(
     request: Request,
-    q: str = Query(..., min_length=1, max_length=100, example="machine"),
+    q: str = Query(..., min_length=1, max_length=100, examples={"default": {"value": "machine"}}),
     limit: int = Query(5, ge=1, le=10),
     service: SuggestionService = Depends(_get_suggestion_service),
 ) -> SuggestionsResponse:
@@ -134,7 +134,7 @@ async def get_suggestions(
     description="Get trending searches matching the query prefix.",
 )
 async def get_trending(
-    q: str = Query(..., min_length=1, max_length=100, example="machine"),
+    q: str = Query(..., min_length=1, max_length=100, examples={"default": {"value": "machine"}}),
     limit: int = Query(10, ge=1, le=10),
     service: SuggestionService = Depends(_get_suggestion_service),
 ) -> TrendingResponse:
@@ -155,7 +155,7 @@ async def get_trending(
     description="Get related searches based on user behavior and co-occurrence.",
 )
 async def get_related(
-    q: str = Query(..., min_length=1, max_length=100, example="python"),
+    q: str = Query(..., min_length=1, max_length=100, examples={"default": {"value": "python"}}),
     limit: int = Query(10, ge=1, le=10),
     service: SuggestionService = Depends(_get_suggestion_service),
 ) -> RelatedResponse:

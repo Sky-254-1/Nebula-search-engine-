@@ -184,7 +184,7 @@ class SettingsUpdateRequest(BaseModel):
 class WebhookCreate(BaseModel):
     """Webhook creation request."""
     url: str = Field(..., pattern=r'^https?://')
-    events: list[str] = Field(..., min_items=1)
+    events: list[str] = Field(..., min_length=1)
     secret: Optional[str] = None
     description: Optional[str] = None
 
@@ -264,7 +264,7 @@ class AICompletionResponse(BaseModel):
 class SynthesizeRequest(BaseModel):
     """Synthesize request."""
     query: str = Field(..., min_length=1, max_length=1000)
-    snippets: list[str] = Field(..., min_items=1)
+    snippets: list[str] = Field(..., min_length=1)
 
 
 class SynthesizeResponse(BaseModel):
