@@ -152,6 +152,7 @@ services:
       STORAGE_ROOT: /app/storage
       JWT_SECRET: ${JWT_SECRET}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      PYTHONPATH: /app
     volumes:
       - nebula-storage:/app/storage
       - worker-logs:/app/logs
@@ -193,7 +194,6 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
-      - ./backend:/app:ro
       - scheduler-logs:/app/logs
     depends_on:
       postgres:

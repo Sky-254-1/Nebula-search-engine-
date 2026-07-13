@@ -31,27 +31,15 @@ for i in {1..30}; do
     sleep 1
 done
 
-# Run database migrations if needed
-echo "Running database migrations..."
-python -m app.database.migrations.run_migrations || echo "Migrations skipped or failed"
-
 # Create logs directory
 mkdir -p /app/logs
 
-# Start Gunicorn with Uvicorn workers
-echo "Starting Gunicorn server..."
-exec gunicorn app.main:app \
-    --bind 0.0.0.0:8000 \
-    --workers 4 \
-    --worker-class uvicorn.workers.UvicornWorker \
-    --worker-connections 1000 \
-    --max-requests 1000 \
-    --max-requests-jitter 100 \
-    --timeout 60 \
-    --keep-alive 5 \
-    --graceful-timeout 30 \
-    --access-logfile /app/logs/access.log \
-    --error-logfile /app/logs/error.log \
-    --log-level info \
-    --capture-output \
-    --enable-stdio-inheritance
+# Note: Database migrations are handled by the application on startup
+
+# Start Uvicorn directly
+echo "Starting Uvicorn server..."
+cd /app
+exec env PYTHONPATH=/app uvicorn main:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --log-level info

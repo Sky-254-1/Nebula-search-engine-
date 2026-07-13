@@ -1,22 +1,15 @@
 -- Nebula Search — PostgreSQL schema v1.1 (vector indexing)
+-- NOTE: Table creation moved to 002_add_vector_tables_postgres.sql
+-- This file now only contains additional indexes and schema updates
 
-CREATE TABLE IF NOT EXISTS chunks (
-    id SERIAL PRIMARY KEY,
-    document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    chunk_index INTEGER NOT NULL,
-    content TEXT NOT NULL,
-    token_count INTEGER DEFAULT 0,
-    content_hash TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_chunks_document_id ON chunks(document_id);
-CREATE INDEX IF NOT EXISTS idx_chunks_user_id ON chunks(user_id);
-CREATE INDEX IF NOT EXISTS idx_chunks_content_hash ON chunks(content_hash);
+-- Additional indexes for document_chunks (created in 002_add_vector_tables_postgres.sql)
+CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id ON document_chunks(document_id);
+CREATE INDEX IF NOT EXISTS idx_document_chunks_chunk_index ON document_chunks(chunk_index);
 
+-- Embeddings table (created in 002_add_vector_tables_postgres.sql)
 CREATE TABLE IF NOT EXISTS embeddings (
     id SERIAL PRIMARY KEY,
-    chunk_id INTEGER NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
+    chunk_id INTEGER NOT NULL REFERENCES document_chunks(id) ON DELETE CASCADE,
     document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     model TEXT NOT NULL DEFAULT 'local-hash',
@@ -28,11 +21,12 @@ CREATE INDEX IF NOT EXISTS idx_embeddings_chunk_id ON embeddings(chunk_id);
 CREATE INDEX IF NOT EXISTS idx_embeddings_document_id ON embeddings(document_id);
 CREATE INDEX IF NOT EXISTS idx_embeddings_user_id ON embeddings(user_id);
 
+-- Citations table (created in 002_add_vector_tables_postgres.sql)
 CREATE TABLE IF NOT EXISTS citations (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     document_id INTEGER REFERENCES documents(id) ON DELETE SET NULL,
-    chunk_id INTEGER REFERENCES chunks(id) ON DELETE SET NULL,
+    chunk_id INTEGER REFERENCES document_chunks(id) ON DELETE SET NULL,
     query TEXT NOT NULL,
     snippet TEXT,
     score REAL DEFAULT 0,
@@ -41,6 +35,7 @@ CREATE TABLE IF NOT EXISTS citations (
 CREATE INDEX IF NOT EXISTS idx_citations_user_id ON citations(user_id);
 CREATE INDEX IF NOT EXISTS idx_citations_document_id ON citations(document_id);
 
+-- Search sessions table
 CREATE TABLE IF NOT EXISTS search_sessions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,

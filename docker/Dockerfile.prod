@@ -41,7 +41,7 @@ RUN groupadd -r nebula && useradd -r -g nebula -m -d /home/nebula nebula
 COPY --from=builder /install /home/nebula/.local
 
 # Copy application code
-COPY --chown=nebula:nebula backend/app /app
+COPY --chown=nebula:nebula backend/app /app/app
 COPY --chown=nebula:nebula backend/vector /app/vector
 COPY --chown=nebula:nebula docker/entrypoint.sh /app/entrypoint.sh
 COPY --chown=nebula:nebula docker/scheduler-entrypoint.sh /app/scheduler-entrypoint.sh
