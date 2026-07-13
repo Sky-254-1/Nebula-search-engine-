@@ -1,35 +1,69 @@
-node_modules
-dist
-build
+# Git
 .git
 .gitignore
 .github
+
+# Python
 __pycache__
 *.pyc
+*.pyo
+.pytest_cache
+.coverage
+htmlcov
+*.egg-info
+dist
+build
+
+# Node
+node_modules
+npm-debug.log
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Environment files (CRITICAL for security)
 .env
 .env.*
 !.env.example
-docker-compose.override.yml
-*.log
-.pytest_cache
-.coverage
-coverage.xml
-.vscode
-.idea
+!.env.development
+!.env.production
+
+# Documentation (optional, exclude from Docker context to speed up builds)
+*.md
+!README.md
+
+# Tests (optional)
+tests/
+backend/tests/
+
+# Database
 *.db
-tests
-mobile
-legacy
-storage/uploads
-storage/cache
-storage/vector
-storage/indexes
-storage/exports
-Dockerfile*
-dockerfile*
+*.sqlite
+
+# Backups
+backups/
+database/backups/
+
+# Storage
+storage/
+backend/static/
+
+# Docker volumes
+volumes/
+docker/ssl/
+
+# Misc
+validate_fix.py
+update*
 docker-compose*.yml
-kube
-secrets
-*.pem
-*.key
-*.crt

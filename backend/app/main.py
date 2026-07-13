@@ -32,6 +32,7 @@ from app.middleware.response import ResponseStandardizationMiddleware
 from app.middleware.rate_limit import RateLimitHeadersMiddleware
 from app.services.monitoring import MetricsMiddleware
 from app.routes import admin, ai, audio, auth, crawler, features, health, oauth, search, storage, vector
+from app.health_routes import router as health_router
 from app.routes.autocomplete import router as autocomplete_router
 from app.routes.spell import router as spell_router
 from app.routes.suggestions import router as suggestions_router
@@ -488,6 +489,7 @@ if _otel_instrumented:
 
 # --- Routes ---
 app.include_router(health.router)
+app.include_router(health_router)
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(search_unified_router)
