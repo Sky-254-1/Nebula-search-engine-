@@ -62,7 +62,7 @@ services:
       OLLAMA_URL: ${OLLAMA_URL:-http://localhost:11434}
     volumes:
       - nebula-storage:/app/storage
-      - ./backend:/app/app:ro
+      - ./backend/app:/app/app:ro
       - ./backend/vector:/app/vector:ro
     depends_on:
       postgres:
@@ -99,7 +99,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     volumes:
       - nebula-storage:/app/storage
-      - ./backend:/app/app:ro
+      - ./backend/app:/app/app:ro
       - ./backend/vector:/app/vector:ro
     depends_on:
       postgres:
@@ -126,7 +126,7 @@ services:
       APP_ENV: production
       JWT_SECRET: ${JWT_SECRET}
     volumes:
-      - ./backend:/app/app:ro
+      - ./backend/app:/app/app:ro
       - ./backend/vector:/app/vector:ro
     depends_on:
       postgres:

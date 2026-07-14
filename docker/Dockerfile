@@ -20,7 +20,7 @@ RUN addgroup --system nebula && adduser --system --ingroup nebula nebula
 
 COPY --from=builder /root/.local /root/.local
 
-COPY backend/app /app
+COPY backend/app /app/app
 COPY backend/vector /app/vector
 COPY docker/scheduler-entrypoint.sh /app/scheduler-entrypoint.sh
 

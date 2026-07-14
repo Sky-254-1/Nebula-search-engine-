@@ -1,11 +1,15 @@
 """Pytest configuration and shared fixtures."""
 
 import os
+import sys
 from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+
+# Add backend directory to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 # Use isolated test database before importing the app.
 os.environ["DATABASE_URL"] = "test_nebula.db"

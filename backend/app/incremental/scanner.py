@@ -156,6 +156,7 @@ class DocumentScanner:
             
             # Calculate file hash
             file_hash = calculate_file_hash(file_path)
+            new_metadata_hash = None
             
             # Compare with old state
             if old_document:

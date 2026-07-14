@@ -27,25 +27,25 @@ class ChunkRepository:
         content_hash_val: str,
     ) -> int:
         await self._db.execute(
-            "INSERT INTO chunks (document_id, user_id, chunk_index, content, token_count, content_hash) "
+            "INSERT INTO document_chunks (document_id, user_id, chunk_index, content, token_count, content_hash) "
             "VALUES (?, ?, ?, ?, ?, ?)",
             (document_id, user_id, chunk_index, content, token_count, content_hash_val),
         )
         await self._db.commit()
         row = await self._db.fetchone(
-            "SELECT id FROM chunks WHERE document_id = ? AND chunk_index = ?",
+            "SELECT id FROM document_chunks WHERE document_id = ? AND chunk_index = ?",
             (document_id, chunk_index),
         )
         return row["id"] if row else 0
 
     async def delete_for_document(self, document_id: int) -> None:
-        await self._db.execute("DELETE FROM chunks WHERE document_id = ?", (document_id,))
+        await self._db.execute("DELETE FROM document_chunks WHERE document_id = ?", (document_id,))
         await self._db.commit()
 
     async def list_for_user(self, user_id: int) -> list[dict]:
         rows = await self._db.fetchall(
             "SELECT c.id, c.document_id, c.chunk_index, c.content, d.filename "
-            "FROM chunks c JOIN documents d ON d.id = c.document_id "
+            "FROM document_chunks c JOIN documents d ON d.id = c.document_id "
             "WHERE c.user_id = ?",
             (user_id,),
         )
@@ -84,7 +84,7 @@ class EmbeddingRepository:
     async def candidates_for_user(self, user_id: int) -> list[dict]:
         rows = await self._db.fetchall(
             "SELECT e.chunk_id, e.document_id, e.vector_path, c.content, d.filename "
-            "FROM embeddings e JOIN chunks c ON c.id = e.chunk_id "
+            "FROM embeddings e JOIN document_chunks c ON c.id = e.chunk_id "
             "JOIN documents d ON d.id = e.document_id "
             "WHERE e.user_id = ? AND d.indexed_at IS NOT NULL",
             (user_id,),

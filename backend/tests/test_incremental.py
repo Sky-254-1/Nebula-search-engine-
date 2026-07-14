@@ -66,6 +66,7 @@ from app.incremental.events import (
     IncrementalEventType,
     MetricsCollector,
     get_event_manager,
+    reset_event_manager,
     emit_event,
 )
 from app.incremental.scheduler import (
@@ -86,17 +87,23 @@ from app.incremental.detector import ChangeDetector
 class TestHashing:
     """Tests for hashing utilities."""
 
-    def test_calculate_string_hash(self):
+    def test_calculate_string_hash(self, tmp_path):
         """Test string hashing."""
-        hash1 = calculate_document_hash("test content")
-        hash2 = calculate_document_hash("test content")
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("test content", encoding="utf-8")
+        hash1 = calculate_document_hash(str(test_file))
+        hash2 = calculate_document_hash(str(test_file))
         assert hash1 == hash2
-        assert len(hash1) == 64  # SHA-256 hex length
+        assert len(hash1) == 64
 
-    def test_calculate_string_hash_different_content(self):
+    def test_calculate_string_hash_different_content(self, tmp_path):
         """Test that different content produces different hashes."""
-        hash1 = calculate_document_hash("content A")
-        hash2 = calculate_document_hash("content B")
+        file_a = tmp_path / "a.txt"
+        file_b = tmp_path / "b.txt"
+        file_a.write_text("content A", encoding="utf-8")
+        file_b.write_text("content B", encoding="utf-8")
+        hash1 = calculate_document_hash(str(file_a))
+        hash2 = calculate_document_hash(str(file_b))
         assert hash1 != hash2
 
     def test_calculate_metadata_hash(self):
@@ -158,7 +165,8 @@ class TestChangeDetector:
     @pytest.fixture
     def detector(self):
         """Create change detector instance."""
-        return ChangeDetector()
+        config = IncrementalConfig(enable_corruption_detection=False)
+        return ChangeDetector(config)
 
     @pytest.mark.asyncio
     async def test_detect_new_document(self, detector):
@@ -175,13 +183,13 @@ class TestChangeDetector:
         assert change.document_id == 1
 
     @pytest.mark.asyncio
-    async def test_detect_unchanged_document(self, detector, tmp_path):
+    async     def test_detect_unchanged_document(self, detector, tmp_path):
         """Test detection of unchanged document."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")
         
         old_doc = {
-            "file_hash": calculate_document_hash(str(test_file)),
+            "file_hash": calculate_document_hash(str(test_file), {"title": "Test"}),
             "metadata_hash": calculate_metadata_hash({"title": "Test"}),
             "chunks": ["chunk 1"],
             "chunk_hashes": [calculate_chunk_hash("chunk 1", 0)],
@@ -273,7 +281,8 @@ class TestDiffEngine:
 
     def test_compute_diff_no_changes(self, diff_engine):
         """Test diff with no changes."""
-        old_chunks = [{"chunk_id": 0, "content": "chunk 1", "chunk_hash": "hash1"}]
+        expected_hash = diff_engine._compute_chunk_hash("chunk 1", 0)
+        old_chunks = [{"chunk_id": 0, "content": "chunk 1", "chunk_hash": expected_hash}]
         new_chunks = ["chunk 1"]
         
         diff = diff_engine.compute_diff(
@@ -292,8 +301,8 @@ class TestDiffEngine:
     def test_compute_diff_with_changes(self, diff_engine):
         """Test diff with changes."""
         old_chunks = [
-            {"chunk_id": 0, "content": "old chunk 1", "chunk_hash": "hash1"},
-            {"chunk_id": 1, "content": "chunk 2", "chunk_hash": "hash2"},
+            {"chunk_id": 0, "content": "old chunk 1", "chunk_hash": diff_engine._compute_chunk_hash("old chunk 1", 0)},
+            {"chunk_id": 1, "content": "chunk 2", "chunk_hash": diff_engine._compute_chunk_hash("chunk 2", 1)},
         ]
         new_chunks = ["modified chunk 1", "chunk 2", "new chunk 3"]
         
@@ -405,8 +414,8 @@ class TestIncrementalSynchronizer:
             document_id=1,
             total_chunks=2,
             added_chunks=[
-                ChunkDiff(chunk_id=0, new_content="chunk 1", new_hash="hash1", requires_embedding=True),
-                ChunkDiff(chunk_id=1, new_content="chunk 2", new_hash="hash2", requires_embedding=True),
+                ChunkDiff(chunk_id=0, operation=DiffOperationType.ADD, new_content="chunk 1", new_hash="hash1", requires_embedding=True),
+                ChunkDiff(chunk_id=1, operation=DiffOperationType.ADD, new_content="chunk 2", new_hash="hash2", requires_embedding=True),
             ],
         )
         
@@ -428,7 +437,7 @@ class TestIncrementalSynchronizer:
             document_id=1,
             total_chunks=0,
             removed_chunks=[
-                ChunkDiff(chunk_id=0, old_content="old", old_hash="hash1"),
+                ChunkDiff(chunk_id=0, operation=DiffOperationType.REMOVE, old_content="old", old_hash="hash1"),
             ],
         )
         
@@ -516,19 +525,16 @@ class TestIndexTracker:
     @pytest.mark.asyncio
     async def test_needs_reindex(self, tracker):
         """Test reindex check."""
-        db_session = Mock()
-        db_session.execute = AsyncMock()
-        db_session.commit = AsyncMock()
-        
         # New document needs reindex
         assert await tracker.needs_reindex(1, "hash123") is True
         
-        # Initialize with hash
-        await tracker._persist_record(db_session, IndexRecord(
+        # Initialize record directly in memory
+        from app.incremental.tracker import IndexRecord, IndexStatus
+        tracker._records[1] = IndexRecord(
             document_id=1,
             status=IndexStatus.COMPLETED,
             file_hash="hash123",
-        ))
+        )
         
         # Same hash - no reindex needed
         assert await tracker.needs_reindex(1, "hash123") is False
@@ -551,9 +557,10 @@ class TestCleanupService:
     async def test_cleanup_dry_run(self, cleanup_service):
         """Test cleanup in dry run mode."""
         db_session = Mock()
-        db_session.execute = AsyncMock()
+        mock_cursor = AsyncMock()
+        mock_cursor.fetchone = AsyncMock(return_value=None)
+        db_session.execute = AsyncMock(return_value=mock_cursor)
         db_session.commit = AsyncMock()
-        db_session.fetchone = AsyncMock(return_value=(0,))
         db_session.fetchall = AsyncMock(return_value=[])
         
         result = await cleanup_service.cleanup(db_session, dry_run=True)
@@ -565,9 +572,10 @@ class TestCleanupService:
     async def test_remove_document_data(self, cleanup_service):
         """Test removing document data."""
         db_session = Mock()
-        db_session.execute = AsyncMock()
+        mock_cursor = AsyncMock()
+        mock_cursor.fetchone = AsyncMock(return_value=(3,))
+        db_session.execute = AsyncMock(return_value=mock_cursor)
         db_session.commit = AsyncMock()
-        db_session.fetchone = AsyncMock(return_value=(3,))
         
         result = await cleanup_service.remove_document_data(db_session, 1, dry_run=False)
         

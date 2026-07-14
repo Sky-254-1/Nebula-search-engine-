@@ -1,6 +1,6 @@
 -- Nebula Search — SQLite schema v1.1 (vector indexing)
 
-CREATE TABLE IF NOT EXISTS chunks (
+CREATE TABLE IF NOT EXISTS document_chunks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     document_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
@@ -10,9 +10,9 @@ CREATE TABLE IF NOT EXISTS chunks (
     content_hash TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX IF NOT EXISTS idx_chunks_document_id ON chunks(document_id);
-CREATE INDEX IF NOT EXISTS idx_chunks_user_id ON chunks(user_id);
-CREATE INDEX IF NOT EXISTS idx_chunks_content_hash ON chunks(content_hash);
+CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id ON document_chunks(document_id);
+CREATE INDEX IF NOT EXISTS idx_document_chunks_user_id ON document_chunks(user_id);
+CREATE INDEX IF NOT EXISTS idx_document_chunks_content_hash ON document_chunks(content_hash);
 
 CREATE TABLE IF NOT EXISTS embeddings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

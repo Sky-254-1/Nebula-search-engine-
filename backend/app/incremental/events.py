@@ -137,11 +137,9 @@ class EventManager:
         tasks = []
         for handler in handlers:
             try:
-                result = handler(event)
-                if asyncio.iscoroutine(result):
-                    tasks.append(result)
+                if asyncio.iscoroutinefunction(handler):
+                    tasks.append(handler(event))
                 else:
-                    # Sync handler - execute in executor
                     tasks.append(asyncio.get_event_loop().run_in_executor(None, handler, event))
             except Exception as exc:
                 logger.error("Error executing handler for %s: %s", event.event_type, exc)

@@ -49,6 +49,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     container_name: nebula-backend
+    entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
@@ -88,6 +89,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     container_name: nebula-worker
+    entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
     command: ["python", "-m", "vector.worker"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-nebula}:${POSTGRES_PASSWORD:-nebula}@postgres:5432/${POSTGRES_DB:-nebula}

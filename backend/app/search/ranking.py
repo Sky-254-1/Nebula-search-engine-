@@ -217,6 +217,10 @@ class MLRanker:
             'click_through': 0.10,
             'personalization': 0.10,
         }
+        
+        # Model persistence
+        self.model_version = "1.0.0"
+        self.last_training_date = None
     
     def extract_features(
         self,
@@ -240,6 +244,15 @@ class MLRanker:
             term in document.get('url', '').lower() for term in query_lower.split()
         )
         
+        # Freshness/recency score
+        features.freshness_score = self._calculate_freshness(document)
+        
+        # Domain authority
+        features.domain_authority = self._calculate_domain_authority(document)
+        
+        # Click-through rate (from historical data if available)
+        features.click_through_rate = document.get('ctr', 0.0)
+        
         # Personalization
         if user_profile:
             interests = user_profile.get('interests', [])
@@ -247,8 +260,54 @@ class MLRanker:
             features.personalization_score = sum(
                 1.0 for interest in interests if interest in doc_text
             )
+            features.previous_clicks = user_profile.get('click_count', 0)
         
         return features
+    
+    def _calculate_freshness(self, document: dict) -> float:
+        """Calculate freshness score based on document date"""
+        from datetime import datetime
+        
+        # Try to extract date from document
+        pub_date = document.get('published_date') or document.get('created_at')
+        if not pub_date:
+            return 0.5  # Default for unknown dates
+        
+        try:
+            if isinstance(pub_date, str):
+                pub_date = datetime.fromisoformat(pub_date.replace('Z', '+00:00'))
+            elif isinstance(pub_date, datetime):
+                pub_date = pub_date
+            else:
+                return 0.5
+            
+            days_old = (datetime.now(pub_date.tzinfo) - pub_date).days
+            
+            # Exponential decay: newer = higher score
+            # 0 days = 1.0, 30 days = 0.5, 365 days = 0.1
+            freshness = max(0.0, 1.0 * (0.95 ** days_old))
+            return round(freshness, 3)
+        except Exception:
+            return 0.5
+    
+    def _calculate_domain_authority(self, document: dict) -> float:
+        """Calculate domain authority score"""
+        # In production, this would look up domain authority from a database
+        # or use signals like backlinks, domain age, etc.
+        
+        url = document.get('url', '')
+        
+        # Simple heuristic for demonstration
+        high_authority_domains = [
+            'wikipedia.org', 'github.com', 'stackoverflow.com',
+            'medium.com', 'dev.to', 'arxiv.org'
+        ]
+        
+        for domain in high_authority_domains:
+            if domain in url:
+                return 0.9
+        
+        return 0.5  # Default authority
     
     def score(
         self,
@@ -260,16 +319,27 @@ class MLRanker:
         """Calculate final ML-based ranking score"""
         features = self.extract_features(query, document, all_documents, user_profile)
         
+        # Normalize BM25 and TF-IDF scores to 0-1 range
+        normalized_bm25 = min(features.bm25_score / 10.0, 1.0)
+        normalized_tfidf = min(features.tfidf_score / 5.0, 1.0)
+        
+        # Position score (0-1 range)
+        position_score = min(self.position_ranker.score(query, document) / 10.0, 1.0)
+        
         # Weighted combination of features
         score = (
-            features.bm25_score * self.weights['bm25']
-            + features.tfidf_score * self.weights.get('tfidf', 0.15)
-            + self.position_ranker.score(query, document) * self.weights['position']
+            normalized_bm25 * self.weights['bm25']
+            + normalized_tfidf * self.weights['tfidf']
+            + position_score * self.weights['position']
+            + features.freshness_score * self.weights['freshness']
             + features.click_through_rate * self.weights['click_through']
             + features.personalization_score * self.weights['personalization']
         )
         
-        return score
+        # Apply domain authority boost
+        score *= (0.8 + 0.2 * features.domain_authority)
+        
+        return round(score, 4)
 
 
 class DiversityRanker:
@@ -335,10 +405,16 @@ class DiversityRanker:
 class HybridRanker:
     """Hybrid ranking combining multiple algorithms"""
     
-    def __init__(self):
+    def __init__(self, personalization_engine=None):
         self.bm25_ranker = BM25Ranker()
         self.ml_ranker = MLRanker()
         self.diversity_ranker = DiversityRanker()
+        self.personalization_engine = personalization_engine
+        self.feature_stats = {
+            'total_ranked': 0,
+            'avg_score': 0.0,
+            'score_distribution': [],
+        }
     
     async def rank(
         self,
@@ -346,12 +422,14 @@ class HybridRanker:
         results: list[dict],
         user_profile: Optional[dict] = None,
         enable_diversity: bool = True,
+        enable_freshness: bool = True,
     ) -> list[dict]:
         """
         Apply hybrid ranking:
         1. Index documents for BM25
         2. Score with ML ranker
         3. Apply diversity
+        4. Track statistics
         """
         if not results:
             return []
@@ -362,21 +440,113 @@ class HybridRanker:
         
         # Score all results
         scored_results = []
+        scores = []
         for result in results:
             score = self.ml_ranker.score(query, result, results, user_profile)
             scored_results.append((score, result))
+            scores.append(score)
         
         # Sort by score
         scored_results.sort(key=lambda x: x[0], reverse=True)
         ranked_results = [result for _, result in scored_results]
         
-        # Apply diversity
-        if enable_diversity:
+        # Apply diversity if enabled
+        if enable_diversity and len(ranked_results) > 1:
             ranked_results = self.diversity_ranker.diversify(ranked_results, query)
         
+        # Apply personalization if user profile provided and personalization engine available
+        if user_profile and self.personalization_engine:
+            for result in ranked_results:
+                adjustment = self.personalization_engine.calculate_result_score_adjustment(
+                    user_profile, result
+                )
+                result['final_score'] = min(1.0, result.get('final_score', 0.0) + adjustment)
+                result['personalization_adjustment'] = adjustment
+        else:
+            # Set final scores without personalization
+            for idx, result in enumerate(ranked_results):
+                result['final_score'] = scored_results[idx][0] if idx < len(scored_results) else 0.0
+        
+        # Add rank positions
+        for idx, result in enumerate(ranked_results):
+            result['rank_position'] = idx + 1
+        
+        # Update statistics
+        self._update_statistics(scores)
+        
         return ranked_results
+    
+    def _update_statistics(self, scores: list[float]) -> None:
+        """Update ranking statistics"""
+        self.feature_stats['total_ranked'] += len(scores)
+        if scores:
+            avg = sum(scores) / len(scores)
+            self.feature_stats['avg_score'] = (
+                (self.feature_stats['avg_score'] + avg) / 2
+                if self.feature_stats['avg_score'] > 0
+                else avg
+            )
 
 
 # Global ranker instance
 import re
+from datetime import datetime
+from app.search.personalization import PersonalizationEngine
 hybrid_ranker = HybridRanker()
+
+
+# Model management for production learning-to-rank
+class RankingModelManager:
+    """Manage ranking model lifecycle and training"""
+    
+    def __init__(self, ml_ranker: Optional[MLRanker] = None):
+        self.ml_ranker = ml_ranker or MLRanker()
+        self.training_data: list[dict] = []
+        self.model_metadata = {
+            'version': self.ml_ranker.model_version,
+            'last_training_date': None,
+            'training_samples': 0,
+            'feature_importance': {},
+        }
+    
+    def record_training_sample(
+        self,
+        query: str,
+        document: dict,
+        features: RankingFeatures,
+        clicked: bool,
+    ) -> None:
+        """Record a training sample for model improvement"""
+        self.training_data.append({
+            'query': query,
+            'document': document,
+            'features': features,
+            'clicked': clicked,
+        })
+    
+    def should_retrain(self, sample_threshold: int = 1000) -> bool:
+        """Check if model should be retrained"""
+        return len(self.training_data) >= sample_threshold
+    
+    def clear_training_data(self) -> None:
+        """Clear training data after model update"""
+        self.training_data.clear()
+    
+    def get_model_info(self) -> dict:
+        """Get current model information"""
+        return {
+            'version': self.ml_ranker.model_version,
+            'last_training': self.ml_ranker.last_training_date,
+            'training_samples': len(self.training_data),
+            'feature_weights': self.ml_ranker.weights,
+            'needs_retraining': self.should_retrain(),
+        }
+    
+    def update_weights(self, new_weights: dict[str, float]) -> None:
+        """Update model weights (for A/B testing or retraining)"""
+        self.ml_ranker.weights.update(new_weights)
+        self.model_metadata['last_training_date'] = datetime.now().isoformat()
+
+
+# Global model manager instance
+model_manager = RankingModelManager(hybrid_ranker.ml_ranker)

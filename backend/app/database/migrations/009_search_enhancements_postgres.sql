@@ -3,6 +3,14 @@
 CREATE SCHEMA IF NOT EXISTS search;
 CREATE SCHEMA IF NOT EXISTS notifications;
 
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Saved searches table
 CREATE TABLE IF NOT EXISTS search.saved_searches (
     id BIGSERIAL PRIMARY KEY,
