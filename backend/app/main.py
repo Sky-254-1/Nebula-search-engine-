@@ -23,6 +23,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from app.config import get_settings
 from app.database import init_db
@@ -479,7 +480,8 @@ app.add_middleware(
 )
 
 # --- Static files ---
-app.mount("/static", StaticFiles(directory="static"), name="static")
+_static_dir = str(Path(__file__).resolve().parent.parent / "static")
+app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 
 # --- OpenTelemetry instrumentation (wraps ASGI app) ---
 if _otel_instrumented:
@@ -540,7 +542,8 @@ async def metrics():
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     """Serve the application favicon."""
-    return FileResponse("static/favicon.ico")
+    favicon_path = Path(__file__).resolve().parent.parent / "static" / "favicon.ico"
+    return FileResponse(str(favicon_path))
 
 
 # --- Request ID middleware (applied last so it wraps everything) ---
