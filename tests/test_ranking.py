@@ -217,7 +217,8 @@ class TestHybridRanker:
     
     def test_rank_basic(self):
         """Test basic ranking."""
-        ranked = self.ranker.rank("python", self.results)
+        import asyncio
+        ranked = asyncio.run(self.ranker.rank("python", self.results))
         
         assert len(ranked) == len(self.results)
         assert all('final_score' in r for r in ranked)
@@ -225,19 +226,22 @@ class TestHybridRanker:
     
     def test_rank_empty(self):
         """Test ranking with empty results."""
-        ranked = self.ranker.rank("python", [])
+        import asyncio
+        ranked = asyncio.run(self.ranker.rank("python", []))
         assert ranked == []
     
     def test_diversity_disabled(self):
         """Test ranking with diversity disabled."""
-        ranked = self.ranker.rank("python", self.results, enable_diversity=False)
+        import asyncio
+        ranked = asyncio.run(self.ranker.rank("python", self.results, enable_diversity=False))
         assert len(ranked) == len(self.results)
     
     def test_statistics_tracking(self):
         """Test statistics tracking."""
+        import asyncio
         initial_count = self.ranker.feature_stats['total_ranked']
         
-        self.ranker.rank("python", self.results)
+        asyncio.run(self.ranker.rank("python", self.results))
         
         assert self.ranker.feature_stats['total_ranked'] > initial_count
 
@@ -303,6 +307,7 @@ class TestRankingIntegration:
 
     def test_end_to_end_ranking(self):
         """Test complete ranking pipeline."""
+        import asyncio
         ranker = HybridRanker()
         
         documents = [
@@ -315,7 +320,7 @@ class TestRankingIntegration:
             for i in range(5)
         ]
         
-        ranked = ranker.rank("python", documents, enable_diversity=False)
+        ranked = asyncio.run(ranker.rank("python", documents, enable_diversity=False))
         
         assert len(ranked) == 5
         assert all('final_score' in doc for doc in ranked)
@@ -326,6 +331,7 @@ class TestRankingIntegration:
     
     def test_personalization_impact(self):
         """Test personalization impact on ranking."""
+        import asyncio
         ranker = HybridRanker()
         
         docs = [
@@ -334,7 +340,7 @@ class TestRankingIntegration:
         ]
         
         # Without personalization
-        ranked_no_pers = ranker.rank("programming", docs, user_profile=None)
+        ranked_no_pers = asyncio.run(ranker.rank("programming", docs, user_profile=None))
         
         # No assertion on exact scores, just verify it works
         assert len(ranked_no_pers) > 0

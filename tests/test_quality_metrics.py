@@ -133,7 +133,7 @@ class TestQualityMetricsCalculator:
         )
         assert abs(self.calculator.ndcg_at_k(search1, k=3) - 1.0) < 0.01
 
-        # Imperfect ranking
+        # Imperfect ranking - only 2 out of 3 are relevant
         search2 = SearchMetrics(
             query="python",
             results=[
@@ -142,7 +142,7 @@ class TestQualityMetricsCalculator:
                 {"id": 2},
             ],
             clicked_ids=[],
-            relevant_ids={1, 2, 3},
+            relevant_ids={1, 2},
         )
         assert 0 < self.calculator.ndcg_at_k(search2, k=3) < 1.0
 
@@ -288,6 +288,7 @@ class TestCTRAnalyzer:
     def test_analyze_query_ctr(self):
         """Test analyzing query CTR."""
         events = [
+            {'type': 'search', 'user_id': 1},
             {'type': 'search', 'user_id': 1},
             {'type': 'click', 'user_id': 1},
         ]

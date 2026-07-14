@@ -21,6 +21,7 @@ class RankingFeatures:
     term_frequency: float = 0.0
     inverse_document_frequency: float = 0.0
     bm25_score: float = 0.0
+    tfidf_score: float = 0.0
     
     # Position features
     title_match: bool = False
@@ -230,6 +231,8 @@ class MLRanker:
         user_profile: Optional[dict] = None,
     ) -> RankingFeatures:
         """Extract all ranking features for a document"""
+        self.bm25_ranker.index_documents(all_documents)
+        
         features = RankingFeatures()
         
         # Content-based features
