@@ -39,7 +39,7 @@ mkdir -p /app/logs
 # Start Uvicorn directly
 echo "Starting Uvicorn server..."
 cd /app
-exec env PYTHONPATH=/app uvicorn main:app \
+exec env PYTHONPATH=/app uvicorn app.main:app \
     --host 0.0.0.0 \
     --port 8000 \
     --log-level info
