@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS search.saved_searches (
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
     deleted_at TIMESTAMPTZ,
-    CONSTRAINT valid_mode CHECK (mode IN ('web', 'vector', 'hybrid', 'ai'))
+    CONSTRAINT valid_mode CHECK (mode IN ('webrecyc', 'vector', 'hybrid', 'ai'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_saved_searches_user
