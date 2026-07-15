@@ -58,7 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_response_time_created_at ON response_time_metrics
 
 -- Aggregated daily statistics
 CREATE TABLE IF NOT EXISTS analytics_daily (
-    id INTEGER PRIMARY KEY AUTOINUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     date DATE NOT NULL UNIQUE,
     total_queries INTEGER NOT NULL DEFAULT 0,
     unique_users INTEGER NOT NULL DEFAULT 0,
@@ -110,4 +110,4 @@ CREATE TABLE IF NOT EXISTS popular_queries (
 );
 
 CREATE INDEX IF NOT EXISTS idx_popular_queries_count ON popular_queries(count DESC);
-CREATE INDEX IF NOT EXISTS idx_popular_queries_last_searched ON popular_queries(last_searched);
+-- CREATE INDEX IF NOT EXISTS idx_popular_queries_last_searched ON popular_queries(last_searched);

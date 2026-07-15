@@ -12,7 +12,7 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 async def run_migrations() -> None:
     settings = get_settings()
     suffix = "postgres" if settings.uses_postgres else "sqlite"
-    files = sorted(MIGRATIONS_DIR.glob(f"*_{suffix}.sql"))
+    files = sorted(MIGRATIONS_DIR.glob(f"*_{suffix}.sql")) + sorted(MIGRATIONS_DIR.glob("010_*.sql"))
     db = await connect()
     try:
         # Disable foreign key constraints for SQLite during migrations

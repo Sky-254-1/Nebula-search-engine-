@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -28,7 +29,7 @@ class SuggestionItem(BaseModel):
     model_config = ConfigDict(json_schema_extra={"examples": {"text": "machine learning", "type": "trending", "score": 0.98}})
     text: str
     type: str
- runtim    score: float
+    score: float
 
 
 class SuggestionsResponse(BaseModel):

@@ -206,6 +206,14 @@ class AnalyticsService:
         
         return result
 
+    async def aggregate_hourly(self, date: datetime) -> None:
+        """Aggregate hourly statistics."""
+        try:
+            await self._repo.aggregate_hourly(date)
+            logger.info("Hourly aggregation completed for %s", date.replace(minute=0, second=0, microsecond=0))
+        except Exception:
+            logger.exception("Hourly aggregation failed for %s", date)
+
     async def aggregate_daily(self, date: datetime) -> None:
         """Aggregate daily statistics."""
         try:
