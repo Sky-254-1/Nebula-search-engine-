@@ -27,6 +27,9 @@ class VersioningMiddleware(BaseHTTPMiddleware):
     VERSION_AGNOSTIC_PATHS = {
         "/",
         "/health",
+        "/health/live",
+        "/health/ready",
+        "/health/detailed",
         "/docs",
         "/redoc",
         "/openapi.json",

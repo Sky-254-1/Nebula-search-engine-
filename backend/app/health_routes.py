@@ -7,6 +7,7 @@ import os
 
 router = APIRouter()
 
+
 @router.get("/health")
 async def health_check() -> Dict[str, Any]:
     """
@@ -19,6 +20,7 @@ async def health_check() -> Dict[str, Any]:
         "timestamp": int(time.time()),
     }
 
+
 @router.get("/health/live")
 async def liveness_check() -> Dict[str, Any]:
     """
@@ -29,6 +31,7 @@ async def liveness_check() -> Dict[str, Any]:
         "status": "alive",
         "service": "nebula-backend",
     }
+
 
 @router.get("/health/ready")
 async def readiness_check() -> Dict[str, Any]:
@@ -42,8 +45,10 @@ async def readiness_check() -> Dict[str, Any]:
     
     # Check database connection
     try:
-        from app.database.engine import db_manager
-        # Simple check - you can expand this
+        from app.database.engine import connect
+        db = await connect()
+        await db.execute("SELECT 1")
+        await db.close()
         checks["database"] = {
             "status": "healthy",
             "message": "Database connection successful"
@@ -57,14 +62,19 @@ async def readiness_check() -> Dict[str, Any]:
     
     # Check Redis connection
     try:
-        import redis
-        from app.config import config
-        redis_client = redis.from_url(config.REDIS_URL)
-        redis_client.ping()
-        checks["redis"] = {
-            "status": "healthy",
-            "message": "Redis connection successful"
-        }
+        from app.config import get_settings
+        from app.services.cache import cache_service
+        if cache_service._redis:
+            await cache_service._redis.ping()
+            checks["redis"] = {
+                "status": "healthy",
+                "message": "Redis connection successful"
+            }
+        else:
+            checks["redis"] = {
+                "status": "healthy",
+                "message": "Redis not configured (in-memory cache)"
+            }
     except Exception as e:
         checks["redis"] = {
             "status": "unhealthy",
@@ -75,7 +85,7 @@ async def readiness_check() -> Dict[str, Any]:
     # Check disk space
     try:
         import shutil
-        disk = shutil.disk_usage("/app")
+        disk = shutil.disk_usage(os.getcwd())
         disk_free_percent = (disk.free / disk.total) * 100
         checks["disk"] = {
             "status": "healthy" if disk_free_percent > 10 else "warning",
@@ -100,6 +110,7 @@ async def readiness_check() -> Dict[str, Any]:
     status_code = 200 if overall_status == "ready" else 503
     return JSONResponse(content=response, status_code=status_code)
 
+
 @router.get("/health/detailed")
 async def detailed_health_check() -> Dict[str, Any]:
     """
@@ -110,36 +121,41 @@ async def detailed_health_check() -> Dict[str, Any]:
     
     # Database check
     try:
-        from app.database.engine import db_manager
-        # Add more detailed checks if needed
+        from app.database.engine import connect
+        db = await connect()
+        await db.execute("SELECT 1")
+        await db.close()
         checks["database"] = {"status": "healthy", "details": {}}
     except Exception as e:
         checks["database"] = {"status": "unhealthy", "error": str(e)}
     
     # Redis check
     try:
-        import redis
-        from app.config import config
-        redis_client = redis.from_url(config.REDIS_URL)
-        redis_info = redis_client.info()
-        checks["redis"] = {
-            "status": "healthy",
-            "connected_clients": redis_info.get("connected_clients", 0),
-            "used_memory": redis_info.get("used_memory_human", "unknown"),
-            "version": redis_info.get("redis_version", "unknown"),
-        }
+        from app.services.cache import cache_service
+        if cache_service._redis:
+            redis_info = await cache_service._redis.info()
+            checks["redis"] = {
+                "status": "healthy",
+                "connected_clients": redis_info.get("connected_clients", 0),
+                "used_memory": redis_info.get("used_memory_human", "unknown"),
+                "version": redis_info.get("redis_version", "unknown"),
+            }
+        else:
+            checks["redis"] = {"status": "not_configured", "message": "Using in-memory cache"}
     except Exception as e:
         checks["redis"] = {"status": "unhealthy", "error": str(e)}
     
     # Storage check
     try:
-        storage_path = os.getenv("STORAGE_ROOT", "/app/storage")
+        from app.config import get_settings
+        settings = get_settings()
+        storage_path = settings.storage_uploads
         os.makedirs(storage_path, exist_ok=True)
         test_file = os.path.join(storage_path, ".health_check")
         with open(test_file, "w") as f:
             f.write("ok")
         os.remove(test_file)
-        checks["storage"] = {"status": "healthy", "path": storage_path}
+        checks["storage"] = {"status": "healthy", "path": str(storage_path)}
     except Exception as e:
         checks["storage"] = {"status": "unhealthy", "error": str(e)}
     
