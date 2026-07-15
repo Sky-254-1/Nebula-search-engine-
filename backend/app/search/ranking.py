@@ -258,12 +258,19 @@ class MLRanker:
         
         # Personalization
         if user_profile:
-            interests = user_profile.get('interests', [])
+            # Handle both dict and UserProfile objects
+            if hasattr(user_profile, 'interests'):
+                interests = user_profile.interests
+                click_count = getattr(user_profile, 'click_count', 0)
+            else:
+                interests = user_profile.get('interests', [])
+                click_count = user_profile.get('click_count', 0)
+            
             doc_text = f"{document.get('title', '')} {document.get('snippet', '')}".lower()
             features.personalization_score = sum(
                 1.0 for interest in interests if interest in doc_text
             )
-            features.previous_clicks = user_profile.get('click_count', 0)
+            features.previous_clicks = click_count
         
         return features
     

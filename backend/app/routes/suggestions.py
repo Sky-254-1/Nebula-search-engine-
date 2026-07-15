@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.database import get_db
 from app.database.engine import DatabaseConnection
@@ -25,17 +25,19 @@ router = APIRouter(prefix="/api/v1/search/suggestions", tags=["Suggestions"])
 
 class SuggestionItem(BaseModel):
     """Single search suggestion."""
-    text: str = Field(..., example="machine learning")
-    type: str = Field(..., example="trending", description="trending | semantic | related | personalized")
-    score: float = Field(..., ge=0.0, le=1.0, example=0.98)
+    model_config = ConfigDict(json_schema_extra={"examples": {"text": "machine learning", "type": "trending", "score": 0.98}})
+    text: str
+    type: str
+ runtim    score: float
 
 
 class SuggestionsResponse(BaseModel):
     """Search suggestions response."""
-    query: str = Field(..., example="machine")
-    suggestions: list[SuggestionItem] = Field(default_factory=list, max_length=10)
-    cache_hit: bool = False
-    latency_ms: int = Field(..., ge=0, example=45)
+    model_config = ConfigDict(json_schema_extra={"examples": {"query": "machine", "suggestions": [], "cache_hit": False, "latency_ms": 45}})
+    query: str
+    suggestions: list[SuggestionItem]
+    cache_hit: bool
+    latency_ms: int
 
 
 class TrendingResponse(BaseModel):

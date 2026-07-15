@@ -8,7 +8,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.services.auth import get_current_user
 from app.hybrid.config import HybridSearchConfig
@@ -61,6 +61,7 @@ class ExplainResponse(BaseModel):
 
 class ConfigResponse(BaseModel):
     """Hybrid search configuration"""
+    model_config = ConfigDict(from_attributes=True)
     enable_hybrid_search: bool
     bm25_weight: float
     semantic_weight: float
@@ -73,12 +74,10 @@ class ConfigResponse(BaseModel):
     enable_metadata_boost: bool
     enable_search_explain: bool
 
-    class Config:
-        from_attributes = True
-
 
 class MetricsResponse(BaseModel):
     """Hybrid search metrics"""
+    model_config = ConfigDict(from_attributes=True)
     total_searches: int
     success_rate: float
     average_latency_ms: float
@@ -88,19 +87,14 @@ class MetricsResponse(BaseModel):
     intent_distribution: Dict[str, int]
     recent_queries: List[str]
 
-    class Config:
-        from_attributes = True
-
 
 class StatisticsResponse(BaseModel):
     """System statistics"""
+    model_config = ConfigDict(from_attributes=True)
     retriever: Dict[str, Any]
     fusion: Dict[str, Any]
     deduplicator: Dict[str, Any]
     metrics: Dict[str, Any]
-
-    class Config:
-        from_attributes = True
 
 
 # Endpoints

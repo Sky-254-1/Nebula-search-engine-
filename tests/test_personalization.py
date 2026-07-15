@@ -172,7 +172,8 @@ class TestPersonalizationEngine:
 
     def test_get_user_profile_no_db(self):
         """Test getting user profile without database."""
-        profile = self.engine.get_user_profile(1)
+        import asyncio
+        profile = asyncio.run(self.engine.get_user_profile(1))
         
         assert profile.user_id == 1
         assert profile.interests == []
@@ -180,8 +181,13 @@ class TestPersonalizationEngine:
 
     def test_learn_from_search_no_db(self):
         """Test learning from search without database."""
-        # Should not raise error
-        self.engine.learn_from_search(1, "python programming")
+        import asyncio
+        
+        async def test_async():
+            # Should not raise error
+            await self.engine.learn_from_search(1, "python programming")
+        
+        asyncio.run(test_async())
 
     def test_get_personalized_weights_disabled(self):
         """Test getting personalized weights when disabled."""
@@ -191,7 +197,7 @@ class TestPersonalizationEngine:
             profile = await self.engine.get_user_profile(1)
             profile.personalization_enabled = False
             
-            weights = self.engine.get_personalized_weights(1, {"bm25": 0.5, "personalization": 0.1})
+            weights = await self.engine.get_personalized_weights(1, {"bm25": 0.5, "personalization": 0.1})
             
             assert weights == {"bm25": 0.5, "personalization": 0.1}
         
@@ -220,6 +226,7 @@ class TestPersonalizationIntegration:
 
     def test_personalization_with_ranker(self):
         """Test personalization integration with hybrid ranker."""
+        import asyncio
         from app.search.ranking import HybridRanker
         from app.search.personalization import PersonalizationEngine, UserProfile
         
@@ -245,7 +252,6 @@ class TestPersonalizationIntegration:
             },
         ]
         
-        import asyncio
         ranked = asyncio.run(ranker.rank("python", results, user_profile=profile, enable_diversity=False))
         
         assert len(ranked) == 2
