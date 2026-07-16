@@ -1,337 +1,344 @@
 # Disaster Recovery Guide
 
-This guide covers backup, restore, and recovery procedures for Nebula Search.
+## Overview
 
----
+This document outlines the disaster recovery procedures for Nebula Search Engine. It covers backup strategies, recovery procedures, and business continuity planning.
 
 ## Backup Strategy
 
-### What to Back Up
+### Automated Backups
 
-| Component | Frequency | Retention | Storage Location |
-|-----------|-----------|-----------|-----------------|
-| PostgreSQL database | Hourly | 30 days | S3/Google Cloud Storage |
-| User uploads | Daily | 90 days | S3/Google Cloud Storage |
-| Redis cache | N/A | N/A | Not backed up (ephemeral) |
-| Configuration | On change | Indefinite | Git repository |
+**Schedule:**
+- **Daily automated backups** at 2:00 AM UTC
+- **Retention period**: 30 days
+- **Backup location**: Local (`database/backups/`) + Cloud (optional)
 
-### Backup Locations
+**Backup Components:**
+1. **PostgreSQL database** - Full logical backup via `pg_dump`
+2. **Storage files** - Document uploads and exports (if using local storage)
+3. **Configuration files** - Environment configurations and secrets
 
-```bash
-# Database
-BACKUP_DIR=/var/backups/nebula
+### Backup Script
 
-# User uploads (document storage)
-STORAGE_ROOT=/app/storage
+```powershell
+# Windows - Create daily backup with cloud upload
+.\scripts\backup.ps1 -Compress -RetentionDays 30 -UploadToCloud s3 -CloudBucket "nebula-backups"
 
-# Configuration
-CONFIG_DIR=/etc/nebula
+# Linux/Mac - Use backup.sh
+./scripts/backup.sh --compress --retention-days 30
 ```
 
----
+### Cloud Storage Integration
 
-## Database Backup
+**Supported Providers:**
+- **AWS S3**: `aws s3 cp <backup> s3://<bucket>/nebula-backups/`
+- **Azure Blob Storage**: `az storage blob upload --container-name <bucket>`
+- **Google Cloud Storage**: `gsutil cp <backup> gs://<bucket>/nebula-backups/`
 
-### PostgreSQL
+**Configuration:**
+```powershell
+# S3 Setup
+.\scripts\backup.ps1 -UploadToCloud s3 -CloudBucket "my-backup-bucket" -CloudPath "prod/nebula"
 
-```bash
-# Full backup
-pg_dump -h localhost -U nebula nebula > /var/backups/nebula/full-$(date +%Y%m%d-%H%M%S).sql
+# Azure Setup
+.\scripts\backup.ps1 -UploadToCloud azure -CloudBucket "nebulabackups" -CloudPath "backups"
 
-# Schema-only backup
-pg_dump -h localhost -U nebula -s nebula > /var/backups/nebula/schema-$(date +%Y%m%d-%H%M%S).sql
-
-# Data-only backup
-pg_dump -h localhost -U nebula -a nebula > /var/backups/nebula/data-$(date +%Y%m%d-%H%M%S).sql
-
-# Compression
-pg_dump -h localhost -U nebula nebula | gzip > /var/backups/nebula/full-$(date +%Y%m%d-%H%M%S).sql.gz
+# GCS Setup
+.\scripts\backup.ps1 -UploadToCloud gcs -CloudBucket "nebula-backups-prod"
 ```
 
-### Automated Backup Script
+### Encryption
 
-```bash
-# scripts/backup_database.sh
-#!/bin/bash
-set -e
-
-BACKUP_DIR="/var/backups/nebula"
-DATE=$(date +%Y%m%d-%H%M%S)
-
-# Create backup directory
-mkdir -p "$BACKUP_DIR"
-
-# Full backup with compression
-pg_dump -h "$DB_HOST" -U "$DB_USER" "$DB_NAME" | \
-  gzip > "$BACKUP_DIR/full-$DATE.sql.gz"
-
-# Keep only last 30 days
-find "$BACKUP_DIR" -name "*.gz" -mtime +30 -delete
-
-# Upload to cloud storage (if configured)
-if [ -n "$CLOUD_STORAGE_BUCKET" ]; then
-  aws s3 cp "$BACKUP_DIR/full-$DATE.sql.gz" "s3://$CLOUD_STORAGE_BUCKET/nebula/"
-fi
-
-echo "Backup completed: full-$DATE.sql.gz"
+**Enable encryption for sensitive data:**
+```powershell
+.\scripts\backup.ps1 -Encrypt -Password "SecurePassword123" -Compress -RetentionDays 30
 ```
 
-### Cron Job
-
-```bash
-# Add to crontab
-0 * * * * /path/to/scripts/backup_database.sh >> /var/log/nebula_backup.log 2>&1
-```
-
----
-
-## User Uploads Backup
-
-```bash
-# scripts/backup_uploads.sh
-#!/bin/bash
-set -e
-
-STORAGE_ROOT="/app/storage"
-BACKUP_DIR="/var/backups/nebula/uploads"
-
-DATE=$(date +%Y%m%d-%H%M%S)
-
-# Create backup directory
-mkdir -p "$BACKUP_DIR"
-
-# Compress user uploads
-tar -czf "$BACKUP_DIR/uploads-$DATE.tar.gz" -C "$STORAGE_ROOT" uploads/
-
-# Keep only last 90 days
-find "$BACKUP_DIR" -name "*.tar.gz" -mtime +90 -delete
-
-echo "Uploads backup completed: uploads-$DATE.tar.gz"
-```
-
----
-
-## Database Restore
-
-### From Full Backup
-
-```bash
-# Restore database
-gunzip -c /var/backups/nebula/full-20260701-010000.sql.gz | \
-  psql -h localhost -U nebula nebula
-
-# Or if compressed backup
-zcat /var/backups/nebula/full-20260701-010000.sql.gz | \
-  psql -h localhost -U nebula nebula
-```
-
-### From Schema + Data
-
-```bash
-# Restore schema
-psql -h localhost -U nebula nebula < /var/backups/nebula/schema-20260701-010000.sql
-
-# Restore data
-psql -h localhost -U nebula nebula < /var/backups/nebula/data-20260701-010000.sql
-```
-
-### Point-in-Time Recovery
-
-```sql
--- Restore to specific timestamp
-pg_restore --format=c --dbname=nebula --snapshot=20260701-010000 \
-  /var/backups/nebula/20260701-010000.dump
-```
-
----
-
-## User Uploads Restore
-
-```bash
-# Extract uploads backup
-tar -xzf /var/backups/nebula/uploads-20260701-010000.tar.gz -C /app/storage/
-
-# Verify ownership
-chown -R appuser:appuser /app/storage/uploads
-```
-
----
+**Security:**
+- AES-256 encryption with PBKDF2 key derivation
+- 10,000 iterations for key stretching
+- Salt: `NebulaSearchEngine2024`
 
 ## Recovery Procedures
 
-### Complete System Recovery
+### Scenario 1: Complete System Failure
 
-1. **Stop all services**
+**Recovery Time Objective (RTO):** 4 hours
+**Recovery Point Objective (RPO):** 24 hours (last backup)
+
+**Steps:**
+
+1. **Provision new infrastructure** (2 hours)
    ```bash
-   docker compose down
+   # Deploy using Docker Compose
+   docker-compose up -d postgres redis
    ```
 
-2. **Restore database**
-   ```bash
-   gunzip -c /var/backups/nebula/full-20260701-010000.sql.gz | \
-     psql -h localhost -U nebula nebula
+2. **Restore database** (30 minutes)
+   ```powershell
+   # Windows
+   .\scripts\restore.ps1 -BackupFile ".\database\backups\nebula_20240101_120000.sql.gz"
+   
+   # Linux/Mac
+   gunzip -c database/backups/nebula_20240101_120000.sql.gz | docker exec -i nebula-postgres psql -U nebula nebula
    ```
 
-3. **Restore uploads**
-   ```bash
-   tar -xzf /var/backups/nebula/uploads-20260701-010000.tar.gz -C /app/storage/
+3. **Verify data integrity** (30 minutes)
+   ```sql
+   -- Check table counts
+   SELECT COUNT(*) FROM users;
+   SELECT COUNT(*) FROM documents;
+   SELECT COUNT(*) FROM search_logs;
+   
+   -- Check indexes
+   SELECT indexname FROM pg_indexes WHERE tablename = 'documents';
    ```
 
-4. **Rebuild application**
+4. **Deploy application** (1 hour)
    ```bash
-   docker compose build
+   # Pull latest image
+   docker-compose up -d backend frontend
+   
+   # Run migrations
+   make migrate
+   
+   # Verify health
+   curl https://nebula.example.com/health/detailed
    ```
 
-5. **Start services**
+### Scenario 2: Data Corruption
+
+**Symptoms:**
+- Database errors in logs
+- Search functionality broken
+- Inconsistent query results
+
+**Recovery Steps:**
+
+1. **Stop write operations**
    ```bash
-   docker compose up -d
+   docker-compose stop backend
    ```
 
-6. **Verify**
-   ```bash
-   docker compose exec backend python -c "from app.main import app; print(app.title)"
-   curl http://localhost:8000/health
+2. **Identify last known good backup**
+   ```powershell
+   # List available backups
+   Get-ChildItem database\backups\nebula_*.sql.gz | Sort-Object LastWriteTime -Descending
    ```
 
-### Database Corruption Recovery
-
-```sql
--- Check database integrity
-VACUUM ANALYZE;
-
--- Check for corrupted indexes
-REINDEX DATABASE nebula;
-
--- Check for corrupted tables
-SELECT * FROM pg_catalog.pg_tables WHERE schemaname = 'public';
-
--- Verify foreign key constraints
-SELECT * FROM information_schema.table_constraints 
-WHERE constraint_type = 'FOREIGN KEY';
-```
-
-### Data Loss Recovery
-
-```bash
-# Identify deleted data time range
-psql -h localhost -U nebula nebula -c \
-  "SELECT * FROM audit_logs WHERE action = 'delete' ORDER BY created_at DESC LIMIT 10"
-
-# Restore from backup before deletion time
-pg_restore --format=c --dbname=nebula --section=data \
-  --snapshot=20260701-000000 /var/backups/nebula/20260701-000000.dump
-```
-
----
-
-## Recovery Testing
-
-### Monthly DR Test
-
-1. **Create test environment**
-   ```bash
-   docker compose -f docker-compose.test.yml up -d
+3. **Restore to staging environment first**
+   ```powershell
+   .\scripts\restore.ps1 -BackupFile "database\backups\nebula_20240101_120000.sql.gz" -SkipValidation $false
    ```
 
-2. **Restore from latest backup**
-   ```bash
-   scripts/restore_test.sh
+4. **Validate data**
+   ```sql
+   -- Check document counts
+   SELECT status, COUNT(*) FROM documents GROUP BY status;
+   
+   -- Verify search logs
+   SELECT COUNT(*) FROM search_logs WHERE searched_at > NOW() - INTERVAL '7 days';
    ```
 
-3. **Verify data integrity**
-   ```bash
-   docker compose exec backend python scripts/verify_data.py
+5. **Promote to production**
+   ```powershell
+   # Repeat restore on production
+   .\scripts\restore.ps1 -BackupFile "database\backups\nebula_20240101_120000.sql.gz"
+   docker-compose start backend
    ```
 
-4. **Test application functionality**
-   ```bash
-   curl http://localhost:8000/health
-   curl http://localhost:8000/api/v1/search/web?q=test
+### Scenario 3: Accidental Data Deletion
+
+**Recovery Steps:**
+
+1. **Identify deletion timestamp**
+   ```sql
+   -- Check audit logs for deletion events
+   SELECT * FROM audit_logs 
+   WHERE action IN ('document_deleted', 'user_deleted') 
+   AND created_at > NOW() - INTERVAL '1 hour';
    ```
 
-5. **Clean up**
-   ```bash
-   docker compose down
+2. **Restore to temporary database**
+   ```powershell
+   .\scripts\restore.ps1 -BackupFile "database\backups\nebula_20240101_120000.sql.gz" -DatabaseName "nebula_recovery"
    ```
 
-### Annual DR Drill
+3. **Export deleted records**
+   ```sql
+   -- Export deleted documents
+   COPY (SELECT * FROM nebula_prod.documents WHERE id IN (...)) TO '/tmp/deleted_docs.csv';
+   ```
 
-1. **Simulate complete data center failure**
-2. **Execute recovery from off-site backup**
-3. **Measure RTO (Recovery Time Objective)**
-4. **Measure RPO (Recovery Point Objective)**
-5. **Document lessons learned**
-
----
+4. **Restore specific records**
+   ```sql
+   -- Insert recovered documents
+   INSERT INTO documents SELECT * FROM nebula_recovery.documents WHERE id IN (...);
+   ```
 
 ## Backup Verification
 
 ### Automated Verification
 
-```python
-# scripts/verify_backup.py
-import subprocess
-import sys
-
-def verify_backup(backup_path):
-    """Verify backup integrity."""
-    try:
-        # Test gzip integrity
-        result = subprocess.run(
-            ['gunzip', '-t', backup_path],
-            capture_output=True,
-            timeout=300
-        )
-        if result.returncode != 0:
-            return False, "Backup file is corrupted"
-        
-        # Test SQL syntax
-        result = subprocess.run(
-            ['psql', '-d', 'postgres', '--file', backup_path],
-            capture_output=True,
-            timeout=300
-        )
-        if result.returncode != 0:
-            return False, "SQL syntax error"
-        
-        return True, "Backup verified"
-    except Exception as e:
-        return False, str(e)
-
-if __name__ == "__main__":
-    backup_path = sys.argv[1]
-    valid, message = verify_backup(backup_path)
-    print(f"Verification: {message}")
-    sys.exit(0 if valid else 1)
+**Daily backup health check:**
+```powershell
+.\scripts\verify-backup.ps1 -BackupFile "database\backups\nebula_latest.sql.gz"
 ```
 
-### Schedule Verification
+**Verification checks:**
+- ✅ Backup file integrity (checksum)
+- ✅ Valid SQL syntax
+- ✅ Required tables present
+- ✅ Foreign key constraints valid
+- ✅ Row counts within expected ranges
+
+### Manual Verification
+
+**Weekly manual verification:**
+```bash
+# 1. Create test database
+docker-compose exec postgres createdb nebula_test
+
+# 2. Restore latest backup
+gunzip -c database/backups/nebula_latest.sql.gz | docker exec -i nebula-postgres psql -U nebula nebula_test
+
+# 3. Run sanity checks
+docker-compose exec postgres psql -U nebula -d nebula_test -c "SELECT COUNT(*) FROM users;"
+docker-compose exec postgres psql -U nebula -d nebula_test -c "SELECT COUNT(*) FROM documents;"
+
+# 4. Cleanup
+docker-compose exec postgres dropdb nebula_test
+```
+
+## Monitoring & Alerts
+
+### Backup Monitoring
+
+**Metrics to track:**
+- ✅ Backup completion status
+- ✅ Backup file size (alert if < 1 MB)
+- ✅ Backup duration (alert if > 1 hour)
+- ✅ Cloud upload success/failure
+- ✅ Disk space availability
+
+**Alert thresholds:**
+```yaml
+alerts:
+  - name: BackupFailed
+    condition: backup_status != "success"
+    severity: critical
+    notification: ops-team@nebula.example.com
+  
+  - name: BackupSizeTooSmall
+    condition: backup_size_mb < 1
+    severity: warning
+    notification: ops-team@nebula.example.com
+  
+  - name: DiskSpaceLow
+    condition: disk_usage_percent > 80
+    severity: warning
+    notification: ops-team@nebula.example.com
+```
+
+### Recovery Testing
+
+**Monthly recovery drill:**
+1. Restore backup to staging environment
+2. Run automated test suite
+3. Verify search functionality
+4. Document recovery time
+5. Update recovery procedures
+
+**Quarterly full disaster recovery test:**
+1. Simulate complete system failure
+2. Restore from latest backup
+3. Validate data integrity
+4. Measure RTO and RPO
+5. Update disaster recovery plan
+
+## Business Continuity
+
+### Service Level Agreements
+
+| Metric | Target | Minimum |
+|--------|--------|---------|
+| RTO (Recovery Time Objective) | 4 hours | 8 hours |
+| RPO (Recovery Point Objective) | 24 hours | 48 hours |
+| Backup Success Rate | 99.5% | 95% |
+| Data Integrity | 100% | 99.9% |
+
+### Escalation Procedures
+
+**Severity 1 - Complete Outage:**
+1. On-call engineer (15 min response)
+2. Engineering lead (30 min response)
+3. CTO (1 hour response)
+
+**Severity 2 - Data Loss:**
+1. On-call engineer (30 min response)
+2. Engineering lead (2 hour response)
+
+**Severity 3 - Backup Failure:**
+1. On-call engineer (1 hour response)
+2. Engineering lead (24 hour response)
+
+## Appendix
+
+### Backup Checklist
+
+- [ ] Daily backup completed successfully
+- [ ] Backup uploaded to cloud storage
+- [ ] Backup size within expected range
+- [ ] Retention policy applied
+- [ ] Disk space adequate
+- [ ] Backup verification passed
+- [ ] Alert notifications working
+
+### Recovery Checklist
+
+- [ ] Infrastructure provisioned
+- [ ] Database restored from backup
+- [ ] Data integrity verified
+- [ ] Application deployed
+- [ ] Migrations run
+- [ ] Health checks passing
+- [ ] Search functionality tested
+- [ ] Monitoring enabled
+- [ ] Stakeholders notified
+
+### Useful Commands
 
 ```bash
-# Add to crontab (weekly verification)
-0 3 * * 0 /path/to/scripts/verify_backup.py /var/backups/nebula/full-$(date -d last-sunday +%Y%m%d).sql.gz >> /var/log/nebula_backup_verify.log 2>&1
+# List all backups
+ls -lh database/backups/
+
+# Test backup restoration
+gunzip -c database/backups/nebula_20240101_120000.sql.gz | docker exec -i nebula-postgres psql -U nebula nebula_test
+
+# Verify database integrity
+docker-compose exec postgres psql -U nebula -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';"
+
+# Check disk space
+df -h database/backups/
+
+# Monitor backup logs
+tail -f logs/backup.log
 ```
 
----
+## Contact Information
 
-## RTO/RPO Targets
+**Emergency Contacts:**
+- On-call Engineer: [PagerDuty link]
+- Engineering Lead: [Contact info]
+- DevOps Team: [Contact info]
 
-| Scenario | RTO | RPO |
-|----------|-----|-----|
-| Database failure | 1 hour | 1 hour |
-| Full system failure | 4 hours | 24 hours |
-| Data corruption | 2 hours | Latest backup |
-| User data loss | 1 hour | Latest backup |
-
----
-
-## Contact
-
-For disaster recovery assistance:
-- **Email:** ops@nebula-search.example.com
-- **PagerDuty:** nebula-ops (if configured)
-- **Slack:** #incidents
+**Documentation:**
+- Runbooks: [Link]
+- Architecture: [Link]
+- Monitoring: [Link]
 
 ---
 
-*Last updated: July 1, 2026*
+**Last Updated:** 2024-01-15
+**Next Review:** 2024-04-15
+**Owner:** Operations Team
