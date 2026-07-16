@@ -1,9 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "Starting Nebula Search Engine Backend..."
+echo "Starting Nebula Search Engine..."
 
-# Wait for database to be ready
 echo "Waiting for database..."
 for i in {1..30}; do
     if python -c "import asyncpg; asyncpg.connect('${DATABASE_URL}')" 2>/dev/null; then
@@ -17,7 +16,6 @@ for i in {1..30}; do
     sleep 1
 done
 
-# Wait for Redis to be ready
 echo "Waiting for Redis..."
 for i in {1..30}; do
     if python -c "import redis; redis.from_url('${REDIS_URL}').ping()" 2>/dev/null; then
@@ -31,15 +29,16 @@ for i in {1..30}; do
     sleep 1
 done
 
-# Create logs directory
 mkdir -p /app/logs
 
-# Note: Database migrations are handled by the application on startup
-
-# Start Uvicorn directly
-echo "Starting Uvicorn server..."
-cd /app
-exec env PYTHONPATH=/app uvicorn app.main:app \
-    --host 0.0.0.0 \
-    --port 8000 \
-    --log-level info
+if [ $# -gt 0 ]; then
+    echo "Starting application with command: $*"
+    exec env PYTHONPATH=/app "$@"
+else
+    echo "Starting Uvicorn server..."
+    cd /app
+    exec env PYTHONPATH=/app uvicorn app.main:app \
+        --host 0.0.0.0 \
+        --port 8000 \
+        --log-level info
+fi

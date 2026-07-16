@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir -r requirements-dev.txt
 COPY backend/pytest.ini .
 COPY backend/app ./app/app
 COPY backend/vector ./vector
+COPY backend/static ./static
 
 RUN mkdir -p /app/storage && chown -R nebula:nebula /app
 

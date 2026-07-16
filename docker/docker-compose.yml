@@ -8,7 +8,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-nebula}
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./database/backups:/backups:rw
+      - ../database/backups:/backups:rw
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
@@ -46,8 +46,8 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: docker/Dockerfile
+      context: ..
+      dockerfile: Dockerfile
     container_name: nebula-backend
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -62,8 +62,8 @@ services:
       OLLAMA_URL: ${OLLAMA_URL:-http://localhost:11434}
     volumes:
       - nebula-storage:/app/storage
-      - ./backend/app:/app/app:ro
-      - ./backend/vector:/app/vector:ro
+      - ../backend/app:/app/app:ro
+      - ../backend/vector:/app/vector:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -87,8 +87,8 @@ services:
 
   worker:
     build:
-      context: .
-      dockerfile: docker/Dockerfile
+      context: ..
+      dockerfile: Dockerfile
     container_name: nebula-worker
     command: ["python", "-m", "vector.worker"]
     environment:
@@ -99,8 +99,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     volumes:
       - nebula-storage:/app/storage
-      - ./backend/app:/app/app:ro
-      - ./backend/vector:/app/vector:ro
+      - ../backend/app:/app/app:ro
+      - ../backend/vector:/app/vector:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -117,17 +117,17 @@ services:
 
   scheduler:
     build:
-      context: .
-      dockerfile: docker/Dockerfile
+      context: ..
+      dockerfile: Dockerfile
     container_name: nebula-scheduler
-    entrypoint: ["/bin/sh", "/app/scheduler-entrypoint.sh"]
+    command: ["/bin/sh", "/app/scheduler-entrypoint.sh"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-nebula}:${POSTGRES_PASSWORD:-nebula}@postgres:5432/${POSTGRES_DB:-nebula}
       APP_ENV: production
       JWT_SECRET: ${JWT_SECRET}
     volumes:
-      - ./backend/app:/app/app:ro
-      - ./backend/vector:/app/vector:ro
+      - ../backend/app:/app/app:ro
+      - ../backend/vector:/app/vector:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -142,8 +142,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: docker/frontend.Dockerfile
+      context: ..
+      dockerfile: frontend.Dockerfile
     container_name: nebula-frontend
     ports:
       - "${FRONTEND_PORT:-3000}:80"
@@ -165,7 +165,7 @@ services:
     ports:
       - "${NGINX_PORT:-80}:80"
     volumes:
-      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - frontend
       - backend
@@ -213,7 +213,7 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=15d
     volumes:
-      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"

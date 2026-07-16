@@ -187,7 +187,7 @@ services:
       dockerfile: docker/Dockerfile.prod
       target: runtime
     container_name: nebula-scheduler
-    entrypoint: ["/bin/sh", "/app/scheduler-entrypoint.sh"]
+    command: ["/bin/sh", "/app/scheduler-entrypoint.sh"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-nebula}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nebula}
       APP_ENV: production
@@ -242,6 +242,12 @@ services:
           cpus: "0.25"
           memory: 128M
     read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx:size=64M
+      - /var/run:size=32M
+    volumes:
+      - nginx-logs:/var/log/nginx
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -383,6 +389,8 @@ services:
           cpus: "0.25"
           memory: 256M
     read_only: true
+    tmpfs:
+      - /tmp
     security_opt:
       - no-new-privileges:true
     depends_on:
