@@ -34,6 +34,7 @@ class VersioningMiddleware(BaseHTTPMiddleware):
         "/redoc",
         "/openapi.json",
         "/favicon.ico",
+        "/metrics",
     }
     
     async def dispatch(self, request: Request, call_next) -> Response:
