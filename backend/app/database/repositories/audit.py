@@ -137,10 +137,10 @@ class AuditRepository:
         from app.config import get_settings
         settings = get_settings()
         if settings.uses_postgres:
-            sql = "DELETE FROM audit_logs WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '? days'"
+            sql = f"DELETE FROM audit_logs WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '{int(days)} days'"
         else:
-            sql = "DELETE FROM audit_logs WHERE created_at < datetime('now', '-? days')"
-        await self._db.execute(sql, (days,))
+            sql = f"DELETE FROM audit_logs WHERE created_at < datetime('now', '-{int(days)} days')"
+        await self._db.execute(sql)
         await self._db.commit()
 
     async def get_audit_statistics(self, days: int = 30) -> dict:
@@ -149,14 +149,13 @@ class AuditRepository:
         settings = get_settings()
         
         if settings.uses_postgres:
-            date_filter = "CURRENT_TIMESTAMP - INTERVAL '? days'"
+            date_filter = f"CURRENT_TIMESTAMP - INTERVAL '{int(days)} days'"
         else:
-            date_filter = "datetime('now', '-? days')"
+            date_filter = f"datetime('now', '-{int(days)} days')"
         
         # Total events
         total = await self._db.fetchone(
             f"SELECT COUNT(*) as count FROM audit_logs WHERE created_at > {date_filter}",
-            (days,),
         )
         
         # Events by action
@@ -166,7 +165,6 @@ class AuditRepository:
                 WHERE created_at > {date_filter}
                 GROUP BY action 
                 ORDER BY count DESC""",
-            (days,),
         )
         
         # Events by user
@@ -177,7 +175,6 @@ class AuditRepository:
                 GROUP BY user_id 
                 ORDER BY count DESC 
                 LIMIT 10""",
-            (days,),
         )
         
         # Failed events
@@ -185,7 +182,6 @@ class AuditRepository:
             f"""SELECT COUNT(*) as count 
                 FROM audit_logs 
                 WHERE created_at > {date_filter} AND status = 'failure'""",
-            (days,),
         )
         
         return {

@@ -17,6 +17,11 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 def _resolve_jwt_secret() -> str:
     secret = os.getenv("JWT_SECRET", "")
     if secret:
+        if os.getenv("APP_ENV", "development") == "production" and len(secret) < 32:
+            raise ValueError(
+                "JWT_SECRET must be at least 32 characters in production. "
+                f"Current length: {len(secret)} characters."
+            )
         return secret
     generated = secrets.token_hex(32)
     if os.getenv("APP_ENV", "development") == "production":
