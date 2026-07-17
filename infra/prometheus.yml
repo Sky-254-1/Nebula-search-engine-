@@ -5,16 +5,17 @@ global:
     cluster: nebula-production
     region: default
 
-# Alertmanager configuration (optional)
-# alerting:
-#   alertmanagers:
-#     - static_configs:
-#         - targets:
-#           - alertmanager:9093
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
 
 # Load rules file for alerts
-# rule_files:
-#   - /etc/prometheus/alerts/*.yml
+rule_files:
+  - /etc/prometheus/alerts/*.yml
+  - /etc/prometheus/alerts.yml
 
 scrape_configs:
   # Prometheus itself
