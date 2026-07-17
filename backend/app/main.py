@@ -279,64 +279,88 @@ async def _verify_dependencies() -> list[str]:
 try:
     from prometheus_client import Counter, Gauge, Histogram, generate_latest, REGISTRY
 
-    _prom_requests = Counter(
+    def _safe_counter(name: str, documentation: str, labelnames: list[str] | None = None) -> Counter:
+        """Create or return existing Prometheus counter to avoid duplicate registration."""
+        # Check if collector already exists in registry
+        existing = REGISTRY._names_to_collectors.get(name)
+        if existing is not None:
+            return existing
+        return Counter(name, documentation, labelnames or [])
+
+    def _safe_gauge(name: str, documentation: str, labelnames: list[str] | None = None) -> Gauge:
+        """Create or return existing Prometheus gauge to avoid duplicate registration."""
+        existing = REGISTRY._names_to_collectors.get(name)
+        if existing is not None:
+            return existing
+        return Gauge(name, documentation, labelnames or [])
+
+    def _safe_histogram(name: str, documentation: str, labelnames: list[str] | None = None, buckets: tuple | None = None) -> Histogram:
+        """Create or return existing Prometheus histogram to avoid duplicate registration."""
+        existing = REGISTRY._names_to_collectors.get(name)
+        if existing is not None:
+            return existing
+        if buckets:
+            return Histogram(name, documentation, labelnames or [], buckets=buckets)
+        return Histogram(name, documentation, labelnames or [])
+
+    _prom_requests = _safe_counter(
         "nebula_http_requests_total",
         "Total HTTP requests",
         ["method", "path", "status"],
     )
-    _prom_request_duration = Histogram(
+    _prom_request_duration = _safe_histogram(
         "nebula_http_request_duration_seconds",
         "HTTP request duration in seconds",
         ["method", "path"],
         buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
     )
-    _prom_active_requests = Gauge(
+    _prom_active_requests = _safe_gauge(
         "nebula_http_active_requests", "Active HTTP requests"
     )
-    _prom_db_pool_size = Gauge("nebula_db_pool_size", "Database connection pool size")
-    _prom_cache_hits = Counter("nebula_cache_hits_total", "Cache hit count")
-    _prom_cache_misses = Counter("nebula_cache_misses_total", "Cache miss count")
+    _prom_db_pool_size = _safe_gauge("nebula_db_pool_size", "Database connection pool size")
+    _prom_cache_hits = _safe_counter("nebula_cache_hits_total", "Cache hit count")
+    _prom_cache_misses = _safe_counter("nebula_cache_misses_total", "Cache miss count")
 
     # Analytics-specific Prometheus metrics
-    _prom_search_queries_total = Counter(
+    _prom_search_queries_total = _safe_counter(
         "nebula_search_queries_total",
         "Total search queries",
         ["search_type", "backend"],
     )
-    _prom_popular_queries_total = Counter(
+    _prom_popular_queries_total = _safe_counter(
         "nebula_popular_queries_total",
         "Popular query counts",
         ["query"],
     )
-    _prom_zero_result_queries_total = Counter(
+    _prom_zero_result_queries_total = _safe_counter(
         "nebula_zero_result_queries_total",
         "Zero-result query counts",
         ["query"],
     )
-    _prom_average_search_latency = Gauge(
+    _prom_average_search_latency = _safe_gauge(
         "nebula_average_search_latency_seconds",
         "Average search latency in seconds",
     )
-    _prom_dashboard_generation_time = Histogram(
+    _prom_dashboard_generation_time = _safe_histogram(
         "nebula_dashboard_generation_time_seconds",
         "Dashboard generation time in seconds",
         ["period"],
         buckets=(0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5, 1.0),
     )
-    _prom_analytics_cache_hits = Counter(
+    _prom_analytics_cache_hits = _safe_counter(
         "nebula_analytics_cache_hits_total",
         "Analytics cache hit count",
     )
-    _prom_analytics_cache_misses = Counter(
+    _prom_analytics_cache_misses = _safe_counter(
         "nebula_analytics_cache_misses_total",
         "Analytics cache miss count",
     )
-    _prom_click_events_total = Counter(
+    _prom_click_events_total = _safe_counter(
         "nebula_click_events_total",
         "Total click events",
         ["query"],
     )
-    _prom_ctr_percentage = Gauge(
+    _prom_ctr_percentage = _safe_gauge(
         "nebula_ctr_percentage",
         "Click-through rate percentage",
         ["period"],
@@ -359,18 +383,24 @@ async def _request_id_middleware(request: Request, call_next):
 
     start = time.monotonic()
     if _HAS_PROMETHEUS:
-        _prom_active_requests.inc()
+        try:
+            _prom_active_requests.inc()
+        except Exception:
+            pass
 
     response = await call_next(request)
 
     if _HAS_PROMETHEUS:
-        _prom_active_requests.dec()
-        _prom_requests.labels(
-            method=request.method, path=request.url.path, status=response.status_code
-        ).inc()
-        _prom_request_duration.labels(
-            method=request.method, path=request.url.path
-        ).observe(time.monotonic() - start)
+        try:
+            _prom_active_requests.dec()
+            _prom_requests.labels(
+                method=request.method, path=request.url.path, status=response.status_code
+            ).inc()
+            _prom_request_duration.labels(
+                method=request.method, path=request.url.path
+            ).observe(time.monotonic() - start)
+        except Exception:
+            pass
 
     response.headers["X-Request-ID"] = request_id
     return response

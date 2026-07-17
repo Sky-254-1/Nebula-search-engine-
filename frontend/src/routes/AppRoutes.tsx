@@ -5,7 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { Layout } from '@/components/layout';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
-import { LandingPage, LoginPage, RegisterPage, DashboardPage, SearchPage, AIChatPage, DocumentsPage, HistoryPage, AnalyticsPage, SettingsPage, NotificationsPage, ProfilePage, OfflineLibraryPage } from '@/pages';
+import { LandingPage, LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage, MFAPage, ResetPasswordPage, DashboardPage, SearchPage, AIChatPage, DocumentsPage, DocumentViewerPage, HistoryPage, AnalyticsPage, SettingsPage, NotificationsPage, ProfilePage, OfflineLibraryPage, SavedSearchesPage } from '@/pages';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -46,6 +46,10 @@ export const AppRoutes: React.FC = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+          <Route path="/verify-email" element={<EmailVerificationPage />} />
+          <Route path="/mfa" element={<MFAPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Protected routes */}
           <Route path="/dashboard" element={
@@ -73,6 +77,13 @@ export const AppRoutes: React.FC = () => {
             <ProtectedRoute>
               <Layout>
                 <DocumentsPage />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/documents/:id" element={
+            <ProtectedRoute>
+              <Layout>
+                <DocumentViewerPage />
               </Layout>
             </ProtectedRoute>
           } />
@@ -108,6 +119,13 @@ export const AppRoutes: React.FC = () => {
             <ProtectedRoute>
               <Layout>
                 <ProfilePage />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/saved-searches" element={
+            <ProtectedRoute>
+              <Layout>
+                <SavedSearchesPage />
               </Layout>
             </ProtectedRoute>
           } />
