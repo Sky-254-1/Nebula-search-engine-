@@ -1,49 +1,60 @@
 # Remaining Work Execution Plan - ALL COMPLETE ✅
 
-## Phase 1: Critical Backend Fixes ✅
-- [x] Fix Prometheus duplicate registration in main.py
-- [x] Fix SQL injection in audit.py
-- [x] JWT_SECRET validation on startup
-- [x] 277 backend tests passing
+## Phase 1-7: All Previous Work ✅
+- [x] Backend fixes, frontend pages, UI/UX, mobile, tests, observability, vector search
 
-## Phase 2: Build Missing Frontend Pages ✅
-- [x] Document Viewer, Saved Searches, Forgot/Reset Password, Email Verification, MFA
+## Phase 8: Infrastructure - Kubernetes, Helm, Terraform ✅
 
-## Phase 3: UI/UX Polish ✅
-- [x] Keyboard shortcuts, Focus-visible, Touch targets, Skip nav
+### Kubernetes Manifests (`infrastructure/k8s/`)
+Already existing - 19 YAML files covering full stack:
+- `backend-deployment.yaml` + HPA + Service (2-10 pods, CPu/mem thresholds)
+- `frontend-deployment.yaml` + HPA + Service (2-8 pods)
+- `vector-worker-deployment.yaml` (background indexing)
+- `postgres-statefulset.yaml` + Service (persistent storage)
+- `redis-statefulset.yaml` + Service (cache layer)
+- `ingress.yaml` with cert-manager TLS, body size limits
+- `configmap.yaml`, `secret.yaml`, `namespace.yaml`
+- `network-policy.yaml`, `pdb.yaml` (PodDisruptionBudget)
+- `cluster-issuer.yaml` (Let's Encrypt)
+- `kustomization.yaml` (all-in-one apply)
 
-## Phase 4: Mobile & PWA ✅
-- [x] Bottom navigation, Service worker, SW registration
+### Helm Chart (`infrastructure/helm/nebula/`)
+- **Chart.yaml** - v1.1.0, Bitnami PostgreSQL + Redis dependencies
+- **values.yaml** - Configurable: replicas, resources, autoscaling, storage, env, monitoring, backups, resource quotas
+- **templates/_helpers.tpl** - Naming helpers
+- **templates/backend.yaml** - Deployment + PVC with env from Secrets
+- **templates/frontend.yaml** - Deployment + Service
+- **templates/ingress.yaml** - Ingress with conditional TLS
 
-## Phase 5: Frontend Tests ✅
-- [x] 20 test cases across 5 pages/components
+### Terraform IaC (`infrastructure/terraform/`)
+- **main.tf** - Full AWS infra:
+  - VPC (public/private subnets, NAT, DNS)
+  - EKS cluster (1.28, managed node groups + GPU spot instances)
+  - RDS PostgreSQL 15 (encrypted, auto-backup, CloudWatch logs)
+  - ElastiCache Redis 7 (encrypted, multi-AZ, auto-failover)
+  - S3 buckets (storage, backups, logs - all encrypted)
+  - ECR repositories (backend, frontend, vector-worker - scan on push)
+  - Secrets Manager (JWT, DB URL, Redis URL)
+  - Security groups (RDS, Redis - cluster-restricted)
+  - Helm release (auto-deploys via Terraform)
+- **variables.tf** - All configurable with sensible defaults
+- **outputs.tf** - Endpoints, URLs, ARNs for CI/CD integration
 
-## Phase 6: Production Observability ✅
-- [x] Prometheus alert rules (12), Alertmanager, Grafana dashboards, Loki, Promtail, full monitoring stack
+### Deployment Commands:
+```bash
+# Kustomize (quick dev deploy)
+kubectl apply -k infrastructure/k8s/
 
-## Phase 7: Advanced Vector Search ✅
-### Files Created:
-- **`backend/vector/faiss_index.py`** — FAISS vector index with persistence, user-level registry, incremental updates
-- **`backend/vector/bm25.py`** — BM25Okapi scoring with stop words, IDF computation, FieldAwareBM25 for structured docs
-- **`backend/vector/fusion.py`** — RRF fusion, linear fusion, adaptive fusion (query-length aware), score normalization
-- **`backend/vector/semantic.py`** — sentence-transformers integration with model caching, batch embedding
+# Helm (full production deploy)
+helm install nebula infrastructure/helm/nebula \
+  --set ingress.host=search.example.com
 
-### Files Updated:
-- **`backend/vector/embeddings/__init__.py`** — Prioritizes sentence-transformers, falls back to OpenAI, then hash
-- **`backend/vector/ranking/__init__.py`** — Full reranking pipeline using BM25 + fusion strategies
-- **`backend/vector/retrieval/__init__.py`** — FAISS integration with brute-force fallback
+# Terraform (cloud infra + deploy)
+cd infrastructure/terraform
+terraform init
+terraform plan -var="environment=production"
+terraform apply
 
-### Architecture:
-```
-Query → sentence-transformers (semantic embedding)
-     → FAISS index (fast ANN search) or brute-force cosine
-     → BM25 keyword scoring
-     → Score fusion: RRF / Linear / Adaptive (query-length aware)
-     → Reranked results
-```
-
-### Dependencies (optional, graceful fallback):
-- `faiss-cpu` or `faiss-gpu` for fast ANN vector search
-- `sentence-transformers` for high-quality semantic embeddings
-- Falls back to OpenAI API → then to deterministic hash embeddings
-- All 36 hybrid search tests pass
+# Monitoring stack
+cd infra
+docker-compose -f docker-compose.monitoring.yml up -d
