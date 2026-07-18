@@ -54,6 +54,8 @@ vi.mock('lucide-react', () => ({
   Bell: () => React.createElement('svg', { 'data-testid': 'bell-icon' }),
   Check: () => React.createElement('svg', { 'data-testid': 'check-icon' }),
   CheckCheck: () => React.createElement('svg', { 'data-testid': 'check-check-icon' }),
+  Upload: () => React.createElement('svg', { 'data-testid': 'upload-icon' }),
+  History: () => React.createElement('svg', { 'data-testid': 'history-icon' }),
 }));
 
 // Mock saved-searches API
