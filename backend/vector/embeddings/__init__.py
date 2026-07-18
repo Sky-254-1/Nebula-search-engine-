@@ -29,11 +29,23 @@ def _hash_embed(text: str, dimensions: int = DEFAULT_DIMENSIONS) -> list[float]:
 
 async def embed_text(text: str, model: str | None = None) -> tuple[list[float], str, int]:
     settings = get_settings()
+
+    # Try sentence-transformers first (local, fast, high quality)
+    if model != "local-hash":
+        try:
+            from vector.semantic import embed_semantic
+            return await embed_semantic(text)
+        except Exception:
+            pass
+
+    # Try OpenAI as fallback
     if settings.openai_api_key and model != "local-hash":
         try:
             return await _openai_embed(text, settings)
         except Exception:
             pass
+
+    # Deterministic hash embedding as last resort
     vec = _hash_embed(text)
     return vec, "local-hash", len(vec)
 

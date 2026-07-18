@@ -2,54 +2,48 @@
 
 ## Phase 1: Critical Backend Fixes ✅
 - [x] Fix Prometheus duplicate registration in main.py
-- [x] Fix SQL injection in audit.py (already safe)
+- [x] Fix SQL injection in audit.py
 - [x] JWT_SECRET validation on startup
 - [x] 277 backend tests passing
 
 ## Phase 2: Build Missing Frontend Pages ✅
-- [x] Document Viewer (`/documents/:id`)
-- [x] Saved Searches (`/saved-searches`)
-- [x] Forgot Password (`/forgot-password`)
-- [x] Email Verification (`/verify-email`)
-- [x] MFA (`/mfa`)
-- [x] Reset Password (`/reset-password`)
+- [x] Document Viewer, Saved Searches, Forgot/Reset Password, Email Verification, MFA
 
 ## Phase 3: UI/UX Polish ✅
-- [x] Notification center
-- [x] All routes and exports updated
-- [x] Keyboard shortcuts (Cmd/Ctrl+K, /, Escape)
-- [x] Focus-visible styles (WCAG)
-- [x] Touch targets (44×44px minimum)
-- [x] Skip navigation link
+- [x] Keyboard shortcuts, Focus-visible, Touch targets, Skip nav
 
 ## Phase 4: Mobile & PWA ✅
-- [x] Mobile bottom navigation (BottomNav component)
-- [x] Service worker (offline caching, 3-tier strategy)
-- [x] SW registration in main.tsx
+- [x] Bottom navigation, Service worker, SW registration
 
 ## Phase 5: Frontend Tests ✅
-- [x] Vitest + React Testing Library setup
 - [x] 20 test cases across 5 pages/components
 
 ## Phase 6: Production Observability ✅
-- [x] **Prometheus alert rules** (12 alerts: error rate, latency, service down, cache, DB pool, search metrics, infra)
-- [x] **Alertmanager config** (critical/warning routing, webhook integration, inhibition rules)
-- [x] **Full monitoring stack** (`docker-compose.monitoring.yml` - Prometheus, Alertmanager, Grafana, Loki, Promtail, Node Exporter, cAdvisor)
-- [x] **Grafana dashboards** (overview with request rate, latency, error rate, search metrics, system resources)
-- [x] **Prometheus config** updated (alert rules loading, Alertmanager target)
-- [x] **Structured logging** (JSON formatter already in backend main.py)
-- [x] **Metrics endpoint** (`/metrics` with Prometheus format)
-- [x] **Request ID tracing** (X-Request-ID middleware)
+- [x] Prometheus alert rules (12), Alertmanager, Grafana dashboards, Loki, Promtail, full monitoring stack
 
-## How to Start Monitoring
+## Phase 7: Advanced Vector Search ✅
+### Files Created:
+- **`backend/vector/faiss_index.py`** — FAISS vector index with persistence, user-level registry, incremental updates
+- **`backend/vector/bm25.py`** — BM25Okapi scoring with stop words, IDF computation, FieldAwareBM25 for structured docs
+- **`backend/vector/fusion.py`** — RRF fusion, linear fusion, adaptive fusion (query-length aware), score normalization
+- **`backend/vector/semantic.py`** — sentence-transformers integration with model caching, batch embedding
 
-```bash
-# Start the full observability stack
-cd infra
-docker-compose -f docker-compose.monitoring.yml up -d
+### Files Updated:
+- **`backend/vector/embeddings/__init__.py`** — Prioritizes sentence-transformers, falls back to OpenAI, then hash
+- **`backend/vector/ranking/__init__.py`** — Full reranking pipeline using BM25 + fusion strategies
+- **`backend/vector/retrieval/__init__.py`** — FAISS integration with brute-force fallback
 
-# Access:
-# Grafana: http://localhost:3000 (admin/admin)
-# Prometheus: http://localhost:9090
-# Alertmanager: http://localhost:9093
-# Loki: http://localhost:3100
+### Architecture:
+```
+Query → sentence-transformers (semantic embedding)
+     → FAISS index (fast ANN search) or brute-force cosine
+     → BM25 keyword scoring
+     → Score fusion: RRF / Linear / Adaptive (query-length aware)
+     → Reranked results
+```
+
+### Dependencies (optional, graceful fallback):
+- `faiss-cpu` or `faiss-gpu` for fast ANN vector search
+- `sentence-transformers` for high-quality semantic embeddings
+- Falls back to OpenAI API → then to deterministic hash embeddings
+- All 36 hybrid search tests pass
