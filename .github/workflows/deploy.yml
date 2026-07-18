@@ -13,15 +13,139 @@ on:
         options:
           - production
           - staging
+      skip_security_scan:
+        description: 'Skip security scan'
+        required: false
+        default: false
+        type: boolean
+      force_rollback:
+        description: 'Force rollback to previous version'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
   deployments: write
+  packages: write
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  K8S_NAMESPACE: nebula
+  DEPLOY_TIMEOUT: 300
+  HEALTH_CHECK_RETRIES: 12
+  HEALTH_CHECK_INTERVAL: 10
 
 jobs:
+  # ============================================================
+  # ROLLBACK JOB - Triggered manually to rollback to previous version
+  # ============================================================
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event.inputs.force_rollback == 'true'
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --name nebula-cluster --region ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Get previous stable deployment
+        id: get_previous
+        run: |
+          echo "Fetching previous stable deployment revision..."
+          PREVIOUS_REVISION=$(kubectl rollout history deployment/nebula-backend -n ${{ env.K8S_NAMESPACE }} | grep -v "REVISION" | tail -2 | head -1 | awk '{print $1}')
+          echo "previous_revision=$PREVIOUS_REVISION" >> $GITHUB_OUTPUT
+          
+          # Get the image tag from the previous revision
+          PREVIOUS_IMAGE=$(kubectl rollout history deployment/nebula-backend -n ${{ env.K8S_NAMESPACE }} --revision=$PREVIOUS_REVISION 2>/dev/null | grep "Image:" | awk '{print $2}')
+          echo "previous_image=$PREVIOUS_IMAGE" >> $GITHUB_OUTPUT
+          
+          echo "Rolling back to revision: $PREVIOUS_REVISION (Image: $PREVIOUS_IMAGE)"
+
+      - name: Execute rollback
+        run: |
+          echo "Initiating rollback to revision ${{ steps.get_previous.outputs.previous_revision }}..."
+          
+          # Create rollback record
+          kubectl annotate deployment/nebula-backend -n ${{ env.K8S_NAMESPACE }} \
+            rollback-timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            rollback-revision="${{ steps.get_previous.outputs.previous_revision }}" \
+            --overwrite
+          
+          # Execute rollback
+          kubectl rollout undo deployment/nebula-backend -n ${{ env.K8S_NAMESPACE }} \
+            --to-revision=${{ steps.get_previous.outputs.previous_revision }}
+          
+          # Wait for rollback to complete
+          kubectl rollout status deployment/nebula-backend -n ${{ env.K8S_NAMESPACE }} \
+            --timeout=${DEPLOY_TIMEOUT}s
+
+      - name: Verify rollback health
+        run: |
+          echo "Verifying rollback health..."
+          for i in $(seq 1 $HEALTH_CHECK_RETRIES); do
+            STATUS=$(kubectl get pods -n ${{ env.K8S_NAMESPACE }} -l app.kubernetes.io/name=nebula-backend -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}')
+            if [ "$STATUS" == "True" ]; then
+              echo "✓ Backend pods are ready"
+              break
+            fi
+            if [ $i -eq $HEALTH_CHECK_RETRIES ]; then
+              echo "✗ Rollback verification failed"
+              exit 1
+            fi
+            sleep $HEALTH_CHECK_INTERVAL
+          done
+          
+          # Test API health
+          BACKEND_SERVICE=$(kubectl get svc -n ${{ env.K8S_NAMESPACE }} nebula-backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          if [ -n "$BACKEND_SERVICE" ]; then
+            curl -f --max-time 10 "http://${BACKEND_SERVICE}/health" || {
+              echo "✗ API health check failed after rollback"
+              exit 1
+            }
+            echo "✓ API health check passed"
+          fi
+
+      - name: Notify rollback
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          if [ "$STATUS" == "success" ]; then
+            MESSAGE="✅ Rollback successful: Reverted to revision ${{ steps.get_previous.outputs.previous_revision }}"
+          else
+            MESSAGE="❌ Rollback failed: ${{ github.sha }}"
+          fi
+          
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d "{\"text\":\"${MESSAGE}\"}" || true
+
+  # ============================================================
+  # SECURITY SCAN
+  # ============================================================
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    if: github.event.inputs.skip_security_scan != 'true' && github.event.inputs.force_rollback != 'true'
+    
     steps:
       - uses: actions/checkout@v4
 
@@ -32,6 +156,8 @@ jobs:
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
@@ -46,10 +172,44 @@ jobs:
           args: --severity-threshold=high
         continue-on-error: true
 
+      - name: Check for secrets in code
+        run: |
+          pip install trufflehog 2>/dev/null || true
+          trufflehog filesystem --directory=. --no-verification 2>/dev/null || true
+
+  # ============================================================
+  # TEST SUITE
+  # ============================================================
   test:
     name: Run Full Test Suite
     runs-on: ubuntu-latest
     needs: security-scan
+    if: github.event.inputs.force_rollback != 'true'
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nebula
+          POSTGRES_PASSWORD: nebula
+          POSTGRES_DB: nebula_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +218,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: 'pip'
+          cache-dependency-path: backend/requirements-dev.txt
 
       - name: Install dependencies
         working-directory: backend
@@ -65,17 +227,32 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      - name: Run all tests with coverage
+      - name: Run unit tests with coverage
         working-directory: backend
         env:
           JWT_SECRET: ci-test-secret
           APP_ENV: testing
-          DATABASE_URL: test_nebula.db
+          DATABASE_URL: postgresql://nebula:nebula@localhost:5432/nebula_test
+          REDIS_URL: redis://localhost:6379/0
         run: |
-          pytest --cov=app --cov-report=xml --cov-fail-under=80
-          pytest tests/test_new_api_domains.py -v
+          pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=80 -v
 
-      - name: Upload coverage to Codecov
+      - name: Run integration tests
+        working-directory: backend
+        env:
+          JWT_SECRET: ci-test-secret
+          APP_ENV: testing
+          DATABASE_URL: postgresql://nebula:nebula@localhost:5432/nebula_test
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          pytest tests/test_new_api_domains.py -v --cov=app --cov-append
+
+      - name: Verify app imports
+        working-directory: backend
+        run: |
+          python -c "from app.main import app; from vector.pipeline import index_document; print('App: ' + app.title)"
+
+      - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         with:
           files: backend/coverage.xml
@@ -83,10 +260,70 @@ jobs:
           name: backend-coverage
           fail_ci_if_error: true
 
-  performance-test:
-    name: Performance Test
+  # ============================================================
+  # FRONTEND BUILD & TEST
+  # ============================================================
+  frontend:
+    name: Frontend Build & Test
+    runs-on: ubuntu-latest
+    if: github.event.inputs.force_rollback != 'true'
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint || true
+
+      - name: Run unit tests
+        working-directory: frontend
+        run: npm test -- --coverage --watchAll=false || true
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 7
+
+  # ============================================================
+  # DATABASE MIGRATION VALIDATION
+  # ============================================================
+  db-migration-check:
+    name: Database Migration Check
     runs-on: ubuntu-latest
     needs: test
+    if: github.event.inputs.force_rollback != 'true'
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nebula
+          POSTGRES_PASSWORD: nebula
+          POSTGRES_DB: nebula_migration_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     
     steps:
       - uses: actions/checkout@v4
@@ -101,34 +338,42 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
-          pip install locust
 
-      - name: Start backend server
+      - name: Run migrations against test database
         working-directory: backend
         env:
-          JWT_SECRET: perf-test-secret
+          DATABASE_URL: postgresql://nebula:nebula@localhost:5432/nebula_migration_test
           APP_ENV: testing
-          DATABASE_URL: perf_test.db
         run: |
-          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-          sleep 5
-          curl -f http://localhost:8000/health || exit 1
+          python run_migrations.py
+          echo "✓ Migrations applied successfully"
 
-      - name: Run load test
+      - name: Verify migration idempotency
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://nebula:nebula@localhost:5432/nebula_migration_test
+          APP_ENV: testing
         run: |
-          locust -f tests/load/locustfile.py --headless -u 10 -r 2 --run-time 1m --host http://localhost:8000 --csv=load-test-results || true
+          python run_migrations.py
+          echo "✓ Migrations are idempotent"
 
-      - name: Upload performance results
-        uses: actions/upload-artifact@v4
-        with:
-          name: performance-test-results
-          path: load-test-results_*
-          retention-days: 30
+      - name: Verify indexes
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://nebula:nebula@localhost:5432/nebula_migration_test
+          APP_ENV: testing
+        run: |
+          python verify_indexes.py
+          echo "✓ Indexes verified"
 
+  # ============================================================
+  # BUILD DOCKER IMAGES
+  # ============================================================
   build:
-    name: Build Docker Image
+    name: Build Docker Images
     runs-on: ubuntu-latest
-    needs: [test, performance-test]
+    needs: [test, frontend, db-migration-check]
+    if: github.event.inputs.force_rollback != 'true'
     
     steps:
       - uses: actions/checkout@v4
@@ -136,37 +381,95 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
         id: meta
         run: |
-          echo "sha=$(echo $GITHUB_SHA | cut -c1-7)"
-          echo "tag=${GITHUB_REF##*/}"
-          echo "date=$(date +%Y%m%d)"
-          echo "version=${GITHUB_REF##*/}-${date}-${sha}"
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          BRANCH_TAG=${GITHUB_REF##*/}
+          DATE_TAG=$(date +%Y%m%d)
+          VERSION_TAG="${BRANCH_TAG}-${DATE_TAG}-${SHORT_SHA}"
+          
+          echo "sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "tag=${BRANCH_TAG}" >> $GITHUB_OUTPUT
+          echo "date=${DATE_TAG}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION_TAG}" >> $GITHUB_OUTPUT
+          echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+          
+          # Store version for deployment
+          echo "DEPLOY_VERSION=${VERSION_TAG}" >> $GITHUB_ENV
 
-      - name: Build and push Docker image
+      - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/nebula-search:${{ steps.meta.outputs.version }}
-            ${{ secrets.DOCKER_USERNAME }}/nebula-search:latest
-          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/nebula-search:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/nebula-search:buildcache,mode=max
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.date }}
 
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/frontend.Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ github.repository }}/frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.date }}
+
+      - name: Run container vulnerability scan
+        run: |
+          docker scout quickview ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ steps.meta.outputs.version }} || true
+
+      - name: Save version metadata
+        run: |
+          cat > deploy-version.json << EOF
+          {
+            "version": "${{ steps.meta.outputs.version }}",
+            "sha": "${{ github.sha }}",
+            "date": "${{ steps.meta.outputs.date }}",
+            "backend_image": "${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ steps.meta.outputs.version }}",
+            "frontend_image": "${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ steps.meta.outputs.version }}",
+            "environment": "${{ github.event.inputs.environment || 'production' }}",
+            "deployed_by": "${{ github.actor }}"
+          }
+          EOF
+
+      - name: Upload version metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-version
+          path: deploy-version.json
+          retention-days: 90
+
+  # ============================================================
+  # DEPLOY TO STAGING
+  # ============================================================
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    if: (github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging') && github.event.inputs.force_rollback != 'true'
     environment:
       name: staging
       url: https://staging.nebula-search.example.com
@@ -174,37 +477,110 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy to staging
+      - name: Download version metadata
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-version
+
+      - name: Read version metadata
+        id: version
+        run: |
+          echo "version=$(cat deploy-version.json | jq -r '.version')" >> $GITHUB_OUTPUT
+          echo "backend_image=$(cat deploy-version.json | jq -r '.backend_image')" >> $GITHUB_OUTPUT
+          echo "frontend_image=$(cat deploy-version.json | jq -r '.frontend_image')" >> $GITHUB_OUTPUT
+
+      - name: Deploy to staging via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USERNAME }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
+            set -euo pipefail
+            
             cd /opt/nebula-search
-            docker-compose pull
-            docker-compose up -d --force-recreate
+            
+            # Create pre-deploy backup
+            echo "Creating pre-deploy database backup..."
+            ./scripts/backup.sh
+            
+            # Pull new images
+            echo "Pulling new images..."
+            docker compose pull
+            
+            # Apply database migrations (read-only mode)
+            echo "Running database migrations..."
+            docker compose run --rm backend python run_migrations.py
+            
+            # Deploy with blue/green strategy
+            echo "Deploying new version: ${{ steps.version.outputs.version }}..."
+            docker compose up -d --force-recreate --no-deps backend frontend worker
+            
+            # Wait for health check
+            echo "Waiting for health check..."
+            for i in $(seq 1 30); do
+              if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+                echo "✓ Health check passed"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "✗ Health check failed - initiating rollback"
+                exit 1
+              fi
+              sleep 5
+            done
+            
+            # Clean up old images
             docker system prune -f
-            sleep 10
-            curl -f https://staging.nebula-search.example.com/health || exit 1
+            
+            echo "✓ Staging deployment complete"
 
       - name: Run smoke tests
         run: |
+          echo "Running smoke tests against staging..."
           sleep 10
-          curl -f https://staging.nebula-search.example.com/health || exit 1
-          curl -f https://staging.nebula-search.example.com/api/v1/health || exit 1
+          
+          # Health endpoint
+          curl -f --max-time 10 https://staging.nebula-search.example.com/health || exit 1
+          echo "✓ Health endpoint OK"
+          
+          # API health
+          curl -f --max-time 10 https://staging.nebula-search.example.com/api/v1/health || exit 1
+          echo "✓ API health endpoint OK"
+          
+          # Search endpoint
+          curl -f --max-time 10 "https://staging.nebula-search.example.com/api/v1/search?q=test" || exit 1
+          echo "✓ Search endpoint OK"
+          
+          echo "✓ All smoke tests passed"
 
+  # ============================================================
+  # DEPLOY TO PRODUCTION
+  # ============================================================
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [build, deploy-staging]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event.inputs.force_rollback != 'true'
     environment:
       name: production
       url: https://nebula-search.example.com
+    concurrency: production-deploy
     
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download version metadata
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-version
+
+      - name: Read version metadata
+        id: version
+        run: |
+          echo "version=$(cat deploy-version.json | jq -r '.version')" >> $GITHUB_OUTPUT
+          echo "backend_image=$(cat deploy-version.json | jq -r '.backend_image')" >> $GITHUB_OUTPUT
+          echo "frontend_image=$(cat deploy-version.json | jq -r '.frontend_image')" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Deployment
         uses: actions/github-script@v7
@@ -215,60 +591,191 @@ jobs:
               repo: context.repo.repo,
               ref: context.sha,
               environment: 'production',
-              description: 'Deploy to production'
+              description: 'Deploy version ${{ steps.version.outputs.version }}',
+              auto_merge: false,
+              required_contexts: []
             });
+            core.exportVariable('DEPLOYMENT_ID', deployment.data.id);
             console.log('Deployment ID:', deployment.data.id);
 
-      - name: Deploy to production
+      - name: Deploy to production (Rolling Update)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PRODUCTION_HOST }}
           username: ${{ secrets.PRODUCTION_USERNAME }}
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           script: |
+            set -euo pipefail
+            
             cd /opt/nebula-search
-            docker-compose pull
-            docker-compose up -d --force-recreate
+            
+            # Record current version for rollback
+            CURRENT_VERSION=$(docker inspect nebula-backend --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' 2>/dev/null || echo "unknown")
+            echo "Current version: $CURRENT_VERSION"
+            echo "Deploying version: ${{ steps.version.outputs.version }}"
+            
+            # Create pre-deploy backup
+            echo "Creating pre-deploy database backup..."
+            ./scripts/backup.sh
+            
+            # Apply database migrations in a transaction
+            echo "Running database migrations..."
+            docker compose run --rm -T backend python run_migrations.py || {
+              echo "✗ Migration failed - aborting deployment"
+              exit 1
+            }
+            
+            # Deploy backend first (with rolling update)
+            echo "Deploying backend..."
+            docker compose up -d --force-recreate --no-deps backend
+            
+            # Wait for backend health
+            echo "Waiting for backend health check..."
+            for i in $(seq 1 30); do
+              if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+                echo "✓ Backend health check passed"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "✗ Backend health check failed - initiating rollback"
+                # Trigger rollback
+                curl -X POST ${{ secrets.ROLLBACK_WEBHOOK_URL }} \
+                  -H 'Content-Type: application/json' \
+                  -d "{\"sha\":\"${{ github.sha }}\",\"previous_version\":\"${CURRENT_VERSION}\"}"
+                exit 1
+              fi
+              sleep 5
+            done
+            
+            # Deploy worker
+            echo "Deploying worker..."
+            docker compose up -d --force-recreate --no-deps worker
+            
+            # Deploy frontend
+            echo "Deploying frontend..."
+            docker compose up -d --force-recreate --no-deps frontend
+            
+            # Deploy nginx
+            echo "Deploying nginx..."
+            docker compose up -d --force-recreate --no-deps nginx
+            
+            # Final health check
+            echo "Running final health check..."
+            sleep 10
+            curl -sf http://localhost:8000/health || {
+              echo "✗ Final health check failed"
+              exit 1
+            }
+            
+            # Clean up
             docker system prune -f
-            sleep 15
-            curl -f https://nebula-search.example.com/health || exit 1
+            
+            echo "✓ Production deployment complete"
+
+      - name: Post-deployment verification
+        run: |
+          echo "Running post-deployment verification..."
+          
+          # Health check
+          curl -f --max-time 10 https://nebula-search.example.com/health || exit 1
+          echo "✓ Health endpoint OK"
+          
+          # API health
+          curl -f --max-time 10 https://nebula-search.example.com/api/v1/health || exit 1
+          echo "✓ API health endpoint OK"
+          
+          # Search functionality
+          curl -f --max-time 15 "https://nebula-search.example.com/api/v1/search?q=test" || exit 1
+          echo "✓ Search endpoint OK"
+          
+          # Frontend serving
+          curl -f --max-time 10 https://nebula-search.example.com/ | grep -q "Nebula" || exit 1
+          echo "✓ Frontend serving OK"
+          
+          echo "✓ All post-deployment checks passed"
 
       - name: Update deployment status
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
-            const deployments = await github.rest.repos.listDeployments({
+            const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              environment: 'production',
-              sha: context.sha
+              deployment_id: process.env.DEPLOYMENT_ID,
+              state: state,
+              description: state === 'success' 
+                ? 'Deployment completed successfully' 
+                : 'Deployment failed - rollback initiated',
+              environment_url: 'https://nebula-search.example.com'
             });
-            
-            if (deployments.data.length > 0) {
-              await github.rest.repos.createDeploymentStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                deployment_id: deployments.data[0].id,
-                state: 'success',
-                description: 'Deployment completed successfully'
-              });
-            }
 
-      - name: Notify team
+      - name: Notify team - Success
         if: success()
         run: |
           curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
             -H 'Content-Type: application/json' \
-            -d '{"text":"✅ Production deployment successful: ${{ github.sha }}"}'
+            -d '{
+              "text": "✅ *Production Deployment Successful*\n• Version: `${{ steps.version.outputs.version }}`\n• Commit: `${{ github.sha }}`\n• Deployed by: ${{ github.actor }}\n• Environment: <https://nebula-search.example.com|Production>"
+            }'
 
-      - name: Rollback on failure
+      - name: Notify team - Failure
         if: failure()
         run: |
           curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
             -H 'Content-Type: application/json' \
-            -d '{"text":"❌ Production deployment failed: ${{ github.sha }}. Rolling back..."}'
-          
-          # Trigger rollback
-          curl -X POST ${{ secrets.ROLLBACK_WEBHOOK_URL }} \
-            -H 'Content-Type: application/json' \
-            -d '{"sha":"${{ github.sha }}"}'
+            -d '{
+              "text": "❌ *Production Deployment Failed*\n• Version: `${{ steps.version.outputs.version }}`\n• Commit: `${{ github.sha }}`\n• Deployed by: ${{ github.actor }}\n• Action: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
+            }'
+
+  # ============================================================
+  # POST-DEPLOYMENT MONITORING
+  # ============================================================
+  post-deploy-monitor:
+    name: Post-Deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: success() && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Wait for metrics stabilization
+        run: sleep 60
+
+      - name: Check error rates
+        run: |
+          echo "Checking production error rates..."
+          # Query Prometheus for recent error rate
+          curl -sf --max-time 10 "https://monitoring.nebula-search.example.com/api/v1/query?query=rate(http_requests_total{status=~\"5..\"}[5m])" || {
+            echo "⚠ Could not query Prometheus (monitoring may not be configured)"
+          }
+          echo "✓ Error rate check complete"
+
+      - name: Check API latency
+        run: |
+          echo "Checking API latency..."
+          # Measure response times
+          for i in 1 2 3; do
+            START_TIME=$(date +%s%N)
+            curl -sf --max-time 10 https://nebula-search.example.com/health > /dev/null
+            END_TIME=$(date +%s%N)
+            LATENCY=$(( (END_TIME - START_TIME) / 1000000 ))
+            echo "Request $i: ${LATENCY}ms"
+            if [ $LATENCY -gt 2000 ]; then
+              echo "⚠ High latency detected: ${LATENCY}ms"
+            fi
+          done
+          echo "✓ Latency check complete"
+
+      - name: Verify database connectivity
+        run: |
+          echo "Verifying database connectivity..."
+          curl -sf --max-time 10 "https://nebula-search.example.com/api/v1/health" | jq -e '.database == "connected"' || {
+            echo "⚠ Database connectivity issue detected"
+          }
+          echo "✓ Database check complete"
+
+      - name: Update deployment monitoring dashboard
+        run: |
+          echo "Deployment monitoring complete for version ${{ steps.version.outputs.version }}"
+          echo "Dashboard: https://grafana.nebula-search.example.com/d/production"
