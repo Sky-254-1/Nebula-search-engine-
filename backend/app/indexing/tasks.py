@@ -214,8 +214,8 @@ def chunk_text(
         if chunk:
             chunks.append(chunk)
 
-        # Move start position with overlap
-        start = end - chunk_overlap
+        # Move start position with overlap (ensure forward progress to prevent infinite loops)
+        start = max(start + 1, end - chunk_overlap)
         if start >= text_length:
             break
 

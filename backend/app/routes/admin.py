@@ -77,6 +77,7 @@ async def list_users(
     pagination: PaginationParams = Depends(),
     role: Optional[str] = Query(None, description="Filter by role"),
     search: Optional[str] = Query(None, description="Search by email"),
+    _admin=Depends(require_admin),
     db=Depends(get_db),
 ):
     """List all users with pagination and filtering."""
@@ -127,7 +128,7 @@ async def list_users(
 
 
 @router.get("/users/{user_id}", response_model=UserManagementResponse)
-async def get_user(user_id: int, db=Depends(get_db)):
+async def get_user(user_id: int, _admin=Depends(require_admin), db=Depends(get_db)):
     """Get detailed user information."""
     users_repo = UserRepository(db)
     user = await users_repo.get_by_id(user_id)
@@ -147,7 +148,7 @@ async def get_user(user_id: int, db=Depends(get_db)):
 
 
 @router.put("/users/{user_id}/role")
-async def update_user_role(user_id: int, role: str, db=Depends(get_db)):
+async def update_user_role(user_id: int, role: str, _admin=Depends(require_admin), db=Depends(get_db)):
     """Update user role."""
     if role not in ["user", "admin"]:
         raise HTTPException(status_code=400, detail="Invalid role. Must be 'user' or 'admin'")
@@ -163,7 +164,7 @@ async def update_user_role(user_id: int, role: str, db=Depends(get_db)):
 
 
 @router.post("/users/{user_id}/activate")
-async def activate_user(user_id: int, db=Depends(get_db)):
+async def activate_user(user_id: int, _admin=Depends(require_admin), db=Depends(get_db)):
     """Activate a user account."""
     users = UserRepository(db)
     user = await users.get_by_id(user_id)
@@ -177,7 +178,7 @@ async def activate_user(user_id: int, db=Depends(get_db)):
 
 
 @router.post("/users/{user_id}/deactivate")
-async def deactivate_user(user_id: int, db=Depends(get_db)):
+async def deactivate_user(user_id: int, _admin=Depends(require_admin), db=Depends(get_db)):
     """Deactivate a user account."""
     users = UserRepository(db)
     user = await users.get_by_id(user_id)
@@ -191,7 +192,7 @@ async def deactivate_user(user_id: int, db=Depends(get_db)):
 
 
 @router.delete("/users/{user_id}")
-async def delete_user(user_id: int, db=Depends(get_db)):
+async def delete_user(user_id: int, _admin=Depends(require_admin), db=Depends(get_db)):
     """Delete a user account."""
     users = UserRepository(db)
     user = await users.get_by_id(user_id)
@@ -209,7 +210,7 @@ async def delete_user(user_id: int, db=Depends(get_db)):
 # ============================================
 
 @router.get("/stats", response_model=SystemStatsResponse)
-async def get_system_stats(db=Depends(get_db)):
+async def get_system_stats(_admin=Depends(require_admin), db=Depends(get_db)):
     """Get comprehensive system statistics."""
     users_repo = UserRepository(db)
     docs_repo = DocumentRepository(db)
@@ -256,7 +257,7 @@ async def get_system_stats(db=Depends(get_db)):
 # ============================================
 
 @router.get("/queue", response_model=QueueStatsResponse)
-async def get_queue_stats():
+async def get_queue_stats(_admin=Depends(require_admin)):
     """Get job queue statistics."""
     if job_queue._redis:
         # Redis queue stats
@@ -283,7 +284,7 @@ async def get_queue_stats():
 
 
 @router.post("/queue/clear")
-async def clear_queue():
+async def clear_queue(_admin=Depends(require_admin)):
     """Clear all jobs from the queue."""
     if job_queue._redis:
         await job_queue._redis.delete("queue:pending", "queue:processing", "queue:completed", "queue:failed")
@@ -294,14 +295,14 @@ async def clear_queue():
 
 
 @router.post("/queue/pause")
-async def pause_queue():
+async def pause_queue(_admin=Depends(require_admin)):
     """Pause job processing."""
     job_queue._paused = True
     return {"message": "Queue paused"}
 
 
 @router.post("/queue/resume")
-async def resume_queue():
+async def resume_queue(_admin=Depends(require_admin)):
     """Resume job processing."""
     job_queue._paused = False
     return {"message": "Queue resumed"}
@@ -312,7 +313,7 @@ async def resume_queue():
 # ============================================
 
 @router.get("/cache", response_model=CacheStatsResponse)
-async def get_cache_stats():
+async def get_cache_stats(_admin=Depends(require_admin)):
     """Get cache statistics."""
     stats = await cache_service.get_stats()
     return CacheStatsResponse(
@@ -324,14 +325,14 @@ async def get_cache_stats():
 
 
 @router.post("/cache/clear")
-async def clear_cache():
+async def clear_cache(_admin=Depends(require_admin)):
     """Clear all cache entries."""
     await cache_service.clear()
     return {"message": "Cache cleared"}
 
 
 @router.post("/cache/invalidate/{key_pattern}")
-async def invalidate_cache_pattern(key_pattern: str):
+async def invalidate_cache_pattern(key_pattern: str, _admin=Depends(require_admin)):
     """Invalidate cache entries matching a pattern."""
     await cache_service.invalidate_pattern(key_pattern)
     return {"message": f"Cache entries matching '{key_pattern}' invalidated"}
@@ -347,6 +348,7 @@ async def get_audit_logs(
     user_id: Optional[int] = Query(None, description="Filter by user ID"),
     action: Optional[str] = Query(None, description="Filter by action"),
     limit: int = Query(100, ge=1, le=1000),
+    _admin=Depends(require_admin),
     db=Depends(get_db),
 ):
     """Get audit logs with pagination and filtering."""
@@ -391,6 +393,7 @@ async def get_audit_logs(
 async def list_active_sessions(
     pagination: PaginationParams = Depends(),
     user_id: Optional[int] = Query(None, description="Filter by user ID"),
+    _admin=Depends(require_admin),
     db=Depends(get_db),
 ):
     """List all active sessions."""
@@ -417,7 +420,7 @@ async def list_active_sessions(
 
 
 @router.post("/sessions/{session_id}/revoke")
-async def revoke_session(session_id: str, reason: str = "Revoked by administrator", db=Depends(get_db)):
+async def revoke_session(session_id: str, reason: str = "Revoked by administrator", _admin=Depends(require_admin), db=Depends(get_db)):
     """Revoke a user session."""
     sessions = SessionRepository(db)
     await sessions.revoke_session_family(session_id, reason)

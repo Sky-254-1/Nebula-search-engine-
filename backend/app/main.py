@@ -490,6 +490,14 @@ app = FastAPI(
 # app.add_middleware(SlowAPIMiddleware)  # Removed - using custom RateLimitHeadersMiddleware instead
 
 # --- Middleware stack (order matters) ---
+# CORSMiddleware must be first to handle OPTIONS preflight
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"],
+    allow_headers=["Authorization", "Content-Type", "X-CSRF-Token", "X-Request-ID"],
+)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(VersioningMiddleware)
 app.add_middleware(ResponseStandardizationMiddleware)
@@ -500,14 +508,6 @@ app.add_middleware(CSRFProtectionMiddleware)
 # Register compression middleware
 from app.middleware.compression import CompressionMiddleware
 app.add_middleware(CompressionMiddleware, minimum_size=1024)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"],
-    allow_headers=["Authorization", "Content-Type", "X-CSRF-Token", "X-Request-ID"],
-)
 
 # --- Static files ---
 _static_dir = str(Path(__file__).resolve().parent.parent / "static")

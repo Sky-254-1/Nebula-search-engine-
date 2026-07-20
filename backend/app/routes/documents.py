@@ -80,10 +80,12 @@ async def upload_document(
     db=Depends(get_db),
 ):
     """Upload a new document for indexing."""
-    user_id = await _user_id(db, email)
+    # Validate file type before database lookup
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"File type not allowed: {ext}")
+
+    user_id = await _user_id(db, email)
 
     content = await file.read()
     if len(content) > MAX_UPLOAD_BYTES:

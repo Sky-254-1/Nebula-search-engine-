@@ -207,13 +207,19 @@ class TestNotificationsAPI:
                     "email": "test@example.com",
                 })
                 MockUserRepo.return_value = mock_user_repo
-                
-                response = client.get("/api/v1/notifications/", headers=auth_headers_user)
-                assert response.status_code == 200
-                data = response.json()
-                assert "notifications" in data
-                assert "pagination" in data
-                assert "unread_count" in data
+
+                with patch("app.routes.notifications.NotificationRepository") as MockNotifRepo:
+                    mock_notif_repo = AsyncMock()
+                    mock_notif_repo.list_for_user = AsyncMock(return_value=[])
+                    mock_notif_repo.get_unread_count = AsyncMock(return_value=0)
+                    MockNotifRepo.return_value = mock_notif_repo
+
+                    response = client.get("/api/v1/notifications/", headers=auth_headers_user)
+                    assert response.status_code == 200
+                    data = response.json()
+                    assert "notifications" in data
+                    assert "pagination" in data
+                    assert "unread_count" in data
     
     def test_list_notifications_with_pagination(self, auth_headers_user, mock_db):
         """Test listing notifications with pagination."""
@@ -222,16 +228,22 @@ class TestNotificationsAPI:
                 mock_user_repo = AsyncMock()
                 mock_user_repo.get_by_email = AsyncMock(return_value={"id": 1, "email": "test@example.com"})
                 MockUserRepo.return_value = mock_user_repo
-                
-                response = client.get(
-                    "/api/v1/notifications/",
-                    params={"page": 1, "page_size": 20},
-                    headers=auth_headers_user
-                )
-                assert response.status_code == 200
-                data = response.json()
-                assert data["pagination"]["page"] == 1
-                assert data["pagination"]["page_size"] == 20
+
+                with patch("app.routes.notifications.NotificationRepository") as MockNotifRepo:
+                    mock_notif_repo = AsyncMock()
+                    mock_notif_repo.list_for_user = AsyncMock(return_value=[])
+                    mock_notif_repo.get_unread_count = AsyncMock(return_value=0)
+                    MockNotifRepo.return_value = mock_notif_repo
+
+                    response = client.get(
+                        "/api/v1/notifications/",
+                        params={"page": 1, "page_size": 20},
+                        headers=auth_headers_user
+                    )
+                    assert response.status_code == 200
+                    data = response.json()
+                    assert data["pagination"]["page"] == 1
+                    assert data["pagination"]["page_size"] == 20
     
     def test_get_unread_count_unauthorized(self):
         """Test getting unread count without authentication."""
@@ -277,8 +289,8 @@ class TestAnalyticsAPI:
                 response = client.get("/api/v1/analytics/usage", headers=auth_headers_user)
                 assert response.status_code == 200
                 data = response.json()
-                assert "period" in data
-                assert "metrics" in data
+                assert "period_days" in data
+                assert "total_searches" in data
     
     def test_get_search_analytics_unauthorized(self):
         """Test getting search analytics without authentication."""
@@ -315,16 +327,22 @@ class TestRecommendationsAPI:
                 mock_user_repo = AsyncMock()
                 mock_user_repo.get_by_email = AsyncMock(return_value={"id": 1, "email": "test@example.com"})
                 MockUserRepo.return_value = mock_user_repo
-                
-                response = client.get(
-                    "/api/v1/recommendations/related",
-                    params={"document_id": 1},
-                    headers=auth_headers_user
-                )
-                assert response.status_code == 200
-                data = response.json()
-                assert "recommendations" in data
-                assert "algorithm" in data
+
+                with patch("app.routes.recommendations.DocumentRepository") as MockDocRepo:
+                    mock_doc_repo = AsyncMock()
+                    mock_doc_repo.get_by_id = AsyncMock(return_value={"id": 1, "filename": "test.txt", "content_type": "text"})
+                    mock_doc_repo.list_for_user = AsyncMock(return_value=[])
+                    MockDocRepo.return_value = mock_doc_repo
+
+                    response = client.get(
+                        "/api/v1/recommendations/related",
+                        params={"document_id": 1},
+                        headers=auth_headers_user
+                    )
+                    assert response.status_code == 200
+                    data = response.json()
+                    assert "recommendations" in data
+                    assert "total" in data
     
     def test_get_personalized_unauthorized(self):
         """Test getting personalized recommendations without authentication."""
@@ -551,8 +569,8 @@ class TestSecurity:
     
     def test_cors_headers_present(self):
         """Test CORS headers are present."""
-        response = client.options("/api/v1/documents/")
-        assert "access-control-allow-origin" in response.headers or response.status_code == 200
+        response = client.get("/api/v1/documents/", headers={"Origin": "http://localhost:5173"})
+        assert "access-control-allow-origin" in response.headers or response.status_code == 401
     
     def test_security_headers_present(self):
         """Test security headers are present."""

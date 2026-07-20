@@ -22,10 +22,10 @@ router = APIRouter(prefix="/api/v1/analytics", tags=["Analytics"])
 
 async def _user_id(db, email: str) -> int:
     users = UserRepository(db)
-    user_id = await users.get_id_by_email(email)
-    if not user_id:
+    user = await users.get_by_email(email)
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user_id
+    return user["id"]
 
 
 class UsageStats(BaseModel):
