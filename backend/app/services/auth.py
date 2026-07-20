@@ -162,6 +162,17 @@ async def get_current_user_token_payload(request: Request) -> dict:
         )
 
     payload = decode_token(token, expected_type="access")
+
+    # Check jti blacklist (Redis-backed token revocation)
+    jti = payload.get("jti")
+    if jti:
+        blacklisted = await cache_service.get(f"blacklisted_jti:{jti}")
+        if blacklisted:
+            raise HTTPException(
+                status_code=401,
+                detail="Token has been revoked",
+            )
+
     return payload
 
 

@@ -57,7 +57,7 @@ class Settings:
         default_factory=lambda: int(os.getenv("JWT_EXPIRY_HOURS", "24"))
     )
     jwt_expiry_minutes: int = field(
-        default_factory=lambda: int(os.getenv("JWT_EXPIRY_MINUTES", "1440"))
+        default_factory=lambda: int(os.getenv("JWT_EXPIRY_MINUTES", "30"))
     )
     refresh_token_days: int = field(
         default_factory=lambda: int(os.getenv("REFRESH_TOKEN_DAYS", "30"))

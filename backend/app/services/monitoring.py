@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
@@ -215,6 +216,3 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         return response
 
 
-# Import here to avoid circular dependency
-from fastapi import Request
-from starlette.requests import Request as StarletteRequest

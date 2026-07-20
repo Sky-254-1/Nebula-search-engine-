@@ -6,7 +6,7 @@ import uuid
 from typing import Any, Optional
 
 from fastapi import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
@@ -123,5 +123,3 @@ def pagination_links(request: Request, page: int, page_size: int, total_pages: i
     return links
 
 
-# Import here to avoid circular dependency
-from starlette.responses import Response

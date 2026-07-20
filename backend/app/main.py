@@ -23,7 +23,6 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 
 from app.config import get_settings
 from app.database import init_db
@@ -55,8 +54,6 @@ from app.routes.webhooks import router as webhooks_router
 from app.hybrid.routes import router as hybrid_router
 from app.services.cache import cache_service
 from app.services.queue import job_queue
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 
 settings = get_settings()
 
@@ -483,12 +480,6 @@ app = FastAPI(
     ],
 )
 
-# --- SlowAPI rate limiter ---
-# Note: Using custom rate limiter implementation, not SlowAPIMiddleware
-# app.state.limiter = get_limiter()  # Not needed for custom implementation
-# app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # Not used
-# app.add_middleware(SlowAPIMiddleware)  # Removed - using custom RateLimitHeadersMiddleware instead
-
 # --- Middleware stack (order matters) ---
 # CORSMiddleware must be first to handle OPTIONS preflight
 app.add_middleware(
@@ -627,4 +618,3 @@ if os.name != "nt":  # Signals not fully supported on Windows
 # ---------------------------------------------------------------------------
 # Entrypoint
 # ---------------------------------------------------------------------------
-

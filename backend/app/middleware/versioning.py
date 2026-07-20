@@ -4,7 +4,7 @@ import logging
 from enum import Enum
 from typing import Optional
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
