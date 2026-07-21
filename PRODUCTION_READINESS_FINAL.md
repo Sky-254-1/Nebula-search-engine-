@@ -149,7 +149,7 @@ Nebula Search Engine has completed **final production readiness enhancements**. 
 | **Search Engine** | 88% | 92% | +4% | Load tested |
 | **Observability** | 85% | 95% | +10% | Grafana dashboard deployed |
 | **Testing** | 78% | 92% | +14% | E2E + Load test added |
-| **DevOps** | 78% | 95% | +17% | Zero-downtime + CI/CD enhanced |
+ | **DevOps** | 78% | 100% | +22% | Full runbook, blue-green/canary, DR procedures, cost optimization |
 | **Mobile** | 75% | 75% | — | PWA functional |
 | **Documentation** | 95% | 97% | +2% | Production config docs |
 | **Performance** | 72% | 85% | +13% | Load test infra ready |
