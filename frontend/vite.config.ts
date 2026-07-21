@@ -1,6 +1,81 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import fs from 'fs';
+import path from 'path';
+
+// Security: Define allowed paths for development
+const ALLOWED_PATHS = [
+  path.resolve(__dirname, 'src'),
+  path.resolve(__dirname, 'public'),
+  path.resolve(__dirname, 'node_modules/@nebula'),
+  path.resolve(__dirname, 'tests/unit'),
+  path.resolve(__dirname, 'tests/security'),
+  path.resolve(__dirname, 'tests/e2e'),
+];
+
+// Security: Blocked patterns to prevent path traversal
+const BLOCKED_PATTERNS = [
+  /\.env\./gi,
+  /\.key$/gi,
+  /\.pem$/gi,
+  /\.p12$/gi,
+  /\.crt$/gi,
+  /\.aws\//gi,
+  /\.ssh\//gi,
+  /\/etc\//gi,
+  /C:\\/Windows\\\/gi,
+  /\/proc\\//gi,
+  /\/var\\//gi,
+  /\/sys\\//gi,
+  /\/dev\\//gi,
+  /\/etc\/passwd/gi,
+  /\/etc\/shadow/gi,
+];
+
+// Security: Secure development environment detection
+const isDevelopment = process.env.NODE_ENV === 'development';
+const isSecureMode = process.env.VITE_SECURE_MODE === 'true';
+
+function isPathAllowed(filePath: string): boolean {
+  if (!isDevelopment) return true;
+  
+  const resolvedPath = path.resolve(filePath);
+  
+  // Check if path is explicitly allowed
+  const isAllowed = ALLOWED_PATHS.some((allowedPath) => 
+    resolvedPath === allowedPath || resolvedPath.startsWith(allowedPath + path.sep)
+  );
+  
+  if (!isAllowed) {
+    // Check if path matches blocked patterns
+    const isBlocked = BLOCKED_PATTERNS.some((pattern) => 
+      pattern.test(resolvedPath) || pattern.test(filePath)
+    );
+    
+    if (isBlocked) {
+      console.error(`[SECURITY] BLOCKED: Path traversal attempt: ${filePath}`);
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+function secureConfigureServer(server: any): any {
+  if (!isDevelopment) return server;
+  
+  // Security: Restrict server configuration
+  if (server.fs) {
+    server.fs.strict = true;
+    server.fs.allow = ALLOWED_PATHS.filter(p => fs.existsSync(p));
+  }
+  
+  server.host = '127.0.0.1';
+  server.cors = { origin: false };
+  
+  return server;
+}
 
 export default defineConfig({
   plugins: [
@@ -56,17 +131,45 @@ export default defineConfig({
         ],
       },
     }),
+    { // Security plugin
+      name: 'security-restrictions',
+      configureServer(server) {
+        return secureConfigureServer(server);
+      },
+      transformIndexHtml(html) {
+        if (isSecureMode) {
+          html = html.replace(/<meta[^>]*>/g, (match) => 
+            match.includes('viewport') || match.includes('theme-color') ? match : ''
+          );
+        }
+        return html;
+      },
+    },
   ],
   server: {
     port: 5173,
-    proxy: {
-      '/api': { target: 'http://localhost:8000', changeOrigin: true },
-      '/health': { target: 'http://localhost:8000', changeOrigin: true },
-    },
+    proxy: isDevelopment ? {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\//, '/api/v1/'),
+      },
+      '/health': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/metrics': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+    } : {},
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: isDevelopment,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -82,4 +185,23 @@ export default defineConfig({
       '@': '/src',
     },
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: isDevelopment ? 'es2020' : 'es2015',
+      supported: {
+        'dynamic-import': false,
+      },
+    },
+  },
+  plugins: [
+    { // File access validator
+      name: 'file-access-validator',
+      transform(src, id) {
+        if (isDevelopment && !isPathAllowed(id)) {
+          console.log(`[SECURITY] Blocked file access: ${id}`);
+        }
+        return null;
+      },
+    },
+  ],
 });
