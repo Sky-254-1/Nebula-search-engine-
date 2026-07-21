@@ -41,9 +41,14 @@ test-frontend: ## Run frontend tests only
 	@echo "Running frontend tests..."
 	cd frontend && npm test
 
-test-e2e: ## Run end-to-end tests
-	@echo "Running E2E tests..."
+test-e2e: ## Run frontend end-to-end tests
+	@echo "Running frontend E2E tests..."
 	cd frontend && npm run e2e
+
+test-e2e-backend: ## Run backend E2E tests (requires server on localhost:8000)
+	@echo "Running backend E2E tests..."
+	@echo "⚠️  Ensure backend is running on http://localhost:8000"
+	cd backend && python -m pytest ../tests/e2e/ -v
 
 test-performance: ## Run performance tests
 	@echo "Running performance tests..."

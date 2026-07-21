@@ -112,7 +112,7 @@ class StopWordRemover:
         if custom_stop_words:
             self.stop_words.update(custom_stop_words)
         
-        self._cache = {}
+        self._cache: dict[str, list[str]] = {}
     
     def _load_stop_words(self, language: str) -> set[str]:
         """

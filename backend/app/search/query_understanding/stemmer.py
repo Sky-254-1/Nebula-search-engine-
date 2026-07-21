@@ -33,7 +33,7 @@ class QueryStemmer:
         self.use_lemmatization = use_lemmatization
         self._stemmer = None
         self._lemmatizer = None
-        self._cache = {}
+        self._cache: dict[str, str] = {}
         
         # Initialize stemmer/lemmatizer
         self._initialize()

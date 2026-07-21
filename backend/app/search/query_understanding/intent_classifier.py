@@ -109,7 +109,7 @@ class IntentClassifier:
             language: Language code (default: 'en')
         """
         self.language = language
-        self._cache = {}
+        self._cache: dict = {}
     
     async def classify(self, query: str) -> dict:
         """

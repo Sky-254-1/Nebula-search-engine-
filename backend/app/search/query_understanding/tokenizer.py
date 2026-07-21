@@ -11,7 +11,7 @@ Tokenizes search queries with support for:
 
 import logging
 import re
-from typing import Optional
+from typing import Any, Optional
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class QueryTokenizer:
             language: Language code for language-specific tokenization
         """
         self.language = language
-        self._cache = {}
+        self._cache: dict[tuple, dict] = {}
     
     async def tokenize(
         self,

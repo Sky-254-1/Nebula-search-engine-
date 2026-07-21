@@ -28,6 +28,11 @@ from app.main import app
 get_settings.cache_clear()
 
 
+def pytest_sessionstart() -> None:
+    """Clear settings cache at session start to prevent cross-module leakage."""
+    get_settings.cache_clear()
+
+
 @pytest_asyncio.fixture(autouse=True)
 async def setup_db() -> AsyncGenerator[None, None]:
     db_path = get_settings().db_path

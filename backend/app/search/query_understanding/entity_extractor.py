@@ -83,7 +83,7 @@ class EntityExtractor:
             language: Language code (default: 'en')
         """
         self.language = language
-        self._cache = {}
+        self._cache: dict = {}
     
     async def extract(self, query: str) -> dict:
         """

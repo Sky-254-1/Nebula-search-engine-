@@ -62,7 +62,7 @@ class LanguageDetector:
             default_language: Default language if detection fails (default: 'en')
         """
         self.default_language = default_language
-        self._cache = {}  # Cache for detected languages
+        self._cache: dict[str, str] = {}  # Cache for detected languages
     
     async def detect(self, query: str) -> str:
         """

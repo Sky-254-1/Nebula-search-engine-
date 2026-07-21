@@ -13,7 +13,7 @@ Orchestrates the query understanding pipeline:
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from .language_detector import language_detector
 from .normalizer import query_normalizer
@@ -43,7 +43,7 @@ class QueryProcessor:
             language: Default language code
         """
         self.language = language
-        self._cache = {}
+        self._cache: dict[str, Any] = {}
     
     async def process(
         self,
