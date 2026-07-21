@@ -10,7 +10,8 @@ from httpx import ASGITransport, AsyncClient
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-os.environ["DATABASE_URL"] = "test_nebula.db"
+os.environ["DATABASE_URL"] = "test_nebula_backend.db"
+os.environ["BACKEND_TEST_DB"] = "1"
 os.environ["JWT_SECRET"] = "test-secret-key-for-nebula-tests-only"
 os.environ["APP_ENV"] = "testing"
 os.environ["CORS_ORIGINS"] = "http://localhost:3000"
