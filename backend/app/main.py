@@ -317,51 +317,6 @@ try:
     _prom_db_pool_size = _safe_gauge("nebula_db_pool_size", "Database connection pool size")
     _prom_cache_hits = _safe_counter("nebula_cache_hits_total", "Cache hit count")
     _prom_cache_misses = _safe_counter("nebula_cache_misses_total", "Cache miss count")
-
-    # Analytics-specific Prometheus metrics
-    _prom_search_queries_total = _safe_counter(
-        "nebula_search_queries_total",
-        "Total search queries",
-        ["search_type", "backend"],
-    )
-    _prom_popular_queries_total = _safe_counter(
-        "nebula_popular_queries_total",
-        "Popular query counts",
-        ["query"],
-    )
-    _prom_zero_result_queries_total = _safe_counter(
-        "nebula_zero_result_queries_total",
-        "Zero-result query counts",
-        ["query"],
-    )
-    _prom_average_search_latency = _safe_gauge(
-        "nebula_average_search_latency_seconds",
-        "Average search latency in seconds",
-    )
-    _prom_dashboard_generation_time = _safe_histogram(
-        "nebula_dashboard_generation_time_seconds",
-        "Dashboard generation time in seconds",
-        ["period"],
-        buckets=(0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5, 1.0),
-    )
-    _prom_analytics_cache_hits = _safe_counter(
-        "nebula_analytics_cache_hits_total",
-        "Analytics cache hit count",
-    )
-    _prom_analytics_cache_misses = _safe_counter(
-        "nebula_analytics_cache_misses_total",
-        "Analytics cache miss count",
-    )
-    _prom_click_events_total = _safe_counter(
-        "nebula_click_events_total",
-        "Total click events",
-        ["query"],
-    )
-    _prom_ctr_percentage = _safe_gauge(
-        "nebula_ctr_percentage",
-        "Click-through rate percentage",
-        ["period"],
-    )
     _HAS_PROMETHEUS = True
 except ImportError:
     _HAS_PROMETHEUS = False
