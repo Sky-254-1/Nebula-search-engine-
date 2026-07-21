@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, ConfigDict
 
-from app.services.auth import get_current_user
+from app.services.auth import get_current_user, get_current_user_token_payload
 from app.hybrid.config import HybridSearchConfig
 from app.hybrid.services import HybridSearchService, hybrid_search_service
 from app.hybrid.metrics import HybridMetrics
@@ -101,6 +101,7 @@ class StatisticsResponse(BaseModel):
 @router.post("/", response_model=HybridSearchResponse)
 async def hybrid_search(
     request: HybridSearchRequest,
+    current_user: dict = Depends(get_current_user_token_payload),
 ):
     """
     Perform hybrid search combining BM25 and semantic search.
@@ -122,7 +123,7 @@ async def hybrid_search(
             top_k=request.top_k,
             filters=request.filters,
             explain=request.explain,
-            user_id=current_user.id if current_user else None,
+            user_id=current_user.get("sub") if current_user else None,
         )
         
         return HybridSearchResponse(**results)

@@ -12,7 +12,7 @@ from app.database.repositories.user import UserRepository
 from app.database.repositories.verification import EmailVerificationRepository, PasswordResetRepository
 from app.models.schemas import AuthRequest
 from app.config import get_settings
-from app.services.auth import get_current_user, hash_password, hash_token, verify_password
+from app.services.auth import get_current_user, hash_password, hash_token, verify_password, validate_password
 from app.services.email import email_service
 
 settings = get_settings()

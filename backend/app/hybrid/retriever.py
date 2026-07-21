@@ -72,7 +72,7 @@ class ParallelRetriever:
         
         # Index documents if provided
         if documents:
-            self.bm25_engine.index_documents(duments)
+            self.bm25_engine.index_documents(documents)
             self.semantic_engine.index_documents(documents)
         
         # Execute retrievals in parallel

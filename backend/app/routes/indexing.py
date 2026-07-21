@@ -341,7 +341,7 @@ async def get_metrics() -> APIResponse:
 
 
 @router.get("/deadletter", response_model=APIResponse)
-async def get_dead_letter_queue() -> APIResponse:
+async def get_dead_letter_queue_route() -> APIResponse:
     """
     Get dead-letter queue.
     

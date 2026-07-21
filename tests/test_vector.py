@@ -85,6 +85,6 @@ async def test_chunking_module():
 async def test_hash_embedding():
     from vector.embeddings import embed_text
 
-    vec, model, dims = await embed_text("test embedding")
+    vec, model, dims = await embed_text("test embedding", model="local-hash")
     assert model == "local-hash"
     assert len(vec) == dims

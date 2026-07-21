@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from fastapi import HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
