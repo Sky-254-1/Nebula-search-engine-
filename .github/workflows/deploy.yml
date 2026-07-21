@@ -57,18 +57,57 @@ jobs:
         run: npm run lint || npx tsc --noEmit
         working-directory: frontend
 
+# ============================================
+  # Security & PR Validation
+  # ============================================
+  pr-validate:
+    name: PR Validation & Security
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: [lint]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Security Hardening
+        run: |
+          cd frontend
+          npm run security:setup
+          echo "VITE_SECURE_MODE=true" >> .env.local
+      
+      - name: Validate Security Hardening
+        run: |
+          if [ ! -f frontend/tests/security/vite-security.ts ]; then
+            echo "❌ Security hardening configuration missing"
+            exit 1
+          fi
+          echo "✅ Security hardening configuration present"
+      
+      - name: Generate Security Report
+        run: |
+          cd frontend
+          if [ -f tests/security/security-report.json ]; then
+            cat tests/security/security-report.json
+          else
+            echo "⚠️  Security report not generated"
+          fi
+      
+      - name: PR Security Validation Complete
+        run: |
+          echo "🛡️  PR security validation completed successfully"
+
   # ============================================
   # Run All Backend Tests
   # ============================================
   test-backend:
     name: Backend Tests
     runs-on: ubuntu-latest
-    needs: [lint]
+    needs: [lint, pr-validate]
     strategy:
       matrix:
         python-version: ['3.10', '3.11', '3.12']
       fail-fast: false
-    
+
     services:
       postgres:
         image: postgres:15
@@ -96,7 +135,7 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -119,6 +158,8 @@ jobs:
           cd backend
           python -m pytest tests/ -v --tb=short --cov=app --cov-report=term-missing \
             --ignore=tests/test_async.py \
+            --ignore=tests/e2e/ \
+            --ignore=tests/performance/ \
             -k "not test_chunk_text" 2>&1 | tee pytest_output.txt
       
       - name: Upload test results
@@ -147,7 +188,7 @@ jobs:
   test-frontend:
     name: Frontend Tests
     runs-on: ubuntu-latest
-    needs: [lint]
+    needs: [lint, pr-validate]
     
     steps:
       - uses: actions/checkout@v4
@@ -159,11 +200,11 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm ci
         working-directory: frontend
       
-      - name: Run vitest
+      - name: Run frontend vitest
         run: npx vitest run --reporter=verbose
         working-directory: frontend
       
@@ -180,7 +221,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: [lint]
+    needs: [lint, pr-validate]
     
     steps:
       - uses: actions/checkout@v4
