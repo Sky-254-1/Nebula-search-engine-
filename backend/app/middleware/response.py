@@ -24,7 +24,7 @@ class ResponseStandardizationMiddleware(BaseHTTPMiddleware):
         request.state.request_id = request_id
         
         # Skip standardization for docs and health endpoints
-        if request.url.path in ["/docs", "/redoc", "/openapi.json", "/health"]:
+        if request.url.path in ["/docs", "/redoc", "/openapi.json", "/health", "/metrics"]:
             return await call_next(request)
         
         response = await call_next(request)

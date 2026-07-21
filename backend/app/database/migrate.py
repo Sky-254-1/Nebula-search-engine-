@@ -12,7 +12,19 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 async def run_migrations() -> None:
     settings = get_settings()
     suffix = "postgres" if settings.uses_postgres else "sqlite"
-    files = sorted(MIGRATIONS_DIR.glob(f"*_{suffix}.sql")) + sorted(MIGRATIONS_DIR.glob("010_*.sql"))
+    # Collect all migration files: suffixed + generic ones
+    suffixed = sorted(MIGRATIONS_DIR.glob(f"*_{suffix}.sql"))
+    generic = sorted(MIGRATIONS_DIR.glob("0[0-9][0-9]_*.sql"))
+    # De-duplicate: if a generic file exists and a suffixed version exists, prefer suffixed
+    existing_generic_stems = {p.stem for p in suffixed}
+    files = list(suffixed)
+    for p in generic:
+        stem = p.stem
+        # Map generic names to suffixed names to check
+        base_stem = stem.split("_", 1)[-1] if "_" in stem and not stem.split("_")[0].isdigit() else stem
+        if stem not in existing_generic_stems:
+            files.append(p)
+    files.sort()
     db = await connect()
     try:
         # Disable foreign key constraints for SQLite during migrations
