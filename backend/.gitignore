@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 .env
 nebula.db
+test_nebula.db
+*.db-journal

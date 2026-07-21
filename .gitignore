@@ -85,9 +85,11 @@ storage/cache/*
 storage/uploads/*
 storage/index/*
 storage/exports/*
+storage/vector/*
 !storage/cache/.gitkeep
 !storage/uploads/.gitkeep
 !storage/index/.gitkeep
+!storage/vector/.gitkeep
 
 # Process IDs
 *.pid

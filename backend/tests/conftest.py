@@ -30,7 +30,7 @@ def pytest_sessionstart() -> None:
     get_settings.cache_clear()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(autouse=True)
 async def setup_db() -> AsyncGenerator[None, None]:
     db_path = get_settings().db_path
     if os.path.exists(db_path):

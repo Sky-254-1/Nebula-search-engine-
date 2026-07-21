@@ -12,18 +12,15 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 async def run_migrations() -> None:
     settings = get_settings()
     suffix = "postgres" if settings.uses_postgres else "sqlite"
-    # Collect all migration files: suffixed + generic ones
     suffixed = sorted(MIGRATIONS_DIR.glob(f"*_{suffix}.sql"))
     generic = sorted(MIGRATIONS_DIR.glob("0[0-9][0-9]_*.sql"))
-    # De-duplicate: if a generic file exists and a suffixed version exists, prefer suffixed
-    existing_generic_stems = {p.stem for p in suffixed}
+    suffixed_bases = {p.stem.split("_")[0] for p in suffixed}
     files = list(suffixed)
     for p in generic:
-        stem = p.stem
-        # Map generic names to suffixed names to check
-        base_stem = stem.split("_", 1)[-1] if "_" in stem and not stem.split("_")[0].isdigit() else stem
-        if stem not in existing_generic_stems:
-            files.append(p)
+        base = p.stem.split("_")[0]
+        if base in suffixed_bases:
+            continue
+        files.append(p)
     files.sort()
     db = await connect()
     try:
@@ -92,12 +89,33 @@ async def _make_add_column_idempotent(db, statement: str) -> str | None:
 def _split_statements(sql: str) -> list[str]:
     statements = []
     buffer: list[str] = []
+    in_dollar_quote = False
+    in_begin_block = False
     for line in sql.splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("--"):
             continue
         buffer.append(line)
-        if stripped.endswith(";"):
-            statements.append("\n".join(buffer))
-            buffer = []
+        if in_dollar_quote:
+            if "$$" in line:
+                in_dollar_quote = False
+                if stripped.endswith(";"):
+                    statements.append("\n".join(buffer))
+                    buffer = []
+        elif in_begin_block:
+            upper = stripped.upper()
+            if upper == "END;" or upper.endswith("END$$;"):
+                in_begin_block = False
+                statements.append("\n".join(buffer))
+                buffer = []
+        else:
+            if "$$" in stripped:
+                in_dollar_quote = True
+            elif stripped.upper().startswith("BEGIN"):
+                in_begin_block = True
+            elif stripped.endswith(";"):
+                statements.append("\n".join(buffer))
+                buffer = []
+    if buffer:
+        statements.append("\n".join(buffer))
     return statements
