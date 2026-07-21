@@ -10,8 +10,7 @@ from httpx import ASGITransport, AsyncClient
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-os.environ["DATABASE_URL"] = "test_nebula_backend.db"
-os.environ["BACKEND_TEST_DB"] = "1"
+os.environ["DATABASE_URL"] = "test_nebula.db"
 os.environ["JWT_SECRET"] = "test-secret-key-for-nebula-tests-only"
 os.environ["APP_ENV"] = "testing"
 os.environ["CORS_ORIGINS"] = "http://localhost:3000"
@@ -31,7 +30,7 @@ def pytest_sessionstart() -> None:
     get_settings.cache_clear()
 
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture
 async def setup_db() -> AsyncGenerator[None, None]:
     db_path = get_settings().db_path
     if os.path.exists(db_path):
