@@ -105,8 +105,8 @@ class SearchService:
                     synth = await synthesize_snippets(processed_query, [r.get("snippet") or r.get("content", "") for r in results[:5]])
                     if synth and synth.synthesis:
                         ai_answer = {"answer": synth.synthesis, "provider": "openai", "citations": []}
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("AI answer synthesis failed: %s", exc)
 
             if include_suggestions:
                 try:
@@ -129,8 +129,8 @@ class SearchService:
             from app.database.repositories.search import SearchRepository
             repo = SearchRepository(db)
             await repo.log_search(user_id, original_query, mode, len(results))
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Search logging failed: %s", exc)
 
         return {
             "query": processed_query,

@@ -198,7 +198,7 @@ class PGVectorStore(VectorStore):
         vector_ids = []
         
         # Upsert query
-        query = f"""
+        query = f"""  # nosec B608: table_name from internal config, data values are parameterized
         INSERT INTO {table_name} (id, vector, metadata, document_id, updated_at)
         VALUES ($1, $2, $3, $4, NOW())
         ON CONFLICT (id) 
@@ -258,12 +258,12 @@ class PGVectorStore(VectorStore):
         
         if filter:
             for key, value in filter.items():
-                where_clause += f" AND metadata->>{param_idx} = ${param_idx}"
+                where_clause += f" AND metadata->>{param_idx} = ${param_idx}"  # nosec B608: param_idx values are controlled integers, values are parameterized
                 params.append(json.dumps(value))
                 param_idx += 1
         
         # Search query
-        query = f"""
+        query = f"""  # nosec B608: table_name from internal config, values parameterized
         SELECT 
             id,
             vector,
@@ -310,7 +310,7 @@ class PGVectorStore(VectorStore):
         
         # Build query with multiple IDs
         placeholders = ','.join(f'${i+1}' for i in range(len(vector_ids)))
-        query = f"DELETE FROM {table_name} WHERE id IN ({placeholders}) RETURNING id;"
+        query = f"DELETE FROM {table_name} WHERE id IN ({placeholders}) RETURNING id;"  # nosec B608: table_name from internal config, values parameterized
         
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(query, *vector_ids)
@@ -339,7 +339,7 @@ class PGVectorStore(VectorStore):
             param_idx += 1
         
         where_clause = " AND ".join(where_parts) if where_parts else "1=1"
-        query = f"DELETE FROM {table_name} WHERE {where_clause} RETURNING id;"
+        query = f"DELETE FROM {table_name} WHERE {where_clause} RETURNING id;"  # nosec B608: table_name from internal config, values parameterized
         
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(query, *params)
@@ -357,7 +357,7 @@ class PGVectorStore(VectorStore):
         """Get vector by ID."""
         table_name = self._get_table_name(collection_name)
         
-        query = f"""
+        query = f"""  # nosec B608: table_name from internal config, values parameterized
         SELECT id, vector, metadata, document_id
         FROM {table_name}
         WHERE id = $1;
@@ -390,11 +390,11 @@ class PGVectorStore(VectorStore):
         
         if filter:
             for key, value in filter.items():
-                where_clause += f" AND metadata->>{param_idx} = ${param_idx}"
+                where_clause += f" AND metadata->>{param_idx} = ${param_idx}"  # nosec B608: param_idx values are controlled integers, values parameterized
                 params.append(json.dumps(value))
                 param_idx += 1
         
-        query = f"SELECT COUNT(*) FROM {table_name} {where_clause};"
+        query = f"SELECT COUNT(*) FROM {table_name} {where_clause};"  # nosec B608: table_name from internal config, values parameterized
         
         async with self._pool.acquire() as conn:
             count = await conn.fetchval(query, *params)
@@ -410,7 +410,7 @@ class PGVectorStore(VectorStore):
         """Update vector metadata."""
         table_name = self._get_table_name(collection_name)
         
-        query = f"""
+        query = f"""  # nosec B608: table_name from internal config, values parameterized
         UPDATE {table_name}
         SET metadata = $1, updated_at = NOW()
         WHERE id = $2;
@@ -452,7 +452,7 @@ class PGVectorStore(VectorStore):
         """Get collection information."""
         table_name = self._get_table_name(collection_name)
         
-        query = f"""
+        query = f"""  # nosec B608: table_name from internal config, values parameterized
         SELECT 
             COUNT(*) as vector_count,
             pg_size_pretty(pg_total_relation_size('{table_name}')) as size

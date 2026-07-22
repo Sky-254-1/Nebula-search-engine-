@@ -134,7 +134,8 @@ class FilterEngine:
             if isinstance(date_field, str):
                 try:
                     doc_date = datetime.fromisoformat(date_field.replace('Z', '+00:00'))
-                except:
+                except Exception as exc:
+                    logger.debug("Date field parse failed, skipping doc: %s", exc)
                     continue
             elif hasattr(date_field, "year"):
                 doc_date = date_field

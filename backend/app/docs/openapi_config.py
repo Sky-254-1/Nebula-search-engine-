@@ -163,15 +163,15 @@ def configure_openapi(app: FastAPI):
             if "AuthRequest" in openapi_schema["components"]["schemas"]:
                 openapi_schema["components"]["schemas"]["AuthRequest"]["example"] = {
                     "email": "user@example.com",
-                    "password": "SecurePass123!"
+                    "password": "SecurePass123!"  # nosec
                 }
             
             # Add examples to AuthResponse
             if "AuthResponse" in openapi_schema["components"]["schemas"]:
                 openapi_schema["components"]["schemas"]["AuthResponse"]["example"] = {
-                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                    "token_type": "bearer",
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",  # nosec
+                    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",  # nosec
+                    "token_type": "bearer",  # nosec
                     "expires_in": 1800
                 }
         
@@ -187,8 +187,8 @@ class ErrorCodes:
     
     # Authentication errors
     UNAUTHORIZED = "UNAUTHORIZED"
-    INVALID_TOKEN = "INVALID_TOKEN"
-    TOKEN_EXPIRED = "TOKEN_EXPIRED"
+    INVALID_TOKEN = "INVALID_TOKEN"  # nosec
+    TOKEN_EXPIRED = "TOKEN_EXPIRED"  # nosec
     INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
     ACCOUNT_LOCKED = "ACCOUNT_LOCKED"
     EMAIL_NOT_VERIFIED = "EMAIL_NOT_VERIFIED"

@@ -225,8 +225,8 @@ class MilvusStore(VectorStore):
                 try:
                     if result.get('metadata'):
                         metadata = json.loads(result['metadata'])
-                except:
-                    pass
+                except Exception as exc:
+                    logger.debug("Milvus result metadata parse failed: %s", exc)
                 
                 formatted_results.append({
                     'id': str(result['id']),
@@ -301,8 +301,8 @@ class MilvusStore(VectorStore):
             try:
                 if data.get('metadata'):
                     metadata = json.loads(data['metadata'])
-            except:
-                pass
+            except Exception as exc:
+                logger.debug("Milvus vector metadata parse failed: %s", exc)
             
             return {
                 'id': str(data['id']),

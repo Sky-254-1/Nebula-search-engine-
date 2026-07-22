@@ -217,8 +217,8 @@ class SpellService:
                         break
                 except FileNotFoundError:
                     continue
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Spell dictionary file load failed: %s", exc)
         return words
 
     async def load_dictionary(self) -> None:
@@ -268,8 +268,8 @@ class SpellService:
         key = self._cache_key(query)
         try:
             await self._cache.set(key, result.__dict__, ttl=self._cache_ttl)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Spell cache set failed: %s", exc)
 
     async def correct_query(
         self,

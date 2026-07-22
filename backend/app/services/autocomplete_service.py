@@ -82,8 +82,8 @@ class AutocompleteService:
                     last_used = datetime.fromisoformat(pop["last_used"]).timestamp()
                     hours_ago = (now - last_used) / 3600
                     recency_score = max(0.0, 1.0 - (hours_ago / (24 * 7)))  # Decay over a week
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Autocomplete recency score calculation failed: %s", exc)
             score = (0.60 * prefix_score) + (0.25 * popularity_score) + (0.15 * recency_score)
             scored.append((suggestion, score))
 

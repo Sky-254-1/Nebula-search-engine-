@@ -130,8 +130,8 @@ class HybridSearchEngine:
                 try:
                     from app.search.intelligence import personalization_engine
                     user_profile = await personalization_engine.get_user_profile(user_id)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Personalization profile fetch failed: %s", exc)
             
             merged = await ranking_service.rank(query, merged, user_profile)
         

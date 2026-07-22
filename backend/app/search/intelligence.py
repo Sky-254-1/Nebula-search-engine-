@@ -306,8 +306,8 @@ class SearchAnalytics:
                                 for r in rows]
                     await cache_service.set(cache_key, trending, ttl=300)
                     return trending
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Trending search query cache fetch failed: %s", exc)
 
         trending = [
             {"query": "machine learning", "count": 45, "growth": 15.3},
@@ -333,8 +333,8 @@ class SearchAnalytics:
                     (user_id, limit),
                 )
                 return [dict(row) for row in rows]
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Search history fetch failed: %s", exc)
         return []
 
     async def calculate_ctr(self, query: str, user_id: Optional[int] = None) -> float:
@@ -352,8 +352,8 @@ class SearchAnalytics:
                 )
                 if row and row["total"] > 0:
                     return round(row["clicks"] / row["total"], 4)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("CTR calculation failed: %s", exc)
         return 0.35  # Default CTR
 
     async def get_popular_queries(self, limit: int = 10) -> list[dict]:
@@ -375,8 +375,8 @@ class SearchAnalytics:
                     popular = [{"query": r["query"], "searches": r["cnt"]} for r in rows]
                     await cache_service.set(cache_key, popular, ttl=3600)
                     return popular
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Popular queries cache fetch failed: %s", exc)
 
         popular = [
             {"query": "python", "searches": 1523},
@@ -496,8 +496,8 @@ class QuerySuggestionEngine:
             )
             queries = [(r["query"], r["cnt"]) for r in rows]
             await self.autocomplete.train_from_queries(queries)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Autocomplete training failed: %s", exc)
 
     async def get_suggestions(
         self, partial_query: str, user_id: Optional[int] = None, limit: int = 10,

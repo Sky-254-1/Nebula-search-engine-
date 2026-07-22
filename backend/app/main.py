@@ -332,8 +332,8 @@ async def _request_id_middleware(request: Request, call_next):
     if _HAS_PROMETHEUS:
         try:
             _prom_active_requests.inc()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Prometheus active_requests.inc failed: %s", exc)
 
     response = await call_next(request)
 
@@ -346,8 +346,8 @@ async def _request_id_middleware(request: Request, call_next):
             _prom_request_duration.labels(
                 method=request.method, path=request.url.path
             ).observe(time.monotonic() - start)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Prometheus metrics recording failed: %s", exc)
 
     response.headers["X-Request-ID"] = request_id
     return response

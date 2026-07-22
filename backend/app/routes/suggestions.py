@@ -109,7 +109,8 @@ async def get_suggestions(
             from starlette.requests import Request as StarletteRequest
             req = StarletteRequest(request.scope)
             email = await get_current_user(req)
-    except Exception:
+    except Exception as exc:
+        logger.debug("Suggestions auth extraction failed: %s", exc)
         pass  # Anonymous access is fine
 
     # Generate session ID from request

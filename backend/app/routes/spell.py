@@ -173,8 +173,8 @@ async def rebuild_spell_dictionary(
     if credentials:
         try:
             email = await get_current_user(credentials.credentials)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Spell auth user extraction failed: %s", exc)
 
     if not email:
         raise HTTPException(
@@ -192,9 +192,9 @@ async def rebuild_spell_dictionary(
             raise HTTPException(status_code=403, detail="Admin access required")
     except HTTPException:
         raise
-    except Exception:
+    except Exception as exc:
         # If user repo not available, proceed (backward compatible)
-        pass
+        logger.debug("Spell admin user lookup failed: %s", exc)
 
     try:
         cache = await _get_cache_client()

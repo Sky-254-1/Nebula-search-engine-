@@ -145,8 +145,8 @@ async def _safe_ai_synthesis(query: str, results: List[SearchResult]):
         synth = await synthesize_snippets(query, snippets)
         if synth and synth.synthesis:
             return AIAnswer(answer=synth.synthesis, provider="openai", citations=[])
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("AI synthesis failed: %s", exc)
     return None
 
 

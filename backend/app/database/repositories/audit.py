@@ -125,7 +125,7 @@ class AuditRepository:
         ]
         placeholders = ",".join(["?" for _ in security_actions])
         return await self._db.fetchall(
-            f"SELECT * FROM audit_logs WHERE action IN ({placeholders}) ORDER BY created_at DESC LIMIT ?",
+            f"SELECT * FROM audit_logs WHERE action IN ({placeholders}) ORDER BY created_at DESC LIMIT ?",  # nosec B608: placeholders is ?,?… from static list, values bound separately
             (*security_actions, limit),
         )
 
@@ -136,9 +136,9 @@ class AuditRepository:
         from app.config import get_settings
         settings = get_settings()
         if settings.uses_postgres:
-            sql = f"DELETE FROM audit_logs WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '{int(days)} days'"
+            sql = f"DELETE FROM audit_logs WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '{int(days)} days'"  # nosec B608: days is coerced to int, no user-controlled string interpolation
         else:
-            sql = f"DELETE FROM audit_logs WHERE created_at < datetime('now', '-{int(days)} days')"
+            sql = f"DELETE FROM audit_logs WHERE created_at < datetime('now', '-{int(days)} days')"  # nosec B608: days is coerced to int, no user-controlled string interpolation
         await self._db.execute(sql)
         await self._db.commit()
 
@@ -154,7 +154,7 @@ class AuditRepository:
         
         # Total events
         total = await self._db.fetchone(
-            f"SELECT COUNT(*) as count FROM audit_logs WHERE created_at > {date_filter}",
+            f"SELECT COUNT(*) as count FROM audit_logs WHERE created_at > {date_filter}",  # nosec B608: date_filter is built from int(days), not user input
         )
         
         # Events by action
@@ -163,7 +163,7 @@ class AuditRepository:
                 FROM audit_logs 
                 WHERE created_at > {date_filter}
                 GROUP BY action 
-                ORDER BY count DESC""",
+                ORDER BY count DESC""",  # nosec B608: date_filter is built from int(days), not user input
         )
         
         # Events by user
@@ -173,14 +173,14 @@ class AuditRepository:
                 WHERE created_at > {date_filter} AND user_id IS NOT NULL
                 GROUP BY user_id 
                 ORDER BY count DESC 
-                LIMIT 10""",
+                LIMIT 10""",  # nosec B608: date_filter is built from int(days), not user input
         )
         
         # Failed events
         failed = await self._db.fetchone(
             f"""SELECT COUNT(*) as count 
                 FROM audit_logs 
-                WHERE created_at > {date_filter} AND status = 'failure'""",
+                WHERE created_at > {date_filter} AND status = 'failure'""",  # nosec B608: date_filter is built from int(days), not user input
         )
         
         return {

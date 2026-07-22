@@ -261,8 +261,8 @@ async def _get_rate_limit_identifier(request: Request) -> str:
         user_id = payload.get("sub", "")
         if user_id:
             return f"user:{user_id}"
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Rate limit auth extraction failed, falling back to API key/IP: %s", exc)
     
     # Try API key
     api_key = request.headers.get("X-API-Key")

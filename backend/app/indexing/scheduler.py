@@ -105,8 +105,8 @@ class IndexingScheduler:
                     next_run += timedelta(days=1)
                 
                 return next_run.timestamp()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Schedule calculation failed: %s", exc)
         
         # Default: run in 1 hour
         return time.time() + 3600
