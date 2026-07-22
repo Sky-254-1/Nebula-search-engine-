@@ -487,6 +487,7 @@ app.include_router(search_v2_router)
 app.include_router(search.router)
 app.include_router(ai.router)
 app.include_router(audio.router)
+app.include_router(auth_extended_router)  # Extended auth (verify-email, password reset, account mgmt)
 app.include_router(users_router)  # New users domain
 app.include_router(notifications_router)  # New notifications domain
 app.include_router(analytics_router)  # Legacy analytics
