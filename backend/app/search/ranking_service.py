@@ -12,7 +12,7 @@ Implements production-ready ranking with:
 
 import logging
 import math
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -141,7 +141,7 @@ class FreshnessScorer:
         if isinstance(updated_at, str):
             try:
                 updated_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
-            except:
+            except (ValueError, TypeError):
                 return 0.5
         
         # Calculate age in days

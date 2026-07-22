@@ -2,10 +2,6 @@
 
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch, mock_open
-from pathlib import Path
-import json
-import hashlib
 
 # ============================================
 # Ingestion Tests
