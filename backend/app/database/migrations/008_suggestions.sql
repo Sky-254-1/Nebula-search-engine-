@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS search_suggestions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Idempotent column addition for search_suggestions.type
+-- migrate.py's ALTER TABLE handler uses PRAGMA table_info to skip already-existing columns
+ALTER TABLE search_suggestions ADD COLUMN type TEXT NOT NULL DEFAULT 'personalized' CHECK(type IN ('trending', 'semantic', 'related', 'personalized'));
+
+-- Backfill any pre-existing rows that were created before the type column was added
+UPDATE search_suggestions SET type = 'personalized' WHERE type IS NULL;
+
 -- Indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_search_suggestions_query ON search_suggestions(query);
 CREATE INDEX IF NOT EXISTS idx_search_suggestions_type ON search_suggestions(type);
