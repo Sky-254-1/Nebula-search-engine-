@@ -14,7 +14,7 @@ import logging
 import math
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("nebula.search.ranking")
@@ -145,7 +145,10 @@ class FreshnessScorer:
                 return 0.5
         
         # Calculate age in days
-        age_days = (datetime.utcnow() - updated_at).total_seconds() / 86400
+        now = datetime.now(timezone.utc)
+        if updated_at.tzinfo is None:
+            updated_at = updated_at.replace(tzinfo=timezone.utc)
+        age_days = (now - updated_at).total_seconds() / 86400
         
         # Exponential decay based on half-life
         decay = math.pow(2, -age_days / self.half_life_days)
