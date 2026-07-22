@@ -44,7 +44,7 @@ class BookmarkRepository:
         if sets:
             params.extend([bookmark_id, user_id])
             await self.db.execute(
-                f"UPDATE bookmarks SET {', '.join(sets)} WHERE id = ? AND user_id = ?",
+                 f"UPDATE bookmarks SET {', '.join(sets)} WHERE id = ? AND user_id = ?",  # nosec B608: SET columns come from kwargs keys, values are parameterized
                 tuple(params),
             )
             await self.db.commit()

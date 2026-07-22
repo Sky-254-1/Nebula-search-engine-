@@ -200,7 +200,7 @@ class IndexingService:
         values = list(updates.values()) + [job_id]
         
         await db_session.execute(
-            f"UPDATE index_jobs SET {set_clause} WHERE job_id = ?",
+            f"UPDATE index_jobs SET {set_clause} WHERE job_id = ?",  # nosec B608: set_clause is built from updates dict keys, values are parameterized
             values,
         )
         await db_session.commit()

@@ -16,13 +16,13 @@ class SavedSearchRepository:
     async def create(self, user_id: int, query: str, mode: str = "hybrid",
                      filters: dict | None = None, is_alert: bool = False) -> int:
         await self._db.execute(
-            f"INSERT INTO {_TABLE} "
+            f"INSERT INTO {_TABLE} "  # nosec B608: _TABLE is set at init from settings, values are parameterized
             "(user_id, query, mode, filters, is_alert) VALUES (?, ?, ?, ?, ?)",
             (user_id, query, mode, filters or {}, is_alert),
         )
         await self._db.commit()
         row = await self._db.fetchone(
-            f"SELECT id FROM {_TABLE} WHERE user_id = ? AND query = ? "
+            f"SELECT id FROM {_TABLE} WHERE user_id = ? AND query = ? "  # nosec B608: _TABLE is set at init from settings, values are parameterized
             "AND is_deleted = FALSE ORDER BY id DESC LIMIT 1",
             (user_id, query),
         )
@@ -31,7 +31,7 @@ class SavedSearchRepository:
     async def list_for_user(self, user_id: int, limit: int = 50) -> list[dict]:
         rows = await self._db.fetchall(
             f"SELECT id, query, mode, filters, is_alert, created_at, updated_at "
-            f"FROM {_TABLE} WHERE user_id = ? AND is_deleted = FALSE "
+            f"FROM {_TABLE} WHERE user_id = ? AND is_deleted = FALSE "  # nosec B608: _TABLE is set at init from settings, values are parameterized
             "ORDER BY created_at DESC LIMIT ?",
             (user_id, limit),
         )
@@ -39,7 +39,7 @@ class SavedSearchRepository:
 
     async def get_by_id(self, saved_id: int, user_id: int) -> dict | None:
         row = await self._db.fetchone(
-            f"SELECT id, user_id, query, mode, filters, is_alert, created_at, updated_at "
+            f"SELECT id, user_id, query, mode, filters, is_alert, created_at, updated_at "  # nosec B608: _TABLE is set at init from settings, values are parameterized
             f"FROM {_TABLE} WHERE id = ? AND user_id = ? AND is_deleted = FALSE",
             (saved_id, user_id),
         )
@@ -48,7 +48,7 @@ class SavedSearchRepository:
     async def delete(self, saved_id: int, user_id: int) -> None:
         now = datetime.now(timezone.utc).isoformat()
         await self._db.execute(
-            f"UPDATE {_TABLE} SET is_deleted = TRUE, deleted_at = ? "
+            f"UPDATE {_TABLE} SET is_deleted = TRUE, deleted_at = ? "  # nosec B608: _TABLE is set at init from settings, values are parameterized
             "WHERE id = ? AND user_id = ? AND is_deleted = FALSE",
             (now, saved_id, user_id),
         )

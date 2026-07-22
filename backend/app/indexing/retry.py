@@ -84,7 +84,7 @@ class RetryPolicy:
         # Add jitter (±20%) to prevent thundering herd
         if self.jitter:
             jitter_amount = delay * 0.2
-            delay = delay + random.uniform(-jitter_amount, jitter_amount)
+            delay = delay + random.uniform(-jitter_amount, jitter_amount)  # nosec B311: intentional non-cryptographic jitter for retry backoff
         
         return max(0.1, delay)
 

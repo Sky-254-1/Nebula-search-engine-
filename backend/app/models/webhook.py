@@ -136,7 +136,7 @@ class WebhookEvent:
     
     AUTH_LOGIN = "auth.login"
     AUTH_LOGOUT = "auth.logout"
-    AUTH_PASSWORD_CHANGED = "auth.password_changed"
+    AUTH_PASSWORD_CHANGED = "auth.password_changed"  # nosec B105: webhook event name, not a secret
     AUTH_MFA_ENABLED = "auth.mfa_enabled"
     AUTH_MFA_DISABLED = "auth.mfa_disabled"
     

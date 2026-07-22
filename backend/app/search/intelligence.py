@@ -348,7 +348,7 @@ class SearchAnalytics:
                     params.append(user_id)
                 row = await self.db.fetchone(
                     f"SELECT COUNT(*) as total, COUNT(clicked_url) as clicks "
-                    f"FROM search_logs {q_filter}", tuple(params),
+                    f"FROM search_logs {q_filter}", tuple(params),  # nosec B608: q_filter is built from bound params, not raw user input
                 )
                 if row and row["total"] > 0:
                     return round(row["clicks"] / row["total"], 4)

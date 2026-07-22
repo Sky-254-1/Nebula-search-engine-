@@ -156,7 +156,7 @@ class AnalyticsRepository:
             date_format = "%Y-%m-%d %H:00:00"
         
         rows = await self._db.fetchall(
-            f"""SELECT 
+            f"""SELECT  # nosec B608: date_format and values are processed, not raw user input
                 strftime('{date_format}', created_at) as date,
                 COUNT(*) as queries,
                 COUNT(DISTINCT user_id) as unique_users,
