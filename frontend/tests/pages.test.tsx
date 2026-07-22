@@ -268,8 +268,8 @@ describe('ResetPasswordPage', () => {
     withProviders(<ResetPasswordPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/reset.*link/i)).toBeDefined();
-      expect(screen.getByRole('heading', { name: /reset password/i })).toBeDefined();
+      expect(screen.getByRole('heading', { name: /invalid reset link/i })).toBeDefined();
+      expect(screen.getByText('Request a new reset link')).toBeDefined();
     });
   });
 });
