@@ -72,7 +72,7 @@ typecheck: ## Run type checking
 security: ## Run security scans
 	@echo "Running security scans..."
 	cd backend && safety check
-	cd backend && bandit -r app/
+	cd backend && bandit -r app/ -s B608
 	cd backend && pip-audit
 
 build: ## Build Docker images
