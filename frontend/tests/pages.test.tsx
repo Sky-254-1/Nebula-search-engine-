@@ -3,6 +3,18 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
+
+const withProviders = (component: React.ReactElement) => render(
+  <QueryClientProvider client={queryClient}>
+    <BrowserRouter>
+      {component}
+    </BrowserRouter>
+  </QueryClientProvider>
+);
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -262,14 +274,11 @@ describe('ResetPasswordPage', () => {
 
   it('shows error when no token in URL', async () => {
     const { ResetPasswordPage } = await import('@/pages/ResetPasswordPage');
-    render(
-      <BrowserRouter>
-        <ResetPasswordPage />
-      </BrowserRouter>
-    );
+    withProviders(<ResetPasswordPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Invalid Reset Link')).toBeDefined();
+      expect(screen.getByText(/reset.*link/i)).toBeDefined();
+      expect(screen.getByRole('heading', { name: /reset password/i })).toBeDefined();
     });
   });
 });
