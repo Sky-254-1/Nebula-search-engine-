@@ -13,7 +13,6 @@ Normalizes search queries by:
 import logging
 import re
 import unicodedata
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

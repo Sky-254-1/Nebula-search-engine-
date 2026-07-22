@@ -199,7 +199,7 @@ async def rebuild_spell_dictionary(
     try:
         cache = await _get_cache_client()
         service = SpellService(cache_client=cache)
-        repo = SpellRepository(db)
+        SpellRepository(db)
 
         # Invalidate caches
         if cache:

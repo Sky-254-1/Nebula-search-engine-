@@ -1,17 +1,15 @@
 """Analytics endpoints for usage tracking and metrics."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from pydantic import BaseModel
+from typing import List, Dict, Any
 
 from app.database import get_db
 from app.database.repositories.document import DocumentRepository
-from app.database.repositories.search import SearchRepository
 from app.database.repositories.user import UserRepository
-from app.middleware.rate_limit import rate_limit
 from app.services.auth import get_current_user
 from app.search.intelligence import search_analytics
 

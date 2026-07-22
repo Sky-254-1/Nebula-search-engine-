@@ -100,7 +100,6 @@ class HybridSearchService:
         """
         start_time = time.time()
         intent_result = None
-        search_success = True
         error_msg = None
         
         try:
@@ -205,7 +204,6 @@ class HybridSearchService:
             return response
             
         except Exception as e:
-            search_success = False
             error_msg = str(e)
             logger.error(f"Hybrid search error: {e}", exc_info=True)
             

@@ -10,13 +10,11 @@ from fastapi import (
     File,
     Form,
     HTTPException,
-    Query,
     UploadFile,
 )
 from fastapi.responses import Response, StreamingResponse
 
 from app.middleware.rate_limit import rate_limit
-from app.models.schemas import SearchResult
 from app.services.audio import audio_service
 from app.services.auth import get_current_user
 
@@ -175,7 +173,7 @@ async def narrate_search_results(
         content=audio_data,
         media_type="audio/mpeg",
         headers={
-            "Content-Disposition": f'inline; filename="search_narration.mp3"',
+            "Content-Disposition": 'inline; filename="search_narration.mp3"',
             "Cache-Control": "public, max-age=1800"
         }
     )
@@ -255,7 +253,7 @@ async def generate_sound_effect(
         content=audio_data,
         media_type="audio/mpeg",
         headers={
-            "Content-Disposition": f'inline; filename="sound_effect.mp3"',
+            "Content-Disposition": 'inline; filename="sound_effect.mp3"',
             "Cache-Control": "public, max-age=86400"  # Cache for 24h
         }
     )

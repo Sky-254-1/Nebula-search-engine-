@@ -10,10 +10,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, ConfigDict
 
-from app.services.auth import get_current_user, get_current_user_token_payload
+from app.services.auth import get_current_user_token_payload
 from app.hybrid.config import HybridSearchConfig
-from app.hybrid.services import HybridSearchService, hybrid_search_service
-from app.hybrid.metrics import HybridMetrics
+from app.hybrid.services import hybrid_search_service
 
 logger = logging.getLogger("nebula.hybrid.routes")
 

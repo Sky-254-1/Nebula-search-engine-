@@ -1,7 +1,6 @@
 """Background task helpers for async operations."""
 
 import logging
-from typing import Any
 
 logger = logging.getLogger("nebula.background")
 

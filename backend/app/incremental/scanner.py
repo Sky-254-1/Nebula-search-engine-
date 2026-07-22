@@ -15,8 +15,6 @@ from app.incremental.config import (
 from app.incremental.hashing import (
     calculate_file_hash,
     calculate_metadata_hash,
-    compare_hashes,
-    generate_content_fingerprint,
 )
 
 logger = logging.getLogger("nebula.incremental.scanner")

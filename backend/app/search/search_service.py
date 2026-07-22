@@ -7,16 +7,12 @@ from typing import Any
 from app.config import get_settings
 from app.database.engine import DatabaseConnection
 from app.search.intelligence import (
-    autocomplete_engine,
     personalization_engine,
     query_suggestion_engine,
-    search_analytics,
     spell_corrector,
 )
-from app.search.orchestrator import orchestrate_search
 from app.search.query_understanding.query_processor import query_processor
 from app.search.ranking import hybrid_ranker
-from app.services.cache import cache_service
 from app.services.search import run_web_search
 from vector.pipeline import hybrid_search as vector_hybrid_search
 from app.services.ai import get_ai_answer, synthesize_snippets

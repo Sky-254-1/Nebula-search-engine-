@@ -25,7 +25,7 @@ from app.models.schemas import (
 )
 from app.services.auth import get_current_user
 from app.services.queue import job_queue
-from app.utils.pagination import PaginationParams, create_pagination_response
+from app.utils.pagination import PaginationParams
 
 router = APIRouter(prefix="/api/v1/storage", tags=["Storage"])
 settings = get_settings()

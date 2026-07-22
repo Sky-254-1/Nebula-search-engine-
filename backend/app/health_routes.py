@@ -1,6 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-import asyncio
 import time
 from typing import Dict, Any
 import os
@@ -62,7 +61,6 @@ async def readiness_check() -> Dict[str, Any]:
     
     # Check Redis connection
     try:
-        from app.config import get_settings
         from app.services.cache import cache_service
         if cache_service._redis:
             await cache_service._redis.ping()

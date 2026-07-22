@@ -139,7 +139,7 @@ class ExplanationGenerator:
         
         # Check content
         content = str(result.get("content", "")).lower()
-        snippet = str(result.get("snippet", "")).lower()
+        str(result.get("snippet", "")).lower()
         for term in query_terms:
             if term in content and term not in matched:
                 matched.append(term)

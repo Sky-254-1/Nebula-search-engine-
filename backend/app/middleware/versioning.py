@@ -2,7 +2,6 @@
 
 import logging
 from enum import Enum
-from typing import Optional
 
 from fastapi import HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware

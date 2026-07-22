@@ -5,7 +5,6 @@ Collects and tracks performance and quality metrics for hybrid search.
 """
 
 import logging
-import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta

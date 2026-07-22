@@ -6,7 +6,7 @@ Removes duplicate documents from search results using multiple strategies.
 
 import logging
 import hashlib
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger("nebula.hybrid.dedupe")
 

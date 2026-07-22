@@ -9,7 +9,6 @@ Provides stemming and lemmatization for search queries:
 """
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

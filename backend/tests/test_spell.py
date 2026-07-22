@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import time
 
 import pytest
 
 from app.services.auth import create_access_token
-from app.services.spell_service import SpellService, levenshtein_distance, normalize_text
+from app.services.spell_service import levenshtein_distance, normalize_text
 
 
 class APITestBase:

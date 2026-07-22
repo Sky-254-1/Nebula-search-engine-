@@ -2,9 +2,8 @@
 
 import html
 import logging
-from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.database import get_db
 from app.database.repositories.user import UserRepository

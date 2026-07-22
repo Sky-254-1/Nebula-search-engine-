@@ -8,7 +8,6 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from app.hybrid.bm25 import BM25Engine
-from app.hybrid.semantic import SemanticEngine
 from app.hybrid.config import HybridSearchConfig
 
 logger = logging.getLogger("nebula.hybrid.scoring")

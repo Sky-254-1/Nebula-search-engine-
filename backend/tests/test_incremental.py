@@ -1,16 +1,10 @@
 """Comprehensive tests for incremental re-indexing system."""
 
-import hashlib
-import json
 import pytest
-import asyncio
 from datetime import datetime
-from pathlib import Path
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import Mock, AsyncMock, patch
 
 from app.incremental.config import (
-    DocumentState,
-    HashAlgorithm,
     IncrementalConfig,
     IncrementalReindexMode,
     ReindexJobConfig,
@@ -20,7 +14,6 @@ from app.incremental.hashing import (
     calculate_metadata_hash,
     calculate_chunk_hash,
     calculate_vector_hash,
-    calculate_all_hashes,
     compare_hashes,
     verify_file_integrity,
 )
@@ -28,14 +21,12 @@ from app.incremental.detector import (
     ChangeDetector,
     ChangeType,
     DocumentChange,
-    MetadataComparator,
 )
 from app.incremental.diff import (
     DiffEngine,
     ChunkDiff,
     DocumentDiff,
     DiffOperationType,
-    ChunkComparator,
 )
 from app.incremental.scanner import (
     DocumentScanner,
@@ -48,9 +39,7 @@ from app.incremental.synchronizer import (
 )
 from app.incremental.metadata import (
     MetadataSynchronizer,
-    MetadataSyncResult,
     MetadataTracker,
-    MetadataVersioning,
 )
 from app.incremental.tracker import (
     IndexTracker,
@@ -59,28 +48,20 @@ from app.incremental.tracker import (
 )
 from app.incremental.cleanup import (
     CleanupService,
-    CleanupResult,
 )
 from app.incremental.events import (
-    EventManager,
     IncrementalEvent,
     IncrementalEventType,
     MetricsCollector,
     get_event_manager,
     reset_event_manager,
-    emit_event,
 )
 from app.incremental.scheduler import (
     IncrementalScheduler,
-    ScheduledTask,
-    get_scheduler,
 )
 from app.incremental.services import (
     IncrementalIndexingService,
-    ReindexJobResult,
-    get_incremental_service,
 )
-from app.incremental.detector import ChangeDetector
 
 
 # ==================== Hashing Tests ====================
@@ -530,7 +511,6 @@ class TestIndexTracker:
         assert await tracker.needs_reindex(1, "hash123") is True
         
         # Initialize record directly in memory
-        from app.incremental.tracker import IndexRecord, IndexStatus
         tracker._records[1] = IndexRecord(
             document_id=1,
             status=IndexStatus.COMPLETED,

@@ -180,7 +180,7 @@ async def cleanup_expired_logs(days: int = 90) -> None:
         try:
             cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
             
-            result = await db.execute(
+            await db.execute(
                 """DELETE FROM search_events WHERE created_at < ?""",
                 (cutoff_date,),
             )

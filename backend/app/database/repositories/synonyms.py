@@ -1,6 +1,5 @@
 """Synonyms repository for query expansion."""
 
-from typing import Any
 
 from app.database.engine import DatabaseConnection
 

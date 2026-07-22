@@ -7,7 +7,6 @@ import asyncio
 import logging
 import os
 from io import BytesIO
-from pathlib import Path
 from typing import AsyncIterator, BinaryIO
 
 try:

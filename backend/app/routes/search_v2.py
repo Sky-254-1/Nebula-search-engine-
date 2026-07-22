@@ -7,13 +7,12 @@ and advanced ranking.
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.database import get_db
 from app.database.repositories.search import SearchRepository
 from app.database.repositories.user import UserRepository
 from app.middleware.rate_limit import rate_limit
-from app.models.schemas import SearchResult
 from app.search.intelligence import (
     autocomplete_engine,
     personalization_engine,
@@ -24,7 +23,6 @@ from app.search.intelligence import (
 from app.search.orchestrator import orchestrate_search
 from app.search.query_understanding.intent_classifier import intent_classifier
 from app.search.ranking import hybrid_ranker
-from app.search.semantic import SemanticEngine
 from app.search.semantic.engine import semantic_engine
 from app.services.auth import get_current_user
 

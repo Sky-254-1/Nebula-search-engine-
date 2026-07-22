@@ -11,8 +11,8 @@ from app.incremental.config import (
     ReindexJobConfig,
     get_incremental_config,
 )
-from app.incremental.detector import ChangeDetector, DocumentChange, ChangeType
-from app.incremental.diff import DiffEngine, DocumentDiff
+from app.incremental.detector import ChangeDetector, ChangeType
+from app.incremental.diff import DiffEngine
 from app.incremental.events import (
     emit_change_detected,
     emit_cleanup_completed,
@@ -24,8 +24,8 @@ from app.incremental.events import (
     get_event_manager,
 )
 from app.incremental.metadata import MetadataSynchronizer
-from app.incremental.scanner import DocumentScanner, ScanResult
-from app.incremental.synchronizer import IncrementalSynchronizer, SyncResult
+from app.incremental.scanner import DocumentScanner
+from app.incremental.synchronizer import IncrementalSynchronizer
 from app.incremental.tracker import IndexTracker, IndexStatus
 from app.incremental.cleanup import CleanupService
 

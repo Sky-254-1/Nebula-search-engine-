@@ -24,7 +24,6 @@ Extracts and normalizes:
 - Updated date
 """
 
-import asyncio
 import hashlib
 import logging
 import re

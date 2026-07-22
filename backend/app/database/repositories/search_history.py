@@ -1,7 +1,6 @@
 """Search history repository for tracking user searches."""
 
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import datetime
 
 from app.database.engine import DatabaseConnection
 

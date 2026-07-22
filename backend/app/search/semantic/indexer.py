@@ -13,7 +13,6 @@ import hashlib
 from typing import Optional
 
 from .engine import SemanticEngine
-from .embeddings import EmbeddingProvider
 
 logger = logging.getLogger(__name__)
 
@@ -145,8 +144,7 @@ class DocumentIndexer:
         """
         try:
             if self.semantic_engine and self.semantic_engine._vector_store:
-                vector_store = self.semantic_engine._vector_store
-                collection_name = self.semantic_engine.config.get('collection_name', 'documents')
+                self.semantic_engine.config.get('collection_name', 'documents')
                 
                 # Delete all chunks for this document
                 # Note: This requires the vector store to support filtering by document_id

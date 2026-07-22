@@ -7,7 +7,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict
 
 from app.database import get_db
 from app.database.engine import DatabaseConnection
@@ -189,7 +189,6 @@ async def rebuild_suggestions(
     db: DatabaseConnection = Depends(get_db),
 ) -> RebuildResponse:
     """Rebuild all suggestion indexes. Admin only."""
-    from app.database.repositories.user import UserRepository
     users = UserRepository(db)
     user = await users.get_by_email(email)
     if not user or user.get("role") != "admin":

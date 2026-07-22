@@ -101,7 +101,7 @@ class PGVectorStore(VectorStore):
             'euclidean': '<->',
             'dot_product': '<#>',
         }
-        operator = metric_map.get(metric, '<=>')
+        metric_map.get(metric, '<=>')
         
         # Create table
         create_table_query = f"""

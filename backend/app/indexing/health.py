@@ -1,7 +1,6 @@
 """Health monitoring for indexing workers."""
 
 import logging
-import os
 import time
 import uuid
 from dataclasses import dataclass, field

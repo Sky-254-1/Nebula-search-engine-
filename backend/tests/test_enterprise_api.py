@@ -137,7 +137,7 @@ class TestFiltering:
     
     def test_filter_sql_generation(self):
         """Test SQL generation from filters."""
-        from app.utils.filtering import FilterSet, FilterOperator
+        from app.utils.filtering import FilterSet
         
         filter_set = FilterSet()
         filter_set.eq("status", "active")
@@ -305,7 +305,7 @@ class TestAuthentication:
     
     def test_jwt_token_creation(self):
         """Test JWT token creation."""
-        from app.services.auth import create_access_token, decode_token
+        from app.services.auth import decode_token
         
         token = create_access_token("test@example.com", role="user")
         assert token is not None

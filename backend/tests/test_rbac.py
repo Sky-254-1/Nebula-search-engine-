@@ -1,6 +1,5 @@
 """Tests for Role-Based Access Control (RBAC) service."""
 
-import pytest
 from app.services.rbac import RBACService
 
 
@@ -224,7 +223,7 @@ class TestRBACService:
 
     def test_require_any_permission_success(self):
         """require_any_permission succeeds if at least one matches."""
-        factory = RBACService.require_any_permission(["searches.read", "admin.access"])
+        RBACService.require_any_permission(["searches.read", "admin.access"])
         # The factory returns an async callable (dependency); we test the logic
         # synchronously via check_permission:
         assert RBACService.check_permission("user", "searches.read") is True

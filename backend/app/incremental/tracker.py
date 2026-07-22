@@ -1,14 +1,12 @@
 """Index tracking for incremental re-indexing."""
 
 import logging
-import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from app.incremental.config import (
-    DocumentState,
     IncrementalConfig,
     get_incremental_config,
 )

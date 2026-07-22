@@ -11,8 +11,6 @@ Tokenizes search queries with support for:
 
 import logging
 import re
-from typing import Any, Optional
-from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 

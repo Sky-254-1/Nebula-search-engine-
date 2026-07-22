@@ -16,11 +16,10 @@ from app.indexing.config import (
     JobStatus,
     get_indexing_config,
 )
-from app.indexing.deadletter import get_dead_letter_queue
 from app.indexing.metrics import get_metrics_collector
 from app.indexing.progress import progress_tracker
 from app.indexing.retry import get_retry_handler
-from app.indexing.tasks import chunk_text, calculate_file_checksum, detect_file_type
+from app.indexing.tasks import chunk_text, calculate_file_checksum
 
 logger = logging.getLogger("nebula.indexing.services")
 settings = get_settings()
@@ -65,7 +64,7 @@ class IndexingService:
             )
             
             # Initialize progress
-            progress = progress_tracker.create(job_id)
+            progress_tracker.create(job_id)
             progress_tracker.update_status(job_id, JobStatus.RUNNING)
             
             # Get file info

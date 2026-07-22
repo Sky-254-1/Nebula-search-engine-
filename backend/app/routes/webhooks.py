@@ -1,14 +1,13 @@
 """Webhook management routes."""
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.database import get_db
 from app.database.repositories.user import UserRepository
 from app.middleware.rate_limit import rate_limit
-from app.models.schemas import APIResponse, MessageResponse
+from app.models.schemas import MessageResponse
 from app.models.webhook import (
     WebhookCreate,
     WebhookDeliveryResponse,

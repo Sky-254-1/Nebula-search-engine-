@@ -7,14 +7,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from app.incremental.config import (
-    DocumentState,
     IncrementalConfig,
     get_incremental_config,
 )
 from app.incremental.hashing import (
     calculate_chunk_hash,
     calculate_metadata_hash,
-    calculate_vector_hash,
     compare_hashes,
 )
 
@@ -380,7 +378,7 @@ class ChangeDetector:
                 continue
             
             # Compare chunks
-            old_chunk = old_chunks[idx]
+            old_chunks[idx]
             new_chunk = new_chunks[idx]
             old_hash = old_chunk_hashes[idx] if idx < len(old_chunk_hashes) else None
             

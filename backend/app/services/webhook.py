@@ -4,12 +4,10 @@ import hashlib
 import hmac
 import json
 import logging
-import time
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 import httpx
-from pydantic import HttpUrl
 
 from app.config import get_settings
 from app.models.webhook import WebhookDB, WebhookDeliveryDB, DeliveryStatus

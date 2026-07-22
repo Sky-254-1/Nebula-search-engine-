@@ -1,34 +1,25 @@
 """Unified search API endpoint combining web, vector, hybrid, and AI search modes."""
 
-import asyncio
 import logging
 import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import List, Dict, Any
 from enum import Enum
 
 from app.database import get_db
-from app.database.repositories.notification import NotificationRepository
 from app.database.repositories.saved_search import SavedSearchRepository
 from app.database.repositories.search import SearchRepository
 from app.database.repositories.user import UserRepository
 from app.middleware.rate_limit import rate_limit
 from app.services.auth import get_current_user
-from app.services.search import run_web_search
 from app.search.intelligence import (
-    autocomplete_engine,
     query_suggestion_engine,
-    spell_corrector,
-    search_analytics,
 )
-from app.search.orchestrator import orchestrate_search
-from app.search.ranking import hybrid_ranker
 from app.search.search_service import search_service
-from vector.pipeline import hybrid_search
-from app.services.ai import get_ai_answer, synthesize_snippets
+from app.services.ai import synthesize_snippets
 
 logger = logging.getLogger("nebula.search.unified")
 
@@ -180,7 +171,7 @@ async def unified_search(
 
     into a single, consistent API.
     """
-    start_time = time.time()
+    time.time()
     user_id = await _user_id(db, email)
 
     response = await search_service.search(

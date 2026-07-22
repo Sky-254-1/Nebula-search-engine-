@@ -9,7 +9,6 @@ from app.database import get_db
 from app.database.repositories.user import UserRepository
 from app.database.repositories.settings import SettingsRepository
 from app.database.repositories.search import SearchRepository
-from app.middleware.rate_limit import rate_limit
 from app.services.auth import get_current_user
 from app.config import get_settings
 

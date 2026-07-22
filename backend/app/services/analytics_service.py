@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import logging
 import math
-import time
 from datetime import datetime, timedelta
 from typing import Any
 
 from app.database.repositories.analytics_repository import AnalyticsRepository
-from app.services.cache import cache_service
 
 logger = logging.getLogger(__name__)
 

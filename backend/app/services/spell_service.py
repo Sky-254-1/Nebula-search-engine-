@@ -5,11 +5,8 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
-import time
 import unicodedata
-from collections import Counter
 from dataclasses import dataclass
-from typing import Optional
 
 logger = logging.getLogger("nebula.spell")
 
@@ -203,7 +200,7 @@ class SpellService:
         words = set()
         try:
             import enchant
-            d = enchant.Dict("en_US")
+            enchant.Dict("en_US")
             # Enchant doesn't expose a word list directly; try wordlist file
             for path in (
                 "/usr/share/dict/words",

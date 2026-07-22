@@ -17,7 +17,6 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,13 +25,12 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.database import init_db
-from app.middleware.rate_limit import get_limiter, rate_limit_exceeded_handler, slowapi_middleware
 from app.middleware.security import SecurityHeadersMiddleware, CSRFProtectionMiddleware
 from app.middleware.versioning import VersioningMiddleware
 from app.middleware.response import ResponseStandardizationMiddleware
 from app.middleware.rate_limit import RateLimitHeadersMiddleware
 from app.services.monitoring import MetricsMiddleware
-from app.routes import admin, ai, audio, auth, crawler, features, health, oauth, search, storage, vector
+from app.routes import admin, ai, audio, auth, crawler, features, health, search, storage, vector
 from app.health_routes import router as health_router
 from app.routes.autocomplete import router as autocomplete_router
 from app.routes.spell import router as spell_router
@@ -43,9 +41,7 @@ from app.routes.auth_extended import router as auth_extended_router
 from app.routes.documents import router as documents_router
 from app.routes.indexing import router as indexing_router
 from app.incremental.routes import router as incremental_router
-from app.routes.mfa import router as mfa_router
 from app.routes.notifications import router as notifications_router
-from app.routes.oauth import router as oauth_router
 from app.routes.recommendations import router as recommendations_router
 from app.routes.search_unified import router as search_unified_router
 from app.routes.search_v2 import router as search_v2_router
@@ -130,7 +126,6 @@ if settings.otel_exporter_otlp_endpoint:
             OTLPSpanExporter,
         )
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-        from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor

@@ -1,14 +1,12 @@
 """API routes for incremental re-indexing."""
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from app.incremental.config import (
-    IncrementalReindexMode,
     ReindexJobConfig,
     get_incremental_config,
 )

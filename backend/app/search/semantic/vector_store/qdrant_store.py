@@ -5,7 +5,6 @@ Vector store using Qdrant - production-ready vector database.
 """
 
 import logging
-import json
 from typing import Optional
 
 from .abstract import VectorStore

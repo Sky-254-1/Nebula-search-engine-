@@ -253,7 +253,6 @@ class BackgroundIndexer:
             await self._update_job_progress(job)
             
             # Import here to avoid circular dependencies
-            from app.search.semantic.engine import semantic_engine
             
             # Get document content (would come from database in production)
             # For now, we'll simulate indexing

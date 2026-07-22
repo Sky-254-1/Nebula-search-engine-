@@ -95,7 +95,7 @@ class BM25Scorer:
             return 0.0
         
         query_terms = query.lower().split()
-        doc_id = document.get("id", "")
+        document.get("id", "")
         doc_text = f"{document.get('title', '')} {document.get('content', '')} {document.get('snippet', '')}".lower()
         doc_terms = doc_text.split()
         doc_length = len(doc_terms)

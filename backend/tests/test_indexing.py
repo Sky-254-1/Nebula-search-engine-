@@ -2,21 +2,20 @@
 
 import asyncio
 import logging
-import time
 from pathlib import Path
 
 import pytest
 
 from app.indexing.config import JobPriority, JobStatus, get_indexing_config
 from app.indexing.deadletter import DeadLetterQueue
-from app.indexing.health import WorkerHealthMonitor, get_worker_health_monitor
-from app.indexing.metrics import MetricsCollector, get_metrics_collector
-from app.indexing.progress import JobProgress, ProgressTracker, progress_tracker
-from app.indexing.queue import IndexingQueue, indexing_queue
-from app.indexing.retry import RetryHandler, RetryPolicy, get_retry_handler
-from app.indexing.scheduler import IndexingScheduler, ScheduleType, get_scheduler
+from app.indexing.health import WorkerHealthMonitor
+from app.indexing.metrics import MetricsCollector
+from app.indexing.progress import ProgressTracker
+from app.indexing.queue import IndexingQueue
+from app.indexing.retry import RetryHandler, RetryPolicy
+from app.indexing.scheduler import IndexingScheduler, ScheduleType
 from app.indexing.tasks import chunk_text, calculate_file_checksum, detect_file_type
-from app.indexing.worker import Worker, WorkerPool
+from app.indexing.worker import Worker
 
 logger = logging.getLogger("nebula.indexing.tests")
 
@@ -402,7 +401,7 @@ class TestHealthMonitor:
 
     def test_get_statistics(self, monitor: WorkerHealthMonitor) -> None:
         """Test getting worker statistics."""
-        worker_id = monitor.register_worker()
+        monitor.register_worker()
         stats = monitor.get_statistics()
         assert stats["total_workers"] == 1
         assert stats["active_workers"] == 1
@@ -493,7 +492,7 @@ class TestScheduler:
 
     def test_get_task_status(self, scheduler: IndexingScheduler) -> None:
         """Test getting task status."""
-        config = scheduler.register_task(
+        scheduler.register_task(
             name="test-task",
             schedule_type=ScheduleType.MANUAL,
         )

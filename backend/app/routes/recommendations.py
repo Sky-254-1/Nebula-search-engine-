@@ -1,7 +1,6 @@
 """Recommendation endpoints for related content and personalized suggestions."""
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -10,9 +9,7 @@ from app.database.repositories.document import DocumentRepository
 from app.database.repositories.search import SearchRepository
 from app.database.repositories.user import UserRepository
 from app.database.repositories.saved_search import SavedSearchRepository
-from app.middleware.rate_limit import rate_limit
 from app.services.auth import get_current_user
-from app.search.intelligence import personalization_engine
 
 logger = logging.getLogger("nebula.recommendations")
 

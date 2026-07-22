@@ -143,7 +143,7 @@ class EmailService:
     async def send_welcome_email(self, to_email: str) -> bool:
         """Send welcome email after registration."""
         subject = "Welcome to Nebula Search!"
-        html_content = f"""
+        html_content = """
         <html>
         <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Welcome to Nebula Search!</h2>
@@ -183,7 +183,7 @@ class EmailService:
     async def send_mfa_enabled_email(self, to_email: str) -> bool:
         """Send notification when MFA is enabled."""
         subject = "Multi-Factor Authentication Enabled"
-        html_content = f"""
+        html_content = """
         <html>
         <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>MFA Enabled</h2>

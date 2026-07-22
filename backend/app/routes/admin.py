@@ -403,7 +403,7 @@ async def list_active_sessions(
     db=Depends(get_db),
 ):
     """List all active sessions."""
-    sessions_repo = SessionRepository(db)
+    SessionRepository(db)
     
     # Get all sessions (in production, add filtering and pagination)
     # For now, return placeholder

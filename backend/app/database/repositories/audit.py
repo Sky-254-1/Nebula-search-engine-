@@ -1,8 +1,7 @@
 """Audit log repository."""
 
 import json
-from typing import Any, Optional
-from datetime import datetime, timezone
+from typing import Any
 
 from app.database.engine import DatabaseConnection
 

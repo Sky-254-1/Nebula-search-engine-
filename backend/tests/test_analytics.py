@@ -1,8 +1,7 @@
 """Tests for analytics endpoints."""
 
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 from app.database.repositories.analytics_repository import AnalyticsRepository
 from app.services.analytics_service import AnalyticsService

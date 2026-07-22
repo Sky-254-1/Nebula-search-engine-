@@ -6,7 +6,7 @@ Loads and validates hybrid search configuration from environment variables.
 
 import os
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 
 @dataclass

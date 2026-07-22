@@ -1,11 +1,9 @@
 """Dead-letter queue for failed indexing jobs."""
 
-import json
 import logging
 from datetime import datetime
 from typing import Optional
 
-from app.indexing.config import JobPriority
 
 logger = logging.getLogger("nebula.indexing.deadletter")
 

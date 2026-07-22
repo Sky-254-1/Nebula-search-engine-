@@ -3,7 +3,6 @@
 import logging
 import time
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional
 
 from app.indexing.config import IndexingStep

@@ -4,7 +4,6 @@ import logging
 import time
 from collections import deque
 from dataclasses import dataclass
-from typing import Optional
 
 logger = logging.getLogger("nebula.indexing.metrics")
 

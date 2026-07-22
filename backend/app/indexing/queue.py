@@ -6,8 +6,7 @@ import time
 import uuid
 from collections import deque
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 
 from app.config import get_settings
 from app.indexing.config import JobPriority, get_indexing_config

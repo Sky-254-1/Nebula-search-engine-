@@ -1,15 +1,11 @@
 """Multi-Factor Authentication routes."""
 
-import secrets
-from datetime import datetime, timezone
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.database import get_db
 from app.database.repositories.audit import AuditRepository
 from app.database.repositories.user import UserRepository
-from app.models.schemas import AuthRequest
 from app.config import get_settings
 from app.services.auth import get_current_user
 from app.services.mfa import MFAService, enroll_mfa, verify_mfa_token
@@ -146,7 +142,7 @@ async def verify_mfa_token_endpoint(
     if is_valid:
         # Mark MFA as verified in session
         from app.database.repositories.session import SessionRepository
-        sessions = SessionRepository(db)
+        SessionRepository(db)
         # Get current session from request
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):

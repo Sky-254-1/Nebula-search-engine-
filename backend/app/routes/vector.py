@@ -228,7 +228,7 @@ async def index_now(
 async def vector_stats(email: str = Depends(get_current_user), db=Depends(get_db)):
     user_id = await _user_id(db, email)
     chunks = ChunkRepository(db)
-    embeds = EmbeddingRepository(db)
+    EmbeddingRepository(db)
     chunk_rows = await chunks.list_for_user(user_id)
     return {
         "chunks": len(chunk_rows),

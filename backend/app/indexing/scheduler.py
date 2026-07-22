@@ -5,9 +5,8 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Coroutine, Optional
+from typing import Callable, Coroutine, Optional
 
-from app.indexing.config import get_indexing_config
 
 logger = logging.getLogger("nebula.indexing.scheduler")
 

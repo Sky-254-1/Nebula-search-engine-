@@ -1,20 +1,14 @@
 """Background workers for indexing jobs."""
 
 import asyncio
-import hashlib
-import json
 import logging
-import os
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Callable, Coroutine, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from app.config import get_settings
 from app.indexing.config import (
-    IndexingStep,
-    JobPriority,
-    JobStatus,
     get_indexing_config,
 )
 from app.indexing.deadletter import get_dead_letter_queue
@@ -200,7 +194,7 @@ class Worker:
             payload: Job payload
         """
         document_id = payload.get("document_id")
-        user_id = payload.get("user_id")
+        payload.get("user_id")
         filename = payload.get("filename", "")
         file_path = payload.get("file_path")
         

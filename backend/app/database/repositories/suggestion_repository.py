@@ -1,6 +1,6 @@
 """Search suggestions repository for trending, semantic, and related searches."""
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 from app.database.engine import DatabaseConnection

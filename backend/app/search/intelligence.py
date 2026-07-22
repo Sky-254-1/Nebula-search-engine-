@@ -4,15 +4,13 @@ Provides semantic search, spell correction, autocomplete, query suggestions,
 personalization, and search analytics.
 """
 
-import asyncio
 import logging
 import re
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Any, Optional
+from datetime import datetime
+from typing import Optional
 
-import httpx
 
 from app.config import get_settings
 from app.services.cache import cache_service
@@ -433,7 +431,6 @@ class PersonalizationEngine:
         profile["interests"] = profile["interests"][-50:]
 
         # Extract domain from URL
-        import re
         domain_match = re.search(r"https?://([^/]+)", clicked_url)
         if domain_match:
             domain = domain_match.group(1)

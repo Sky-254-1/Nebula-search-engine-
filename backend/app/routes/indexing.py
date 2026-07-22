@@ -1,14 +1,12 @@
 """Indexing API routes."""
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from app.indexing.config import JobPriority, JobStatus
-from app.indexing.deadletter import get_dead_letter_queue
 from app.indexing.health import get_worker_health_monitor
 from app.indexing.metrics import get_metrics_collector
 from app.indexing.progress import progress_tracker

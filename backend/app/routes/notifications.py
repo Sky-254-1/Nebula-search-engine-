@@ -1,17 +1,12 @@
 """Notification management endpoints."""
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
-from datetime import datetime
 
 from app.database import get_db
 from app.database.repositories.notification import NotificationRepository
 from app.database.repositories.user import UserRepository
-from app.middleware.rate_limit import rate_limit
 from app.models.schemas import PaginationMeta
 from app.services.auth import get_current_user
 from app.utils.pagination import PaginationParams
@@ -100,7 +95,7 @@ async def mark_as_read(
     """Mark notification as read."""
     user_id = await _user_id(db, email)
     notif_repo = NotificationRepository(db)
-    row = await notif_repo.list_for_user(user_id, limit=1)  # just verify access
+    await notif_repo.list_for_user(user_id, limit=1)  # just verify access
     await notif_repo.mark_read(notification_id, user_id)
     return {
         "success": True,

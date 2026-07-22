@@ -12,7 +12,7 @@ import logging
 import math
 import re
 from collections import Counter, defaultdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("nebula.hybrid.bm25")
 

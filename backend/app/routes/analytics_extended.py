@@ -1,7 +1,6 @@
 """Extended analytics endpoints for production-grade search analytics dashboard."""
 
 import logging
-from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -212,7 +211,7 @@ async def record_click(
     # Look up the search event
     from app.database.repositories.search import SearchRepository
     search_repo = SearchRepository(db)
-    event = await search_repo.recent_for_user(user_id=0, limit=1)  # placeholder
+    await search_repo.recent_for_user(user_id=0, limit=1)  # placeholder
     
     # In production, fetch actual search event from DB
     # For now, we just store the click

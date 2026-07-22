@@ -6,7 +6,7 @@ Classifies queries by intent to dynamically adjust search parameters.
 
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 logger = logging.getLogger("nebula.hybrid.intent")
 
@@ -206,7 +206,7 @@ class IntentDetector:
             Recommended search parameters
         """
         intent = intent_result.get("intent", "natural_language")
-        confidence = intent_result.get("confidence", 0.5)
+        intent_result.get("confidence", 0.5)
         
         # Default strategy
         strategy = {

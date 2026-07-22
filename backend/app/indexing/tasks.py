@@ -1,25 +1,19 @@
 """Task definitions for indexing jobs."""
 
 import hashlib
-import json
 import logging
 import mimetypes
 import os
 import time
 import uuid
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Coroutine, Dict, Optional
+from typing import Any, Dict, Optional
 
 from app.config import get_settings
 from app.indexing.config import (
-    IndexingStep,
     JobPriority,
-    JobStatus,
-    get_indexing_config,
 )
-from app.indexing.progress import progress_tracker
 from app.indexing.queue import indexing_queue
 
 logger = logging.getLogger("nebula.indexing.tasks")

@@ -5,7 +5,7 @@ Tests for all hybrid search components.
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from app.hybrid.bm25 import BM25Engine
 from app.hybrid.semantic import SemanticEngine

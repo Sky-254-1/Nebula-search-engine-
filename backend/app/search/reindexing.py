@@ -9,7 +9,6 @@ Provides efficient document update handling:
 - Full re-index capability
 """
 
-import asyncio
 import hashlib
 import logging
 from dataclasses import dataclass, field
@@ -18,7 +17,6 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from app.config import get_settings
-from app.services.cache import cache_service
 
 logger = logging.getLogger("nebula.search.reindexing")
 settings = get_settings()

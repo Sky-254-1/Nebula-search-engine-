@@ -1,6 +1,6 @@
 """Role-Based Access Control (RBAC) service."""
 
-from typing import Optional, List, Dict, Any
+from typing import List
 from dataclasses import dataclass
 
 from app.config import get_settings
@@ -174,7 +174,7 @@ class RBACService:
     @staticmethod
     def require_permission(permission: str):
         """Dependency factory for permission checking."""
-        from fastapi import Depends, HTTPException, Request
+        from fastapi import HTTPException, Request
         from app.services.auth import get_current_user_token_payload
         
         async def permission_checker(request: Request):
@@ -195,7 +195,7 @@ class RBACService:
     @staticmethod
     def require_any_permission(permissions: List[str]):
         """Dependency factory for checking any of multiple permissions."""
-        from fastapi import Depends, HTTPException, Request
+        from fastapi import HTTPException, Request
         from app.services.auth import get_current_user_token_payload
         
         async def permission_checker(request: Request):
@@ -221,7 +221,7 @@ class RBACService:
     @staticmethod
     def require_all_permissions(permissions: List[str]):
         """Dependency factory for checking all of multiple permissions."""
-        from fastapi import Depends, HTTPException, Request
+        from fastapi import HTTPException, Request
         from app.services.auth import get_current_user_token_payload
         
         async def permission_checker(request: Request):

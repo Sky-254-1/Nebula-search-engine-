@@ -5,7 +5,6 @@ Vector store using Elasticsearch with vector search capabilities.
 """
 
 import logging
-import json
 from typing import Optional
 
 from .abstract import VectorStore

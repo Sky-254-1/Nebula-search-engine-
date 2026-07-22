@@ -1,11 +1,9 @@
 """Multi-Factor Authentication service using TOTP."""
 
-import base64
 import hashlib
 import hmac
 import secrets
-import time
-from typing import Optional, Tuple
+from typing import Tuple
 
 import pyotp
 import qrcode

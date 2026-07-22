@@ -1,6 +1,5 @@
 """Incremental synchronizer for updating search index."""
 
-import asyncio
 import json
 import logging
 from dataclasses import dataclass
@@ -8,7 +7,6 @@ from typing import Any, Dict, List, Optional
 
 from app.config import get_settings
 from app.incremental.config import (
-    DocumentState,
     IncrementalConfig,
     get_incremental_config,
 )

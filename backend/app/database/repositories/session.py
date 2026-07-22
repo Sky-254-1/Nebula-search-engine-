@@ -23,7 +23,7 @@ class SessionRepository:
         parent_refresh_id: int | None = None,
     ) -> int:
         from app.config import get_settings
-        settings = get_settings()
+        get_settings()
 
         # Generate session_id if not provided
         if session_id is None:
