@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { QueryClient } from '@tanstack/react-query';
@@ -192,20 +192,11 @@ describe('EmailVerificationPage', () => {
   it('shows success when verification succeeds', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true });
     
-    // Mock useSearchParams to return a token
-    vi.mock('react-router-dom', async () => {
-      const actual = await vi.importActual('react-router-dom');
-      return {
-        ...actual,
-        useSearchParams: () => [new URLSearchParams('token=valid-token')],
-      };
-    });
-
     const { EmailVerificationPage } = await import('@/pages/EmailVerificationPage');
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={['/verify-email?token=valid-token']}>
         <EmailVerificationPage />
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
     await waitFor(() => {
