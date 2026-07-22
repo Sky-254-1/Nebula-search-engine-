@@ -197,7 +197,7 @@ class SpellService:
 
     def _cache_key(self, query: str) -> str:
         normalized = normalize_text(query)
-        return f"{self._cache_prefix}{hashlib.md5(normalized.encode()).hexdigest()}"
+        return f"{self._cache_prefix}{hashlib.md5(normalized.encode(), usedforsecurity=False).hexdigest()}"
 
     def _build_default_english(self) -> set[str]:
         words = set()

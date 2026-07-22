@@ -225,3 +225,10 @@ class UserRepository:
             (limit, offset),
         )
         return [dict(row) for row in rows]
+
+    async def count_all(self) -> int:
+        """Count total active (non-deleted) users."""
+        row = await self._db.fetchone(
+            "SELECT COUNT(*) AS cnt FROM users WHERE is_deleted = FALSE"
+        )
+        return row["cnt"] if row else 0

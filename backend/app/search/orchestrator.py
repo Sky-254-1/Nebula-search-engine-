@@ -34,7 +34,7 @@ def _dedupe_results(results: list[dict]) -> list[dict]:
     unique: list[dict] = []
     for item in results:
         url = item.get("url", "").strip().lower()
-        key = url or hashlib.md5(item.get("title", "").encode()).hexdigest()
+        key = url or hashlib.md5(item.get("title", "").encode(), usedforsecurity=False).hexdigest()
         if key in seen:
             continue
         seen.add(key)

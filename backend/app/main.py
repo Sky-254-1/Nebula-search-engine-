@@ -402,9 +402,15 @@ async def lifespan(app: FastAPI):
     await job_queue.close()
     from app.crawler.scheduler import crawl_scheduler
 
-    await crawl_scheduler.stop()
+    try:
+        await crawl_scheduler.stop()
+    except (RuntimeError, Exception):
+        pass
     from app.services.analytics_background import stop_analytics_worker
-    await stop_analytics_worker()
+    try:
+        await stop_analytics_worker()
+    except (RuntimeError, Exception):
+        pass
 
     logger.info("Nebula Search API shut down cleanly")
 

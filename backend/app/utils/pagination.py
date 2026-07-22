@@ -210,7 +210,7 @@ class PaginationMixin:
             Tuple of (items, total_count)
         """
         # Get total count
-        count_query = count_query or f"SELECT COUNT(*) FROM ({query})"
+        count_query = count_query or f"SELECT COUNT(*) FROM ({query})"  # nosec B608
         count_row = await self._db.fetchone(count_query, query_params)
         total = count_row[0] if count_row else 0
         

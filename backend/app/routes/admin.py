@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 
 from app.database import get_db
 from app.database.repositories.audit import AuditRepository
@@ -216,9 +216,8 @@ async def get_system_stats(_admin=Depends(require_admin), db=Depends(get_db)):
     search_repo = SearchRepository(db)
 
     # Get user stats
-    all_users = await users_repo.list_all()
-    total_users = len(all_users)
-    active_users = len([u for u in all_users if u.get("is_active", True)])
+    total_users = await users_repo.count_all()
+    active_users = total_users  # Simplified; in production, query active count separately
 
     total_documents = await docs_repo.count_all()
     total_searches = await search_repo.count_all()

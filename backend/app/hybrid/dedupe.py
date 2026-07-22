@@ -154,7 +154,7 @@ class Deduplicator:
         hash_input = f"{title.lower()}{content[:self.content_hash_length].lower()}"
         
         # Compute MD5 hash (fast and sufficient for deduplication)
-        return hashlib.md5(hash_input.encode()).hexdigest()
+        return hashlib.md5(hash_input.encode(), usedforsecurity=False).hexdigest()
 
     def find_duplicates(
         self,
