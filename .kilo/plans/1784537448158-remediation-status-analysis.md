@@ -1,161 +1,134 @@
-# Nebula Search Engine — Remediation Status Analysis
+# Frontend UI/UX Testing — Audit & Plan
 
-**Date:** 2026-07-21  
+**Date:** 2026-07-22  
 **Branch:** main  
-**HEAD:** `99b886e` (documentation and update of features)  
-**Original task set:** 8 remediation items + 4 acceptance criteria  
+**HEAD:** `99b886e`  
+**Scope:** `frontend/` directory  
 
 ---
 
-## 1. Executive Summary
+## 1. Current State
 
-Most of the original 8 remediation items have already been merged into `main` in commits between `5ef8d84` and `99b886e`. The remaining work is concentrated in **test infrastructure** (`backend/tests/conftest.py`), **git hygiene** (two tracked runtime files that need to be untracked), **CI alignment** (coverage threshold mismatch between local pytest.ini and GitHub Actions), and **verification** (fresh-venv boot + full test run).
+### What exists
+- **Test runner:** Vitest (`frontend/package.json`: `test`, `test:ui`, `test:coverage`)
+- **Test libs:** `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`
+- **E2E:** Playwright referenced in `.github/workflows/ci.yml` (`npm run e2e`)
+- **Current unit tests:** 2 files, 9 test cases
+  - `frontend/tests/pages.test.tsx` — ForgotPasswordPage, EmailVerificationPage, MFAPage, ResetPasswordPage, BottomNav
+  - `frontend/tests/auth.test.tsx` — LoginPage
+- **Design docs:** `docs/ux/01-06` covering design system, component library, IA
+- **Pages:** 17 route components (Login, Register, Search, AI Chat, Documents, Settings, Dashboard, etc.)
+- **Layout:** `Layout.tsx`, `Sidebar.tsx`, `Header.tsx`, `BottomNav.tsx`
+- **State:** Zustand stores (`@/state`)
 
-There are also **11 unrelated uncommitted modifications** in the working tree that should be reviewed and either committed or discarded before proceeding.
-
----
-
-## 2. Completed Items (already in HEAD)
-
-| # | Task | Status | Evidence |
-|---|------|--------|----------|
-| 1a | `versioning.py`: add `Response` import | ✅ Done | Line 7: `from fastapi import HTTPException, Request, Response` |
-| 1b | `response.py`: move `Response` to top-level import | ✅ Done | Line 9: `from fastapi.responses import JSONResponse, Response`; no dead bottom import |
-| 1c | `monitoring.py`: move `Request` to top-level import | ✅ Done | Line 10: `from fastapi import Request` |
-| 1d | `events.py`: move `import time` to top | ✅ Done | Line 6: `import time` |
-| 1e | `main.py`: remove dead `slowapi` imports | ✅ Done | No `RateLimitExceeded` / `SlowAPIMiddleware` imports |
-| 2 | Add missing deps (`numpy`, `tenacity`, `aiofiles`) | ✅ Done | `requirements.txt` lines 19-21 |
-| 3 | Add `mypy` to `requirements-dev.txt` | ✅ Done | `requirements-dev.txt` line 5: `mypy>=1.8.0,<2.0.0` |
-| 4a | Reconcile test suite (`testpaths`) | ✅ Done | `pytest.ini` line 3: `testpaths = ../tests tests` |
-| 5 | Coverage gate to ~35% | ✅ Done | `pytest.ini` line 14: `fail_under = 35` |
-| 6a | `.gitignore`: add `graphify-out/` | ✅ Done | `.gitignore` line 133 |
-| 6b | `.gitignore`: add `storage/exports/**/*.json` | ✅ Done | `.gitignore` line 136 |
-| 6c | `.gitignore`: add `test_results.txt`, `pytest_errors.txt` | ✅ Done | `.gitignore` lines 60-61 |
-| 7 | JTI blacklist in `auth.py` | ✅ Done | Lines 166-174: checks `blacklisted_jti:{jti}` via `cache_service` |
-
----
-
-## 3. Outstanding Items
-
-### 3.1 Missing test infrastructure — `backend/tests/conftest.py` (CRITICAL)
-
-**What:** `backend/tests/` contains 9 test modules (~277 tests) but has **no `conftest.py`**. The root `tests/conftest.py` exists and configures `DATABASE_URL`, `JWT_SECRET`, `APP_ENV`, `sys.path`, and shared fixtures (`client`, `auth_headers`, `setup_db`). Without an equivalent in `backend/tests/`, those tests may fail to import `app` or may run against a shared state.
-
-**Risk:** `pytest` from `backend/` with `testpaths = ../tests tests` will collect backend tests, but module import paths and environment variables may leak or collide with root tests.
-
-**Fix needed:** Create `backend/tests/conftest.py` that mirrors the root `tests/conftest.py` setup (env vars, sys.path, fixtures).
+### What is missing or unverified
+- No tests for: SearchPage, AIChatPage, DocumentsPage, SettingsPage, DashboardPage, AnalyticsPage, HistoryPage, NotificationsPage, ProfilePage, OfflineLibraryPage, SavedSearchesPage, LandingPage, RegisterPage, DocumentViewerPage
+- No tests for layout components: `Layout`, `Sidebar`, `Header`
+- No tests for `ProtectedRoute` behavior (redirect, auth state)
+- No visual regression / screenshot tests
+- No accessibility audits (axe / Lighthouse)
+- No responsive breakpoint tests (mobile/tablet/desktop)
+- No keyboard-navigation tests for shortcuts documented in `docs/ux/06_Keyboard_Shortcuts_Accessibility.md`
+- No tests for error/empty/loading states per `docs/ux/05_Component_Library.md`
+- CI e2e step runs `npm run e2e` but there is no local `e2e` script in `package.json`; Playwright config and test directory not confirmed
 
 ---
 
-### 3.2 Runtime data files still tracked in git (MEDIUM)
+## 2. Assumptions to Validate
 
-**What:** `pytest_errors.txt` and `test_results.txt` are listed in `.gitignore` but are **still tracked** in the index.
-
-```
-$ git ls-files pytest_errors.txt test_results.txt
-pytest_errors.txt
-test_results.txt
-```
-
-`graphify-out/` and `storage/exports/` are already clean (not tracked in HEAD).
-
-**Fix needed:**
-```bash
-git rm --cached pytest_errors.txt test_results.txt
-git commit -m "chore: untrack runtime artifacts already covered by .gitignore"
-```
+| Assumption | Risk if Wrong |
+|------------|--------------|
+| `npm run test` runs all `frontend/tests/*.test.tsx` via Vitest | Silent test gaps if glob is narrower |
+| `npm run e2e` exists and points to Playwright | CI step `npm run e2e` will fail silently or break the workflow |
+| Pages import cleanly in test environment (no missing global mocks) | Tests fail at import time, not at assertion time |
+| Zustand stores are mockable without page-level fixtures | Auth-dependent pages can’t be unit tested |
+| Design tokens / component library are implemented as specified in `docs/ux/04-05` | UI tests will assert against wrong baselines |
 
 ---
 
-### 3.3 CI vs local pytest.ini coverage mismatch (MEDIUM)
+## 3. Recommended Test Layers
 
-**What:**
-- Local `backend/pytest.ini`: `fail_under = 35`
-- `.github/workflows/ci.yml` line 40: `--cov-fail-under=75`
+### Layer 1: Unit / Component Tests (Vitest + Testing Library)
+Target: every page and layout component listed in `docs/ux/05_Component_Library.md`.
 
-This means CI still enforces the old aspirational 75% threshold, while local runs allow 35%. If the intent is to baseline at ~35%, CI must be aligned.
+**Priority order:**
+1. `ProtectedRoute` — auth gate, redirect behavior
+2. `Layout` / `Sidebar` / `Header` — navigation collapse, theme toggle, responsive drawer
+3. `SearchPage` — search input, suggestions dropdown, empty state, keyboard shortcut `Ctrl+K`
+4. `AIChatPage` — streaming response, citation links, follow-up chips
+5. `DocumentsPage` — upload dropzone states (idle, dragover, uploading, success, error)
+6. `SettingsPage` — form inputs, save/reset, theme selector
+7. `DashboardPage` / `AnalyticsPage` — charts render, date range selector
+8. `NotificationsPage` — read/unread states, mark-all-read
+9. `HistoryPage` / `SavedSearchesPage` — list rendering, delete action
+10. `RegisterPage`, `ForgotPasswordPage`, `ResetPasswordPage`, `EmailVerificationPage`, `MFAPage`, `LoginPage` — partially covered; fill gaps (network failures, validation, accessibility)
 
-**Fix needed:** Update `.github/workflows/ci.yml` line 40 to `--cov-fail-under=35` (or remove the flag and let pytest.ini govern).
-
----
-
-### 3.4 CI test scope does not include `backend/tests/` (MEDIUM)
-
-**What:** The CI workflow runs:
-```yaml
-pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=75
-pytest tests/test_new_api_domains.py -v --cov=app --cov-append
-```
-
-This only executes the root `tests/` directory. The reconciled `pytest.ini` points `testpaths` at both `../tests` and `tests`, but CI overrides this with explicit commands and **never runs `backend/tests/`**.
-
-**Fix needed:** Update CI workflow to run from `backend/` and let `pytest.ini` drive discovery, e.g.:
-```yaml
-pytest --cov=app --cov-report=term-missing --cov-report=xml
-```
-or explicitly add `backend/tests/` to the CI pytest invocation.
+**Per-component checklist (from Component Library doc):**
+- Responsive layout (mobile, tablet, desktop)
+- Keyboard navigation
+- Focus indicators (visible)
+- ARIA labels/roles
+- Color contrast > 4.5:1
+- Touch target ≥ 44x44px
+- Loading, error, empty, disabled, hover, active states
 
 ---
 
-### 3.5 Uncommitted working-tree changes (LOW, but blocks clean status)
-
-**What:** 11 files are modified but uncommitted:
-- `Makefile`
-- `backend/app/search/query_understanding/entity_extractor.py`
-- `backend/app/search/query_understanding/intent_classifier.py`
-- `backend/app/search/query_understanding/language_detector.py`
-- `backend/app/search/query_understanding/query_processor.py`
-- `backend/app/search/query_understanding/stemmer.py`
-- `backend/app/search/query_understanding/stopwords.py`
-- `backend/app/search/query_understanding/synonym_expander.py`
-- `backend/app/search/query_understanding/tokenizer.py`
-- `backend/pytest.ini`
-- `tests/conftest.py`
-
-These changes are unrelated to the original 8 remediation tasks and should be reviewed. If intentional, they should be committed; if stale, they should be discarded.
+### Layer 2: Integration Tests (Vitest + MSW or fetch mock)
+- Auth flow: login → redirect → protected page access
+- Search flow: type query → suggestions → execute → results render
+- Document upload flow: select file → progress → indexed → appears in list
+- Settings persistence: change theme → reload → theme persists
+- Offline mode: service worker registration → cached search works
 
 ---
 
-### 3.6 Verification from clean environment (PENDING)
-
-The acceptance criteria require:
-1. Fresh venv + `pip install -r backend/requirements.txt` + `python -c "from app.main import app"` succeeds
-2. Full test suite (both `tests/` and `backend/tests/`) passes
-3. `git status` clean of runtime-data files
-4. `make typecheck` passes
-
-These have **not been verified** against the current HEAD in a clean environment.
+### Layer 3: End-to-End Tests (Playwright)
+**Critical user journeys:**
+1. New user onboarding: Landing → Register → Verify email → Login → Search → Upload doc → Logout
+2. Returning user: Login → Search → View history → Re-run search
+3. Settings: Login → Settings → Toggle dark mode → Verify across pages
+4. AI chat: Search → AI Chat → Ask question → Verify citation rendering
+5. Document management: Documents → Upload → Progress → Search within document → Delete
+6. Keyboard-first: `Ctrl+K` → Type query → `Enter` → Results → `Esc` to close
+7. Mobile responsive: Same flows at 375×812 (iPhone) and 768×1024 (tablet)
 
 ---
 
-## 4. Gaps vs Original Acceptance Criteria
+### Layer 4: UX Quality Audits (non-automated or tool-assisted)
+- **Accessibility:** Run `@axe-core/playwright` or Lighthouse on each page
+- **Visual regression:** Add Chromatic or Percy if Storybook is introduced; otherwise Playwright screenshot comparison
+- **Performance:** Lighthouse CI on key pages (FCP, LCP, CLS)
+- **Content/design-system conformance:** Spot-check that components match `docs/ux/04_Design_System.md` tokens and `docs/ux/05_Component_Library.md` specs
 
-| Criterion | Current State | Gap |
-|-----------|--------------|-----|
-| Fresh venv import succeeds | Likely OK (imports fixed in HEAD) | Needs fresh-venv verification |
-| Full test suite passes | Partially blocked: `backend/tests/` lacks `conftest.py`; CI doesn't run it | Need `conftest.py` + CI update |
-| `git status` clean of runtime data | `pytest_errors.txt` & `test_results.txt` still tracked | Need `git rm --cached` |
-| `make typecheck` passes | `mypy` added to requirements-dev | Needs actual `make typecheck` run in clean env |
+---
+
+## 4. Gaps vs Design Docs
+
+| Doc | Claimed / Specified | Evidence in Code | Gap |
+|-----|---------------------|------------------|-----|
+| `04_Design_System.md` | 8px spacing grid, Inter font, breakpoints, dark mode tokens | Not confirmed — no global CSS/Tailwind config inspection yet | Need to verify Tailwind config matches tokens |
+| `05_Component_Library.md` | DropZone, Settings, SearchBar, AI Response Card, Search Result Card components | `SearchPage`, `DocumentsPage`, `AIChatPage` exist; DropZone component not confirmed | Verify component implementations match anatomy/specs |
+| `06_Keyboard_Shortcuts_Accessibility.md` | `Ctrl+K`, `Ctrl+,`, `Ctrl+S`, etc. | `pages.test.tsx` has no keyboard tests | Keyboard shortcuts need explicit tests |
+| `03_Information_Architecture.md` | Nav structure, page hierarchy | `BottomNav`, `Sidebar` partially tested | IA needs navigation-flow tests |
 
 ---
 
 ## 5. Recommended Execution Order
 
-1. **Create `backend/tests/conftest.py`** — unblock backend test execution
-2. **Untrack runtime files** — `git rm --cached pytest_errors.txt test_results.txt`
-3. **Align CI coverage threshold** — update `.github/workflows/ci.yml` to `--cov-fail-under=35`
-4. **Align CI test scope** — ensure CI runs both `tests/` and `backend/tests/`
-5. **Review/commit or discard working-tree changes** — clean the tree
-6. **Run full verification** in a fresh venv:
-   - `python -c "from app.main import app"`
-   - `make typecheck`
-   - `pytest` from `backend/` (covers both dirs via `testpaths`)
-7. **Branch protection** — verify "Verify app imports" is a required check in GitHub repo settings (requires `gh` CLI or web UI)
+1. **Audit package scripts** — confirm `e2e` script exists in `frontend/package.json`; if missing, add it or fix CI
+2. **Add `frontend/tests/setup.ts`** — global mocks for `fetch`, `window.matchMedia`, `ResizeObserver`, `IntersectionObserver`
+3. **Create component test files for untested pages** — start with Layer 1 priority list above
+4. **Add integration tests for 3 critical flows** — auth, search, document upload
+5. **Add Playwright e2e config + 3 critical journey tests** — if CI is expected to run them
+6. **Add accessibility checks** — axe-core via Playwright or vitest-axe
+7. **Run full frontend test suite + coverage** — establish current baseline
+8. **Visual regression baseline** — Playwright screenshots or Chromatic Storybook
 
 ---
 
-## 6. Risk / Open Questions
+## 6. Open Questions
 
-- **`backend/tests/` tests may have been written assuming root `conftest.py` fixtures.** If they import `client` or `auth_headers` from the root conftest, duplicating the conftest in `backend/tests/` could cause double-registration of fixtures or database setup conflicts. Review imports in `backend/tests/test_*.py` before copying conftest blindly.
-- **CI `--cov-fail-under=75` is hardcoded** in the workflow step, not inherited from `pytest.ini`. Even after lowering `pytest.ini` to 35%, CI will still fail at 75% until the workflow is updated.
-- **Branch protection** cannot be verified or changed from within the repo without `gh` CLI. This is a manual GitHub settings step.
+1. **Should UI/UX testing scope include the uncommitted working-tree changes** in `backend/app/database/repositories/*.py` and `backend/app/routes/admin.py`, or is frontend testing isolated to `frontend/`?
+2. **Is Playwright already configured** (`playwright.config.ts`, test directory), or does the CI step `npm run e2e` currently fail because the script is missing?
+3. **Should the frontend tests be enforced in CI** with a coverage gate, or is the current “build succeeds” check sufficient?

@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
 // Import security hardening
-import './security/vite-security';'
+import './security/vite-security';
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

@@ -23,11 +23,6 @@ const BLOCKED_PATTERNS = [
   /\.aws\//gi,
   /\.ssh\//gi,
   /\/etc\//gi,
-  /C:\\/Windows\\\/gi,
-  /\/proc\\//gi,
-  /\/var\\//gi,
-  /\/sys\\//gi,
-  /\/dev\\//gi,
   /\/etc\/passwd/gi,
   /\/etc\/shadow/gi,
 ];
