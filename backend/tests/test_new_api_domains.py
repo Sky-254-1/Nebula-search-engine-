@@ -1,20 +1,25 @@
 """Tests for new API domains: documents, users, notifications, analytics, recommendations, admin."""
 
 import pytest
-from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.main import app
 from app.services.auth import create_access_token
 from app.config import get_settings
 
 settings = get_settings()
-client = TestClient(app)
 
 
 # ============================================
 # Test Fixtures
 # ============================================
+
+class APITestBase:
+    """Bind module-scoped TestClient to test class instances."""
+
+    @pytest.fixture(autouse=True)
+    def _bind_client(self, client):
+        self.client = client
+
 
 @pytest.fixture
 def mock_db():
@@ -54,12 +59,12 @@ def auth_headers_admin(admin_token):
 # Documents Domain Tests
 # ============================================
 
-class TestDocumentsAPI:
+class TestDocumentsAPI(APITestBase):
     """Test documents domain endpoints."""
     
     def test_list_documents_unauthorized(self):
         """Test listing documents without authentication."""
-        response = client.get("/api/v1/documents/")
+        response = self.client.get("/api/v1/documents/")
         assert response.status_code == 401
     
     def test_list_documents_authorized(self, auth_headers_user, mock_db):
@@ -77,7 +82,7 @@ class TestDocumentsAPI:
                     mock_doc_repo.list_for_user = AsyncMock(return_value=[])
                     MockDocRepo.return_value = mock_doc_repo
                     
-                    response = client.get("/api/v1/documents/", headers=auth_headers_user)
+                    response = self.client.get("/api/v1/documents/", headers=auth_headers_user)
                     assert response.status_code == 200
                     assert "documents" in response.json()
                     assert "pagination" in response.json()
@@ -100,7 +105,7 @@ class TestDocumentsAPI:
                     ])
                     MockDocRepo.return_value = mock_doc_repo
                     
-                    response = client.get(
+                    response = self.client.get(
                         "/api/v1/documents/",
                         params={"page": 1, "page_size": 10},
                         headers=auth_headers_user
@@ -117,12 +122,12 @@ class TestDocumentsAPI:
     
     def test_upload_document_unauthorized(self):
         """Test uploading document without authentication."""
-        response = client.post("/api/v1/documents/")
+        response = self.client.post("/api/v1/documents/")
         assert response.status_code == 401
     
     def test_upload_document_invalid_type(self, auth_headers_user):
         """Test uploading document with invalid file type."""
-        response = client.post(
+        response = self.client.post(
             "/api/v1/documents/",
             files={"file": ("test.exe", b"content", "application/octet-stream")},
             headers=auth_headers_user
@@ -132,7 +137,7 @@ class TestDocumentsAPI:
     
     def test_delete_document_unauthorized(self):
         """Test deleting document without authentication."""
-        response = client.delete("/api/v1/documents/1")
+        response = self.client.delete("/api/v1/documents/1")
         assert response.status_code == 401
 
 
@@ -140,12 +145,12 @@ class TestDocumentsAPI:
 # Users Domain Tests
 # ============================================
 
-class TestUsersAPI:
+class TestUsersAPI(APITestBase):
     """Test users domain endpoints."""
     
     def test_get_profile_unauthorized(self):
         """Test getting profile without authentication."""
-        response = client.get("/api/v1/users/profile")
+        response = self.client.get("/api/v1/users/profile")
         assert response.status_code == 401
     
     def test_get_profile_authorized(self, auth_headers_user, mock_db):
@@ -163,7 +168,7 @@ class TestUsersAPI:
                 })
                 MockUserRepo.return_value = mock_user_repo
                 
-                response = client.get("/api/v1/users/profile", headers=auth_headers_user)
+                response = self.client.get("/api/v1/users/profile", headers=auth_headers_user)
                 assert response.status_code == 200
                 data = response.json()
                 assert data["email"] == "test@example.com"
@@ -171,17 +176,17 @@ class TestUsersAPI:
     
     def test_update_profile_unauthorized(self):
         """Test updating profile without authentication."""
-        response = client.put("/api/v1/users/profile", json={"name": "Test User"})
+        response = self.client.put("/api/v1/users/profile", json={"name": "Test User"})
         assert response.status_code == 401
     
     def test_get_preferences_unauthorized(self):
         """Test getting preferences without authentication."""
-        response = client.get("/api/v1/users/preferences")
+        response = self.client.get("/api/v1/users/preferences")
         assert response.status_code == 401
     
     def test_get_activity_unauthorized(self):
         """Test getting activity without authentication."""
-        response = client.get("/api/v1/users/activity")
+        response = self.client.get("/api/v1/users/activity")
         assert response.status_code == 401
 
 
@@ -189,12 +194,12 @@ class TestUsersAPI:
 # Notifications Domain Tests
 # ============================================
 
-class TestNotificationsAPI:
+class TestNotificationsAPI(APITestBase):
     """Test notifications domain endpoints."""
     
     def test_list_notifications_unauthorized(self):
         """Test listing notifications without authentication."""
-        response = client.get("/api/v1/notifications/")
+        response = self.client.get("/api/v1/notifications/")
         assert response.status_code == 401
     
     def test_list_notifications_authorized(self, auth_headers_user, mock_db):
@@ -214,7 +219,7 @@ class TestNotificationsAPI:
                     mock_notif_repo.get_unread_count = AsyncMock(return_value=0)
                     MockNotifRepo.return_value = mock_notif_repo
 
-                    response = client.get("/api/v1/notifications/", headers=auth_headers_user)
+                    response = self.client.get("/api/v1/notifications/", headers=auth_headers_user)
                     assert response.status_code == 200
                     data = response.json()
                     assert "notifications" in data
@@ -235,7 +240,7 @@ class TestNotificationsAPI:
                     mock_notif_repo.get_unread_count = AsyncMock(return_value=0)
                     MockNotifRepo.return_value = mock_notif_repo
 
-                    response = client.get(
+                    response = self.client.get(
                         "/api/v1/notifications/",
                         params={"page": 1, "page_size": 20},
                         headers=auth_headers_user
@@ -247,22 +252,22 @@ class TestNotificationsAPI:
     
     def test_get_unread_count_unauthorized(self):
         """Test getting unread count without authentication."""
-        response = client.get("/api/v1/notifications/unread-count")
+        response = self.client.get("/api/v1/notifications/unread-count")
         assert response.status_code == 401
     
     def test_mark_as_read_unauthorized(self):
         """Test marking notification as read without authentication."""
-        response = client.post("/api/v1/notifications/1/read")
+        response = self.client.post("/api/v1/notifications/1/read")
         assert response.status_code == 401
     
     def test_get_preferences_unauthorized(self):
         """Test getting notification preferences without authentication."""
-        response = client.get("/api/v1/notifications/preferences")
+        response = self.client.get("/api/v1/notifications/preferences")
         assert response.status_code == 401
     
     def test_update_preferences_unauthorized(self):
         """Test updating notification preferences without authentication."""
-        response = client.put("/api/v1/notifications/preferences", json={})
+        response = self.client.put("/api/v1/notifications/preferences", json={})
         assert response.status_code == 401
 
 
@@ -270,41 +275,49 @@ class TestNotificationsAPI:
 # Analytics Domain Tests
 # ============================================
 
-class TestAnalyticsAPI:
+class TestAnalyticsAPI(APITestBase):
     """Test analytics domain endpoints."""
     
     def test_get_usage_stats_unauthorized(self):
         """Test getting usage stats without authentication."""
-        response = client.get("/api/v1/analytics/usage")
+        response = self.client.get("/api/v1/analytics/usage")
         assert response.status_code == 401
     
     def test_get_usage_stats_authorized(self, auth_headers_user, mock_db):
         """Test getting usage stats with authentication."""
-        with patch("app.routes.analytics.get_db", return_value=mock_db):
-            with patch("app.routes.analytics.UserRepository") as MockUserRepo:
-                mock_user_repo = AsyncMock()
-                mock_user_repo.get_by_email = AsyncMock(return_value={"id": 1, "email": "test@example.com"})
-                MockUserRepo.return_value = mock_user_repo
-                
-                response = client.get("/api/v1/analytics/usage", headers=auth_headers_user)
-                assert response.status_code == 200
-                data = response.json()
-                assert "period_days" in data
-                assert "total_searches" in data
+        with patch("app.routes.analytics.UserRepository") as MockUserRepo, patch(
+            "app.routes.analytics.DocumentRepository"
+        ) as MockDocRepo, patch("app.routes.analytics.search_analytics") as mock_analytics:
+            mock_user_repo = AsyncMock()
+            mock_user_repo.get_by_email = AsyncMock(return_value={"id": 1, "email": "test@example.com"})
+            MockUserRepo.return_value = mock_user_repo
+
+            mock_doc_repo = AsyncMock()
+            mock_doc_repo.list_for_user = AsyncMock(return_value=[])
+            MockDocRepo.return_value = mock_doc_repo
+
+            mock_analytics._set_db = MagicMock()
+            mock_analytics.get_user_search_history = AsyncMock(return_value=[])
+
+            response = self.client.get("/api/v1/analytics/usage", headers=auth_headers_user)
+            assert response.status_code == 200
+            data = response.json()
+            assert "period_days" in data
+            assert "total_searches" in data
     
     def test_get_search_analytics_unauthorized(self):
         """Test getting search analytics without authentication."""
-        response = client.get("/api/v1/analytics/search")
+        response = self.client.get("/api/v1/analytics/search")
         assert response.status_code == 401
     
     def test_get_performance_metrics_unauthorized(self):
         """Test getting performance metrics without authentication."""
-        response = client.get("/api/v1/analytics/performance")
+        response = self.client.get("/api/v1/analytics/performance")
         assert response.status_code == 401
     
     def test_export_analytics_unauthorized(self):
         """Test exporting analytics without authentication."""
-        response = client.get("/api/v1/analytics/export")
+        response = self.client.get("/api/v1/analytics/export")
         assert response.status_code == 401
 
 
@@ -312,12 +325,12 @@ class TestAnalyticsAPI:
 # Recommendations Domain Tests
 # ============================================
 
-class TestRecommendationsAPI:
+class TestRecommendationsAPI(APITestBase):
     """Test recommendations domain endpoints."""
     
     def test_get_related_unauthorized(self):
         """Test getting related documents without authentication."""
-        response = client.get("/api/v1/recommendations/related")
+        response = self.client.get("/api/v1/recommendations/related")
         assert response.status_code == 401
     
     def test_get_related_authorized(self, auth_headers_user, mock_db):
@@ -334,7 +347,7 @@ class TestRecommendationsAPI:
                     mock_doc_repo.list_for_user = AsyncMock(return_value=[])
                     MockDocRepo.return_value = mock_doc_repo
 
-                    response = client.get(
+                    response = self.client.get(
                         "/api/v1/recommendations/related",
                         params={"document_id": 1},
                         headers=auth_headers_user
@@ -346,12 +359,12 @@ class TestRecommendationsAPI:
     
     def test_get_personalized_unauthorized(self):
         """Test getting personalized recommendations without authentication."""
-        response = client.get("/api/v1/recommendations/personalized")
+        response = self.client.get("/api/v1/recommendations/personalized")
         assert response.status_code == 401
     
     def test_get_similar_searches_unauthorized(self):
         """Test getting similar searches without authentication."""
-        response = client.get("/api/v1/recommendations/similar-searches")
+        response = self.client.get("/api/v1/recommendations/similar-searches")
         assert response.status_code == 401
 
 
@@ -359,17 +372,17 @@ class TestRecommendationsAPI:
 # Admin Domain Tests
 # ============================================
 
-class TestAdminAPI:
+class TestAdminAPI(APITestBase):
     """Test admin domain endpoints."""
     
     def test_list_users_unauthorized(self):
         """Test listing users without admin authentication."""
-        response = client.get("/api/v1/admin/users")
+        response = self.client.get("/api/v1/admin/users")
         assert response.status_code == 401
     
     def test_list_users_non_admin(self, auth_headers_user):
         """Test listing users with non-admin user."""
-        response = client.get("/api/v1/admin/users", headers=auth_headers_user)
+        response = self.client.get("/api/v1/admin/users", headers=auth_headers_user)
         assert response.status_code == 403
     
     def test_list_users_admin(self, auth_headers_admin, mock_db):
@@ -390,7 +403,7 @@ class TestAdminAPI:
                 ])
                 MockUserRepo.return_value = mock_user_repo
                 
-                response = client.get("/api/v1/admin/users", headers=auth_headers_admin)
+                response = self.client.get("/api/v1/admin/users", headers=auth_headers_admin)
                 assert response.status_code == 200
                 data = response.json()
                 assert "users" in data
@@ -419,7 +432,7 @@ class TestAdminAPI:
                             mock_queue._redis = None
                             mock_queue._queue = []
                             
-                            response = client.get("/api/v1/admin/stats", headers=auth_headers_admin)
+                            response = self.client.get("/api/v1/admin/stats", headers=auth_headers_admin)
                             assert response.status_code == 200
                             data = response.json()
                             assert "total_users" in data
@@ -431,7 +444,7 @@ class TestAdminAPI:
             mock_queue._redis = None
             mock_queue._queue = []
             
-            response = client.get("/api/v1/admin/queue", headers=auth_headers_admin)
+            response = self.client.get("/api/v1/admin/queue", headers=auth_headers_admin)
             assert response.status_code == 200
             data = response.json()
             assert "pending_jobs" in data
@@ -447,7 +460,7 @@ class TestAdminAPI:
                 "keys_count": 100,
             })
             
-            response = client.get("/api/v1/admin/cache", headers=auth_headers_admin)
+            response = self.client.get("/api/v1/admin/cache", headers=auth_headers_admin)
             assert response.status_code == 200
             data = response.json()
             assert "connected" in data
@@ -458,7 +471,7 @@ class TestAdminAPI:
         with patch("app.routes.admin.cache_service") as mock_cache:
             mock_cache.clear = AsyncMock()
             
-            response = client.post("/api/v1/admin/cache/clear", headers=auth_headers_admin)
+            response = self.client.post("/api/v1/admin/cache/clear", headers=auth_headers_admin)
             assert response.status_code == 200
             assert "message" in response.json()
     
@@ -470,7 +483,7 @@ class TestAdminAPI:
                 mock_audit_repo.get_recent = AsyncMock(return_value=[])
                 MockAuditRepo.return_value = mock_audit_repo
                 
-                response = client.get("/api/v1/admin/audit-logs", headers=auth_headers_admin)
+                response = self.client.get("/api/v1/admin/audit-logs", headers=auth_headers_admin)
                 assert response.status_code == 200
                 data = response.json()
                 assert "logs" in data
@@ -481,13 +494,13 @@ class TestAdminAPI:
 # Pagination Tests
 # ============================================
 
-class TestPaginationIntegration:
+class TestPaginationIntegration(APITestBase):
     """Test pagination across all collection endpoints."""
     
     def test_pagination_page_size_validation(self, auth_headers_user):
         """Test pagination page size validation."""
         # Page size too large
-        response = client.get(
+        response = self.client.get(
             "/api/v1/documents/",
             params={"page": 1, "page_size": 200},
             headers=auth_headers_user
@@ -497,7 +510,7 @@ class TestPaginationIntegration:
     def test_pagination_page_validation(self, auth_headers_user):
         """Test pagination page number validation."""
         # Page number less than 1
-        response = client.get(
+        response = self.client.get(
             "/api/v1/documents/",
             params={"page": 0, "page_size": 20},
             headers=auth_headers_user
@@ -523,7 +536,7 @@ class TestPaginationIntegration:
                     MockDocRepo.return_value = mock_doc_repo
                     
                     # Request page 1 with page_size 2
-                    response = client.get(
+                    response = self.client.get(
                         "/api/v1/documents/",
                         params={"page": 1, "page_size": 2},
                         headers=auth_headers_user
@@ -538,7 +551,7 @@ class TestPaginationIntegration:
                     assert data["pagination"]["has_previous"] is False
                     
                     # Request page 2
-                    response = client.get(
+                    response = self.client.get(
                         "/api/v1/documents/",
                         params={"page": 2, "page_size": 2},
                         headers=auth_headers_user
@@ -549,7 +562,7 @@ class TestPaginationIntegration:
                     assert data["pagination"]["has_previous"] is True
                     
                     # Request last page
-                    response = client.get(
+                    response = self.client.get(
                         "/api/v1/documents/",
                         params={"page": 3, "page_size": 2},
                         headers=auth_headers_user
@@ -564,30 +577,30 @@ class TestPaginationIntegration:
 # Security Tests
 # ============================================
 
-class TestSecurity:
+class TestSecurity(APITestBase):
     """Test security features of new endpoints."""
     
     def test_cors_headers_present(self):
         """Test CORS headers are present."""
-        response = client.get("/api/v1/documents/", headers={"Origin": "http://localhost:5173"})
+        response = self.client.get("/api/v1/documents/", headers={"Origin": "http://localhost:5173"})
         assert "access-control-allow-origin" in response.headers or response.status_code == 401
     
     def test_security_headers_present(self):
         """Test security headers are present."""
-        response = client.get("/api/v1/documents/")
+        response = self.client.get("/api/v1/documents/")
         # Should have security headers even on 401
         assert "x-frame-options" in response.headers or response.status_code == 401
     
     def test_rate_limit_headers(self):
         """Test rate limit headers are present."""
-        response = client.get("/api/v1/documents/")
+        response = self.client.get("/api/v1/documents/")
         # Rate limit headers should be present
         assert response.status_code == 401
     
     def test_invalid_token_rejected(self):
         """Test invalid tokens are rejected."""
         headers = {"Authorization": "Bearer invalid_token"}
-        response = client.get("/api/v1/documents/", headers=headers)
+        response = self.client.get("/api/v1/documents/", headers=headers)
         assert response.status_code == 401
     
     def test_expired_token_rejected(self):
@@ -595,7 +608,7 @@ class TestSecurity:
         # Create a token with very short expiry (this would need actual implementation)
         # For now, just test that invalid tokens are rejected
         headers = {"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid"}
-        response = client.get("/api/v1/documents/", headers=headers)
+        response = self.client.get("/api/v1/documents/", headers=headers)
         assert response.status_code == 401
 
 
@@ -603,7 +616,7 @@ class TestSecurity:
 # Backward Compatibility Tests
 # ============================================
 
-class TestBackwardCompatibility:
+class TestBackwardCompatibility(APITestBase):
     """Test backward compatibility with legacy endpoints."""
     
     def test_storage_documents_endpoint_still_works(self, auth_headers_user, mock_db):
@@ -619,7 +632,7 @@ class TestBackwardCompatibility:
                     mock_doc_repo.list_for_user = AsyncMock(return_value=[])
                     MockDocRepo.return_value = mock_doc_repo
                     
-                    response = client.get("/api/v1/storage/documents", headers=auth_headers_user)
+                    response = self.client.get("/api/v1/storage/documents", headers=auth_headers_user)
                     assert response.status_code == 200
     
     def test_storage_exports_endpoint_still_works(self, auth_headers_user, mock_db):
@@ -635,5 +648,5 @@ class TestBackwardCompatibility:
                     mock_export_repo.list_for_user = AsyncMock(return_value=[])
                     MockExportRepo.return_value = mock_export_repo
                     
-                    response = client.get("/api/v1/storage/exports", headers=auth_headers_user)
+                    response = self.client.get("/api/v1/storage/exports", headers=auth_headers_user)
                     assert response.status_code == 200

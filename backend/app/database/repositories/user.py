@@ -51,6 +51,15 @@ class UserRepository:
         )
         await self._db.commit()
 
+    async def update_status(self, user_id: int, is_active: bool) -> None:
+        """Activate or deactivate a user account."""
+        now = datetime.now(timezone.utc).isoformat()
+        await self._db.execute(
+            "UPDATE users SET is_active = ?, updated_at = ? WHERE id = ?",
+            (is_active, now, user_id),
+        )
+        await self._db.commit()
+
     async def update_email_verified(self, user_id: int, verified: bool) -> None:
         """Update email verification status."""
         await self._db.execute(

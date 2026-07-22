@@ -27,3 +27,8 @@ class SearchRepository:
             (user_id, limit),
         )
         return [dict(row) for row in rows]
+
+    async def count_all(self) -> int:
+        """Return total search log count."""
+        row = await self._db.fetchone("SELECT COUNT(*) as count FROM search_logs")
+        return int(row["count"]) if row else 0

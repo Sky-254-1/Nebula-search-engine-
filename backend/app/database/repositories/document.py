@@ -86,3 +86,8 @@ class DocumentRepository:
             (user_id, content_hash),
         )
         return dict(row) if row else None
+
+    async def count_all(self) -> int:
+        """Return total document count across all users."""
+        row = await self._db.fetchone("SELECT COUNT(*) as count FROM documents")
+        return int(row["count"]) if row else 0

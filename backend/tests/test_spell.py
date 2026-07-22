@@ -5,13 +5,15 @@ from __future__ import annotations
 import time
 
 import pytest
-from fastapi.testclient import TestClient
 
-from app.main import app
 from app.services.auth import create_access_token
 from app.services.spell_service import SpellService, levenshtein_distance, normalize_text
 
-client = TestClient(app)
+
+class APITestBase:
+    @pytest.fixture(autouse=True)
+    def _bind_client(self, client):
+        self.client = client
 
 
 # ---------------------------------------------------------------------------
@@ -88,7 +90,7 @@ class TestNormalizeText:
 # ---------------------------------------------------------------------------
 
 
-class TestSpellAPI:
+class TestSpellAPI(APITestBase):
     """Tests for spell correction API endpoints."""
 
     def _get_auth_headers(self, email: str = "test@example.com") -> dict:
@@ -97,12 +99,12 @@ class TestSpellAPI:
 
     def test_spell_endpoint_requires_query(self):
         headers = self._get_auth_headers()
-        response = client.get("/api/v1/search/spell", headers=headers)
+        response = self.client.get("/api/v1/search/spell", headers=headers)
         assert response.status_code == 422
 
     def test_spell_query_too_long(self):
         headers = self._get_auth_headers()
-        response = client.get(
+        response = self.client.get(
             "/api/v1/search/spell",
             params={"q": "a" * 101},
             headers=headers,
@@ -112,7 +114,7 @@ class TestSpellAPI:
     def test_spell_basic_response_shape(self):
         """Spell endpoint returns expected response structure."""
         headers = self._get_auth_headers()
-        response = client.get(
+        response = self.client.get(
             "/api/v1/search/spell",
             params={"q": "machne lernng"},
             headers=headers,
@@ -127,7 +129,7 @@ class TestSpellAPI:
 
     def test_spell_already_correct(self):
         headers = self._get_auth_headers()
-        response = client.get(
+        response = self.client.get(
             "/api/v1/search/spell",
             params={"q": "the"},
             headers=headers,
@@ -139,7 +141,7 @@ class TestSpellAPI:
 
     def test_spell_unicode_input(self):
         headers = self._get_auth_headers()
-        response = client.get(
+        response = self.client.get(
             "/api/v1/search/spell",
             params={"q": "café"},
             headers=headers,
@@ -148,7 +150,7 @@ class TestSpellAPI:
 
     def test_spell_empty_query(self):
         headers = self._get_auth_headers()
-        response = client.get(
+        response = self.client.get(
             "/api/v1/search/spell",
             params={"q": ""},
             headers=headers,
@@ -157,7 +159,7 @@ class TestSpellAPI:
 
     def test_spell_numbers(self):
         headers = self._get_auth_headers()
-        response = client.get(
+        response = self.client.get(
             "/api/v1/search/spell",
             params={"q": "123"},
             headers=headers,
@@ -166,7 +168,7 @@ class TestSpellAPI:
 
     def test_spell_symbols(self):
         headers = self._get_auth_headers()
-        response = client.get(
+        response = self.client.get(
             "/api/v1/search/spell",
             params={"q": "!!!"},
             headers=headers,
@@ -176,7 +178,7 @@ class TestSpellAPI:
     def test_spell_did_you_mean_when_changed(self):
         """When changed is true and confidence is decent, did_you_mean may appear."""
         headers = self._get_auth_headers()
-        response = client.get(
+        response = self.client.get(
             "/api/v1/search/spell",
             params={"q": "the"},
             headers=headers,
@@ -186,7 +188,7 @@ class TestSpellAPI:
         assert "data" in data
 
 
-class TestSpellSuggestionsAPI:
+class TestSpellSuggestionsAPI(APITestBase):
     """Tests for spell suggestions endpoint."""
 
     def _get_auth_headers(self, email: str = "test@example.com") -> dict:
@@ -195,12 +197,12 @@ class TestSpellSuggestionsAPI:
 
     def test_suggestions_requires_query(self):
         headers = self._get_auth_headers()
-        response = client.get("/api/v1/search/spell/suggestions", headers=headers)
+        response = self.client.get("/api/v1/search/spell/suggestions", headers=headers)
         assert response.status_code == 422
 
     def test_suggestions_returns_list(self):
         headers = self._get_auth_headers()
-        response = client.get(
+        response = self.client.get(
             "/api/v1/search/spell/suggestions",
             params={"q": "test"},
             headers=headers,
@@ -210,7 +212,7 @@ class TestSpellSuggestionsAPI:
         assert "suggestions" in data.get("data", {})
 
 
-class TestSpellRebuildAPI:
+class TestSpellRebuildAPI(APITestBase):
     """Tests for spell dictionary rebuild endpoint."""
 
     def _get_auth_headers(self, email: str = "test@example.com") -> dict:
@@ -218,9 +220,9 @@ class TestSpellRebuildAPI:
         return {"Authorization": f"Bearer {token}"}
 
     def test_rebuild_requires_auth(self):
-        response = client.post("/api/v1/search/spell/rebuild")
+        response = self.client.post("/api/v1/search/spell/rebuild")
         assert response.status_code == 401
 
     def test_rebuild_without_token_returns_401(self):
-        response = client.post("/api/v1/search/spell/rebuild")
+        response = self.client.post("/api/v1/search/spell/rebuild")
         assert response.status_code == 401

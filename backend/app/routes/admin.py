@@ -7,8 +7,10 @@ from typing import Optional, List, Dict, Any
 from app.database import get_db
 from app.database.repositories.audit import AuditRepository
 from app.database.repositories.document import DocumentRepository
+from app.database.repositories.search import SearchRepository
 from app.database.repositories.session import SessionRepository
 from app.database.repositories.user import UserRepository
+from app.config import get_settings
 from app.models.schemas import PaginationMeta
 from app.services.auth import require_admin
 from app.services.cache import cache_service
@@ -172,8 +174,7 @@ async def activate_user(user_id: int, _admin=Depends(require_admin), db=Depends(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # TODO: Implement activate_user method in UserRepository
-    # await users.update_status(user_id, is_active=True)
+    await users.update_status(user_id, is_active=True)
     return {"message": f"User {user_id} activated"}
 
 
@@ -186,8 +187,7 @@ async def deactivate_user(user_id: int, _admin=Depends(require_admin), db=Depend
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # TODO: Implement deactivate_user method in UserRepository
-    # await users.update_status(user_id, is_active=False)
+    await users.update_status(user_id, is_active=False)
     return {"message": f"User {user_id} deactivated"}
 
 
@@ -200,8 +200,7 @@ async def delete_user(user_id: int, _admin=Depends(require_admin), db=Depends(ge
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # TODO: Implement delete_user method in UserRepository
-    # await users.delete(user_id)
+    await users.delete(user_id)
     return {"message": f"User {user_id} deleted"}
 
 
@@ -214,20 +213,15 @@ async def get_system_stats(_admin=Depends(require_admin), db=Depends(get_db)):
     """Get comprehensive system statistics."""
     users_repo = UserRepository(db)
     docs_repo = DocumentRepository(db)
-    audit_repo = AuditRepository(db)
-    
+    search_repo = SearchRepository(db)
+
     # Get user stats
     all_users = await users_repo.list_all()
     total_users = len(all_users)
     active_users = len([u for u in all_users if u.get("is_active", True)])
-    
-    # Get document stats
-    # TODO: Add count method to DocumentRepository
-    total_documents = 0
-    
-    # Get search stats from audit logs
-    # TODO: Implement search count method
-    total_searches = 0
+
+    total_documents = await docs_repo.count_all()
+    total_searches = await search_repo.count_all()
     
     # Get cache stats
     cache_stats = await cache_service.get_stats()
@@ -248,8 +242,21 @@ async def get_system_stats(_admin=Depends(require_admin), db=Depends(get_db)):
         cache_hit_ratio=cache_stats.get("hit_ratio", 0.0),
         uptime_seconds=uptime_seconds,
         queue_size=queue_size,
-        database_size_mb=0.0,  # TODO: Implement database size calculation
+        database_size_mb=_database_size_mb(),
     )
+
+
+def _database_size_mb() -> float:
+    """Estimate SQLite database size; returns 0 for PostgreSQL (use pg metrics)."""
+    from pathlib import Path
+
+    settings = get_settings()
+    if settings.uses_postgres:
+        return 0.0
+    db_path = Path(settings.db_path)
+    if db_path.exists():
+        return round(db_path.stat().st_size / (1024 * 1024), 2)
+    return 0.0
 
 
 # ============================================
