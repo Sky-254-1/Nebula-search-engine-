@@ -186,7 +186,7 @@ class MetadataBooster:
         if isinstance(updated_at, str):
             try:
                 updated_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
-            except:
+            except (ValueError, TypeError):
                 return 1.0
         
         # Calculate age in days

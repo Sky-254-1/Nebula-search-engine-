@@ -177,7 +177,7 @@ class FilterEngine:
         filtered = []
         for result in results:
             lang = result.get("language", "en").lower()
-            if lang in [l.lower() for l in languages]:
+            if lang in [lang.lower() for lang in languages]:
                 filtered.append(result)
         
         return filtered

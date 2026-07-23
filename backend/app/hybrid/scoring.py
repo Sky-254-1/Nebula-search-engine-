@@ -182,7 +182,7 @@ class ScoringEngine:
             try:
                 from datetime import datetime
                 updated_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
-            except:
+            except (ValueError, TypeError):
                 return 0.5
         
         # Calculate age in days
