@@ -10,6 +10,7 @@ class TestSemanticEngine:
     @pytest.fixture
     def engine(self):
         from app.search.semantic import SemanticEngine
+
         return SemanticEngine()
 
     def test_cosine_similarity_identical(self, engine):
@@ -55,8 +56,10 @@ class TestSemanticEngine:
     def test_get_embedding_no_provider(self, engine):
         """Failure path: get_embedding without provider."""
         import pytest
+
         with pytest.raises(ValueError, match="not initialized"):
             import asyncio
+
             asyncio.run(engine.get_embedding("test"))
 
     def test_get_embedding_with_provider(self, engine):
@@ -66,6 +69,7 @@ class TestSemanticEngine:
         engine._embedding_provider = mock_provider
 
         import asyncio
+
         result = asyncio.run(engine.get_embedding("test"))
         assert result == [0.1, 0.2, 0.3]
 
@@ -78,6 +82,7 @@ class TestSemanticEngine:
     def test_health_check_no_providers(self, engine):
         """Health check with no providers initialized."""
         import asyncio
+
         result = asyncio.run(engine.health_check())
         assert result["embedding_provider"] is False
         assert result["vector_store"] is False
@@ -92,6 +97,7 @@ class TestSemanticEngine:
         engine._vector_store = mock_vs
 
         import asyncio
+
         result = asyncio.run(engine.health_check())
         assert result["embedding_provider"] is True
         assert result["vector_store"] is True

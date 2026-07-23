@@ -21,7 +21,9 @@ class TestEmailVerification(APITestBase):
 
     def test_verify_email_invalid_token(self):
         """GET /verify-email with invalid token returns 400."""
-        response = self.client.get("/api/v1/auth/verify-email", params={"token": "invalid"})
+        response = self.client.get(
+            "/api/v1/auth/verify-email", params={"token": "invalid"}
+        )
         assert response.status_code == 400
 
     def test_resend_verification_unauthorized(self):
@@ -87,5 +89,3 @@ class TestAccountManagement(APITestBase):
         """DELETE /sessions/{id} without auth returns 401."""
         response = self.client.delete("/api/v1/auth/sessions/some-id")
         assert response.status_code == 401
-
-

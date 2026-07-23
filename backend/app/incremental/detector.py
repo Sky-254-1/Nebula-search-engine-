@@ -426,9 +426,9 @@ class MetadataComparator:
         
         changes = {}
         
-        for field in fields_to_compare:
-            old_value = old_metadata.get(field)
-            new_value = new_metadata.get(field)
+        for fld in fields_to_compare:
+            old_value = old_metadata.get(fld)
+            new_value = new_metadata.get(fld)
             
             if old_value != new_value:
                 changes[field] = {

@@ -221,9 +221,9 @@ class DiffEngine:
             "tags", "language", "permissions", "collections"
         ]
         
-        for field in searchable_fields:
-            old_value = old_metadata.get(field)
-            new_value = new_metadata.get(field)
+        for fld in searchable_fields:
+            old_value = old_metadata.get(fld)
+            new_value = new_metadata.get(fld)
             
             if old_value != new_value:
                 changes[field] = {

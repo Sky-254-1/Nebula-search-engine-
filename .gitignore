@@ -136,3 +136,4 @@ graphify-out/
 
 # Search history exports (user data)
 storage/exports/**/*.json
+.vs/Nebula-search-engine-.slnx/FileContentIndex/c488472e-28a9-4356-a7dc-9fbc2bfd6a32.vsidx
