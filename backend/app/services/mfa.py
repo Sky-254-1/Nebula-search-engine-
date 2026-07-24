@@ -25,7 +25,7 @@ class MFAService:
     @staticmethod
     def get_totp_uri(secret: str, email: str, issuer: str = None) -> str:
         """Generate TOTP URI for QR code."""
-        issuer = issuer or settings.mfa_issuer
+        issuer = issuer or getattr(settings, 'mfa_issuer', settings.jwt_issuer)
         return pyotp.totp.TOTP(secret).provisioning_uri(
             name=email,
             issuer_name=issuer
@@ -45,7 +45,8 @@ class MFAService:
         
         img = qr.make_image(fill_color="black", back_color="white")
         buffer = BytesIO()
-        img.save(buffer, format="PNG")
+        img.save(buffer)
+        buffer.seek(0)
         return buffer.getvalue()
 
     @staticmethod

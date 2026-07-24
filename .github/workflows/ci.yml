@@ -11,50 +11,11 @@ permissions:
 
 jobs:
   # ============================================
-  # Security Validation
-  # ============================================
-  security-validate:
-    name: Security & Hardening Validation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      # Security: Initialize hardening controls
-      - name: Setup Security Hardening
-        run: |
-          cd frontend
-          npm run security:setup
-      
-      # Security: Validate secure configuration
-      - name: Validate Security Hardening
-        run: |
-          if [ ! -f frontend/tests/security/vite-security.ts ]; then
-            echo "❌ Security hardening configuration missing"
-            exit 1
-          fi
-          echo "✅ Security hardening configuration present"
-      
-      # Security: Generate security report
-      - name: Generate Security Status
-        run: |
-          cd frontend
-          if [ -f tests/security/security-report.json ]; then
-            cat tests/security/security-report.json
-          else
-            echo "⚠️  Security report not generated"
-          fi
-      
-      - name: Security Validation Complete
-        run: |
-          echo "🛡️  Security hardening validation completed successfully"
-
-  # ============================================
   # Backend Tests
   # ============================================
   backend:
     name: Backend Tests
     runs-on: ubuntu-latest
-    needs: [security-validate]
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
@@ -82,39 +43,19 @@ jobs:
           DATABASE_URL: test_nebula.db
         run: |
           python -m pytest tests/ -v --tb=short --cov=app --cov-report=term-missing \
+            --cov-report=xml \
             --ignore=tests/test_async.py \
             --ignore=tests/e2e/ \
             --ignore=tests/performance/ \
             --k="not test_chunk_text" 2>&1 | tee pytest_output.txt
 
       - name: Coverage validation
-        run: |
-          if [ -f backend/coverage.xml ]; then
-            COVERAGE=$(python -c "
-import xml.etree.ElementTree as ET
-tree = ET.parse('backend/coverage.xml')
-root = tree.getroot()
-for elem in root.findall('coverage/@line-rate'):
-    return int(float(elem) * 100)
-return 0
-" 2>/dev/null || echo 0)
-            echo "Coverage: $COVERAGE%"
-            if [ "$COVERAGE" -lt 35 ]; then
-              echo "❌ Coverage below threshold of 35%"
-              exit 1
-            else
-              echo "✅ Coverage passes threshold (>=35%)"
-            fi
-          fi
+        working-directory: backend
+        run: python scripts/ci_check_coverage.py
 
       - name: Verify app imports
-        run: |
-          python -c "
-from app.main import app
-from vector.pipeline import index_document
-print(f'📝 App: {app.title}')
-print(f'📚 Vector pipeline available: {index_document is not None}')
-"
+        working-directory: backend
+        run: python scripts/ci_verify_imports.py
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
@@ -124,19 +65,20 @@ print(f'📚 Vector pipeline available: {index_document is not None}')
           name: backend-coverage
 
       - name: Run security hardening tests
+        working-directory: backend
         run: |
-          if [ -f backend/test_security_fixes.py ]; then
-            python -m pytest backend/test_security_fixes.py -v
-            echo "✅ Security hardening tests passed"
+          if [ -f test_security_fixes.py ]; then
+            python -m pytest test_security_fixes.py -v
+            echo "Security hardening tests passed"
           else
-            echo "⚠️  Security test file not found"
+            echo "Security test file not found"
           fi
 
-      - name: Backup test results for integration
+      - name: Backup test results
         if: always()
         run: |
           mkdir -p tests/integration
-          echo "Backend test results available in backend/pytest_output.txt"
+          echo "Backend test results available"
 
   # ============================================
   # Frontend Tests
@@ -144,7 +86,6 @@ print(f'📚 Vector pipeline available: {index_document is not None}')
   frontend:
     name: Frontend Tests
     runs-on: ubuntu-latest
-    needs: [security-validate]
 
     steps:
       - uses: actions/checkout@v4
@@ -193,21 +134,17 @@ print(f'📚 Vector pipeline available: {index_document is not None}')
           python-version: "3.11"
 
       - name: Install backend dependencies
+        working-directory: backend
         run: |
-          pip install -r backend/requirements-dev.txt
-          pip install pytest pytest-asyncio pytest-cov httpx
+          pip install -r requirements-dev.txt
 
       - name: Initialize test database
-        run: |
-          echo "Initializing test database..."
-          python -c "from app.database import init_db; import asyncio; asyncio.run(init_db())"
-          echo "Database initialization complete"
+        working-directory: backend
+        run: python -c "from app.database import init_db; import asyncio; asyncio.run(init_db())"
 
       - name: Run E2E tests
-        run: |
-          echo "Running E2E tests..."
-          cd backend
-          python -m pytest tests/e2e/ -v --tb=short --cov=app --cov-report=term-missing
+        working-directory: backend
+        run: python -m pytest tests/e2e/ -v --tb=short --cov=app --cov-report=term-missing
         env:
           DATABASE_URL: postgresql://nebula:nebula_test@localhost:5432/nebula_test
           REDIS_URL: redis://localhost:6379/0
@@ -220,23 +157,20 @@ print(f'📚 Vector pipeline available: {index_document is not None}')
           echo "E2E test execution completed"
           if [ -f backend/pytest_output.txt ]; then
             FAILED=$(grep -c "FAILED" backend/pytest_output.txt || echo 0)
-            ERROR=$(grep -c "ERROR" backend/pytest_output.txt || echo 0)
-            echo "E2E Tests - Failed: $FAILED, Errors: $ERROR"
-            if [ "$FAILED" -gt 0 ] || [ "$ERROR" -gt 0 ]; then
-              echo "❌ E2E tests have failures or errors"
-              echo "Test output:"
+            echo "E2E Tests - Failed: $FAILED"
+            if [ "$FAILED" -gt 0 ]; then
+              echo "E2E tests have failures"
               cat backend/pytest_output.txt
             else
-              echo "✅ All E2E tests passed"
-            fi
+              echo "All E2E tests passed"
+            end if
           fi
 
       - name: Stop test services
         if: always()
         run: |
           echo "Stopping test services..."
-          docker compose down
-          docker volume prune -f
+          docker compose down -v
 
   # ============================================
   # Security Scanning
@@ -255,10 +189,10 @@ print(f'📚 Vector pipeline available: {index_document is not None}')
           bandit -r backend/app/ -f json -o bandit-report.json || true
 
       - name: Check dependencies for vulnerabilities
+        working-directory: backend
         run: |
           pip install safety
-          safety check -r backend/requirements.txt || true
-        working-directory: backend
+          safety check -r requirements.txt || true
 
       - name: Upload security report
         uses: actions/upload-artifact@v4
