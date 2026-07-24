@@ -130,18 +130,18 @@ export const AnalyticsPage: React.FC = () => {
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="date" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-text-dark-muted, #374151)" />
+              <XAxis dataKey="date" stroke="var(--color-text-muted, #9CA3AF)" />
+              <YAxis stroke="var(--color-text-muted, #9CA3AF)" />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1F2937',
+                  backgroundColor: 'var(--color-surface-dark-secondary, #1F2937)',
                   border: 'none',
                   borderRadius: '8px',
-                  color: '#F3F4F6',
+                  color: 'var(--color-text-dark-primary, #F3F4F6)',
                 }}
               />
-              <Line type="monotone" dataKey="searches" stroke="#3B82F6" strokeWidth={2} />
+              <Line type="monotone" dataKey="searches" stroke="var(--color-primary, #3B82F6)" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </motion.div>
@@ -157,18 +157,18 @@ export const AnalyticsPage: React.FC = () => {
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="date" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-text-dark-muted, #374151)" />
+              <XAxis dataKey="date" stroke="var(--color-text-muted, #9CA3AF)" />
+              <YAxis stroke="var(--color-text-muted, #9CA3AF)" />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1F2937',
+                  backgroundColor: 'var(--color-surface-dark-secondary, #1F2937)',
                   border: 'none',
                   borderRadius: '8px',
-                  color: '#F3F4F6',
+                  color: 'var(--color-text-dark-primary, #F3F4F6)',
                 }}
               />
-              <Line type="monotone" dataKey="documents" stroke="#10B981" strokeWidth={2} />
+              <Line type="monotone" dataKey="documents" stroke="var(--color-success, #10B981)" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </motion.div>

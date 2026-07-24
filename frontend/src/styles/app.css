@@ -1,20 +1,21 @@
+/* app.css - Legacy styles using design system CSS custom properties */
 :root {
-  --bg: #0b0c10;
-  --surface: #1f2229;
-  --text: #e0e0e0;
-  --text-dim: rgba(224, 224, 224, 0.6);
-  --accent: #7c5cfc;
-  --accent-glow: #a78bfa;
+  --bg: var(--color-surface-dark, #0b0c10);
+  --surface: var(--color-surface-dark-secondary, #1f2229);
+  --text: var(--color-text-dark-primary, #e0e0e0);
+  --text-dim: var(--color-text-dark-muted, rgba(224, 224, 224, 0.6));
+  --accent: var(--color-accent, #7c5cfc);
+  --accent-glow: var(--color-accent-glow, #a78bfa);
   --border: rgba(255, 255, 255, 0.08);
   --radius: 16px;
 }
 
 body[data-theme='light'] {
-  --bg: #f8f9fa;
-  --surface: #ffffff;
-  --text: #202124;
-  --text-dim: rgba(32, 33, 36, 0.6);
-  --accent: #5e4ae3;
+  --bg: var(--color-surface-secondary, #f8f9fa);
+  --surface: var(--color-surface, #ffffff);
+  --text: var(--color-text-primary, #202124);
+  --text-dim: var(--color-text-muted, rgba(32, 33, 36, 0.6));
+  --accent: var(--color-accent, #5e4ae3);
   --border: rgba(0, 0, 0, 0.1);
 }
 
@@ -254,11 +255,11 @@ body {
 }
 
 .toast-error {
-  border-color: #ef4444;
+  border-color: var(--color-error, #ef4444);
 }
 
 .form-error {
-  color: #ef4444;
+  color: var(--color-error, #ef4444);
 }
 
 .user-email {
@@ -395,7 +396,7 @@ body {
 }
 
 .toast-success {
-  border-color: #22c55e;
+  border-color: var(--color-success, #22c55e);
 }
 
 .page-loading {

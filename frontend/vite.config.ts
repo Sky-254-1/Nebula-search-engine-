@@ -24,11 +24,10 @@ const BLOCKED_PATTERNS = [
   /\.aws\//gi,
   /\.ssh\//gi,
   /\/etc\//gi,
-  /C:\\/Windows\\\/gi,
-  /\/proc\\//gi,
-  /\/var\\//gi,
-  /\/sys\\//gi,
-  /\/dev\\//gi,
+  /\/proc\//gi,
+  /\/var\//gi,
+  /\/sys\//gi,
+  /\/dev\//gi,
   /\/etc\/passwd/gi,
   /\/etc\/shadow/gi,
 ];
@@ -145,6 +144,15 @@ export default defineConfig({
         return html;
       },
     },
+    { // File access validator
+      name: 'file-access-validator',
+      transform(src, id) {
+        if (isDevelopment && !isPathAllowed(id)) {
+          console.log(`[SECURITY] Blocked file access: ${id}`);
+        }
+        return null;
+      },
+    },
   ],
   server: {
     port: 5173,
@@ -193,15 +201,4 @@ export default defineConfig({
       },
     },
   },
-  plugins: [
-    { // File access validator
-      name: 'file-access-validator',
-      transform(src, id) {
-        if (isDevelopment && !isPathAllowed(id)) {
-          console.log(`[SECURITY] Blocked file access: ${id}`);
-        }
-        return null;
-      },
-    },
-  ],
 });

@@ -147,19 +147,19 @@ export const AppRoutes: React.FC = () => {
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#1F2937',
-              color: '#F3F4F6',
+              background: 'var(--color-surface-dark-secondary, #1F2937)',
+              color: 'var(--color-text-dark-primary, #F3F4F6)',
             },
             success: {
               iconTheme: {
-                primary: '#10B981',
-                secondary: '#F3F4F6',
+                primary: 'var(--color-success, #10B981)',
+                secondary: 'var(--color-text-dark-primary, #F3F4F6)',
               },
             },
             error: {
               iconTheme: {
-                primary: '#EF4444',
-                secondary: '#F3F4F6',
+                primary: 'var(--color-error, #EF4444)',
+                secondary: 'var(--color-text-dark-primary, #F3F4F6)',
               },
             },
           }}

@@ -6,7 +6,7 @@
 
 .voice-search-btn {
   background: transparent;
-  border: 2px solid rgba(139, 92, 246, 0.5);
+  border: 2px solid rgba(var(--color-accent-rgb), 0.5);
   color: inherit;
   cursor: pointer;
   padding: 0.75rem;
@@ -23,8 +23,8 @@
 }
 
 .voice-search-btn:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.1);
-  border-color: rgba(139, 92, 246, 0.7);
+  background: rgba(var(--color-accent-rgb), 0.1);
+  border-color: rgba(var(--color-accent-rgb), 0.7);
   transform: scale(1.05);
 }
 
@@ -38,22 +38,22 @@
 }
 
 .voice-search-btn.recording {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.7);
+  background: rgba(var(--color-error-rgb), 0.2);
+  border-color: rgba(var(--color-error-rgb), 0.7);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 .voice-search-btn.recording:hover {
-  background: rgba(239, 68, 68, 0.3);
-  border-color: rgba(239, 68, 68, 0.9);
+  background: rgba(var(--color-error-rgb), 0.3);
+  border-color: rgba(var(--color-error-rgb), 0.9);
 }
 
 @keyframes pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    box-shadow: 0 0 0 0 rgba(var(--color-error-rgb), 0.7);
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 10px rgba(var(--color-error-rgb), 0);
   }
 }
 
@@ -85,7 +85,7 @@
 }
 
 .voice-status {
-  color: #8b5cf6;
+  color: var(--color-accent, #8b5cf6);
   font-size: 0.875rem;
   font-weight: 500;
   animation: fade-in 0.3s ease;
@@ -101,25 +101,25 @@
 }
 
 .voice-error {
-  color: #ef4444;
+  color: var(--color-error, #ef4444);
   font-size: 0.875rem;
   font-weight: 500;
 }
 
 /* Accessibility */
 .voice-search-btn:focus-visible {
-  outline: 2px solid #8b5cf6;
+  outline: 2px solid var(--color-accent, #8b5cf6);
   outline-offset: 3px;
 }
 
 /* Dark mode support */
 @media (prefers-color-scheme: light) {
   .voice-search-btn {
-    border-color: rgba(139, 92, 246, 0.6);
+    border-color: rgba(var(--color-accent-rgb), 0.6);
   }
   
   .voice-search-btn:hover:not(:disabled) {
-    background: rgba(139, 92, 246, 0.15);
+    background: rgba(var(--color-accent-rgb), 0.15);
   }
 }
 
