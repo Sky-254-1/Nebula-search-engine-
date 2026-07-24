@@ -25,11 +25,8 @@ class MFAService:
     @staticmethod
     def get_totp_uri(secret: str, email: str, issuer: str = None) -> str:
         """Generate TOTP URI for QR code."""
-        issuer = issuer or settings.mfa_issuer
-        return pyotp.totp.TOTP(secret).provisioning_uri(
-            name=email,
-            issuer_name=issuer
-        )
+        issuer = issuer or getattr(settings, "mfa_issuer", settings.jwt_issuer)
+        return pyotp.totp.TOTP(secret).provisioning_uri(name=email, issuer_name=issuer)
 
     @staticmethod
     def generate_qr_code(uri: str) -> bytes:
@@ -42,10 +39,11 @@ class MFAService:
         )
         qr.add_data(uri)
         qr.make(fit=True)
-        
+
         img = qr.make_image(fill_color="black", back_color="white")
         buffer = BytesIO()
-        img.save(buffer, format="PNG")
+        img.save(buffer)
+        buffer.seek(0)
         return buffer.getvalue()
 
     @staticmethod
@@ -82,12 +80,14 @@ class MFAService:
 
 class MFAEnrollment:
     """MFA enrollment data."""
-    
+
     def __init__(self, secret: str, qr_code: bytes, backup_codes: list[str]):
         self.secret = secret
         self.qr_code = qr_code
         self.backup_codes = backup_codes
-        self.backup_codes_hashed = [MFAService.hash_backup_code(code) for code in backup_codes]
+        self.backup_codes_hashed = [
+            MFAService.hash_backup_code(code) for code in backup_codes
+        ]
 
 
 def enroll_mfa(email: str) -> MFAEnrollment:
@@ -96,7 +96,7 @@ def enroll_mfa(email: str) -> MFAEnrollment:
     uri = MFAService.get_totp_uri(secret, email)
     qr_code = MFAService.generate_qr_code(uri)
     backup_codes = MFAService.generate_backup_codes()
-    
+
     return MFAEnrollment(secret, qr_code, backup_codes)
 
 
@@ -107,16 +107,16 @@ def verify_mfa_token(secret: str, token: str) -> Tuple[bool, str]:
     """
     # Remove spaces and dashes
     token = token.replace(" ", "").replace("-", "")
-    
+
     # Check if it's a backup code (8 characters)
     if len(token) == 8:
         return False, "Use backup codes through the backup code endpoint"
-    
+
     # Verify TOTP token (6 digits)
     if len(token) != 6 or not token.isdigit():
         return False, "Invalid token format"
-    
+
     if MFAService.verify_token(secret, token):
         return True, ""
-    
+
     return False, "Invalid verification code"
