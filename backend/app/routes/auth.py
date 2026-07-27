@@ -120,6 +120,21 @@ async def login(request: Request, response: Response, body: AuthRequest, db=Depe
 
     await clear_login_attempts(ip, str(body.email))
 
+    # Check if MFA is enabled — require second factor before issuing tokens
+    if row.get("mfa_enabled"):
+        mfa_pending_token = secrets.token_urlsafe(32)
+        from app.services.cache import cache_service
+        await cache_service.set(
+            f"mfa_pending:{mfa_pending_token}",
+            {"email": str(body.email), "user_id": row["id"], "role": row["role"]},
+            ttl=300,  # 5 minutes to complete MFA
+        )
+        return {
+            "mfa_required": True,
+            "mfa_pending_token": mfa_pending_token,
+            "message": "MFA verification required",
+        }
+
     # Update last login
     await users.update_last_login(row["id"])
 

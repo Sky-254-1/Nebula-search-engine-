@@ -250,6 +250,90 @@ async def regenerate_backup_codes(
     }
 
 
+@router.post("/verify-login")
+async def verify_mfa_login(
+    request: Request,
+    mfa_pending_token: str,
+    token: str,
+    db=Depends(get_db)
+):
+    """Complete MFA verification during login and issue real auth tokens."""
+    from app.services.cache import cache_service
+    from app.services.auth import create_access_token, create_refresh_token, hash_token
+    from app.database.repositories.session import SessionRepository
+
+    # Get pending session
+    pending_data = await cache_service.get(f"mfa_pending:{mfa_pending_token}")
+    if not pending_data:
+        raise HTTPException(status_code=400, detail="MFA session expired. Please log in again.")
+
+    # Get user's MFA secret
+    users = UserRepository(db)
+    user = await users.get_by_email(pending_data["email"])
+    if not user or not user.get("mfa_enabled"):
+        raise HTTPException(status_code=400, detail="MFA is not enabled")
+
+    mfa_secret = user.get("mfa_secret")
+    if not mfa_secret:
+        raise HTTPException(status_code=400, detail="MFA not properly configured")
+
+    # Verify TOTP token or backup code
+    is_valid, error = verify_mfa_token(mfa_secret, token)
+
+    # Try backup code if TOTP fails
+    if not is_valid:
+        backup_codes = user.get("mfa_backup_codes", [])
+        for i, backup_hash in enumerate(backup_codes):
+            if MFAService.verify_backup_code(token, backup_hash):
+                backup_codes.pop(i)
+                await users.update_mfa_backup_codes(user["id"], backup_codes)
+                is_valid = True
+                break
+
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error or "Invalid verification code")
+
+    # Clear pending token
+    await cache_service.delete(f"mfa_pending:{mfa_pending_token}")
+
+    # Issue real tokens
+    from datetime import datetime, timedelta, timezone
+    import uuid
+
+    ip = request.client.host if request.client else "unknown"
+    access_token = create_access_token(pending_data["email"], role=pending_data["role"])
+    refresh_token = create_refresh_token()
+    expires_at = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_days)
+
+    session_id = str(uuid.uuid4())
+    sessions = SessionRepository(db)
+    await sessions.create(
+        user["id"],
+        hash_token(refresh_token),
+        expires_at,
+        session_id=session_id,
+        device_name=request.headers.get("user-agent"),
+        ip_address=ip,
+    )
+
+    if settings.enable_audit_logs:
+        audit = AuditRepository(db)
+        await audit.create(
+            user["id"],
+            "mfa_login_complete",
+            metadata={"session_id": session_id},
+            ip=ip,
+            user_agent=request.headers.get("user-agent"),
+        )
+
+    from app.models.schemas import AuthResponse
+    return AuthResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=settings.jwt_expiry_minutes * 60,
+    )
+
+
 @router.get("/status")
 async def get_mfa_status(email: str = Depends(get_current_user), db=Depends(get_db)):
     """Get MFA status for current user."""

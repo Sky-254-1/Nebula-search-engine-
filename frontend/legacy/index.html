@@ -174,7 +174,7 @@
     .sb-divider { width: 1px; height: 22px; background: var(--border-color); flex-shrink: 0; }
     .sb-voice {
       color: var(--text-dim); font-size: 1.1rem;
-      padding: 0.3rem; border-radius: 50%; width: 34px; height: 34px;
+      padding: 0.3rem; border-radius: 50%; width: 44px; height: 44px;
       display: flex; align-items: center; justify-content: center;
       transition: background var(--transition), color var(--transition);
     }
@@ -461,7 +461,7 @@
       margin-right: 0.5rem;
     }
     .pg-btn {
-      min-width: 38px; height: 38px; border-radius: 50%;
+      min-width: 44px; height: 44px; border-radius: 50%;
       background: none; color: var(--text-url); font-size: 0.88rem; font-weight: 600;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; transition: background var(--transition);
@@ -472,7 +472,7 @@
     .pg-btn:disabled { opacity: 0.3; cursor: default; }
     .pg-arr {
       color: var(--accent); font-size: 0.82rem; font-weight: 600;
-      padding: 0 0.6rem; height: 38px; border-radius: 6px;
+      padding: 0 0.6rem; height: 44px; border-radius: 6px;
       display: flex; align-items: center; gap: 0.25rem;
     }
     .pg-arr:disabled { opacity: .3; cursor: default; }
@@ -1391,29 +1391,16 @@
   spClose.addEventListener('click', closeSettings);
   overlay.addEventListener('click', closeSettings);
   document.getElementById('sp-save').addEventListener('click', () => {
-    const apiKey =
-        document.getElementById('sp-apikey').value.trim();
-
-    cfg.name =
-        document.getElementById('sp-name').value.trim() ||
-        'explorer';
-
+    cfg.name = document.getElementById('sp-name').value.trim() || 'explorer';
     cfg.backend = spBackend.value;
+    cfg.privateMode = document.getElementById('sp-private').checked;
+    cfg.safeSearch = document.getElementById('sp-safe').checked;
+    cfg.apiKey = document.getElementById('sp-apikey').value.trim();
 
-    cfg.privateMode =
-        document.getElementById('sp-private').checked;
-
-    cfg.safeSearch =
-        document.getElementById('sp-safe').checked;
-
-    // Keep only in memory
-    cfg.apiKey = apiKey;
-
-    // Remove secret before save
+    // Save config (without API key for localStorage persistence)
     const { apiKey: _, ...safeCfg } = cfg;
-
     ssj('nebula_cfg', safeCfg);
-});
+
     refreshName();
     if (cfg.privateMode) { hist = []; ssj('nebula_history', []); renderHist(); }
     closeSettings();
