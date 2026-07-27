@@ -218,6 +218,9 @@ class Settings:
     email_verification_expiry_hours: int = field(
         default_factory=lambda: int(os.getenv("EMAIL_VERIFICATION_EXPIRY_HOURS", "24"))
     )
+    password_reset_expiry_hours: int = field(
+        default_factory=lambda: int(os.getenv("PASSWORD_RESET_EXPIRY_HOURS", "1"))
+    )
 
     # === API Key Settings ===
     api_key_length: int = field(
