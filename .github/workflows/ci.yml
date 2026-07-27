@@ -109,6 +109,14 @@ jobs:
         run: npm run build
         working-directory: frontend
 
+      - name: Verify build artifacts
+        working-directory: frontend
+        run: |
+          test -f dist/sw.js && echo "✓ Service worker generated"
+          test -f dist/manifest.webmanifest && echo "✓ Manifest generated"
+          test -f dist/index.html && echo "✓ HTML entry point generated"
+          echo "Build artifacts verified successfully"
+
   # ============================================
   # E2E Tests (End-to-End)
   # ============================================

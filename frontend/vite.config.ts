@@ -24,6 +24,7 @@ const BLOCKED_PATTERNS = [
   /\.aws\//gi,
   /\.ssh\//gi,
   /\/etc\//gi,
+  /^[A-Za-z]:/gi,
   /\/proc\//gi,
   /\/var\//gi,
   /\/sys\//gi,
