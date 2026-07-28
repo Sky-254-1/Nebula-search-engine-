@@ -134,7 +134,7 @@ export default defineConfig({
     { // Security plugin
       name: 'security-restrictions',
       configureServer(server) {
-        return secureConfigureServer(server);
+        secureConfigureServer(server);
       },
       transformIndexHtml(html) {
         if (isSecureMode) {

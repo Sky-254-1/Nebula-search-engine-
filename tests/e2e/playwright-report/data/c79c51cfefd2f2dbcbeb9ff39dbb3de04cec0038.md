@@ -1,0 +1,61 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: auth\login.spec.ts >> login with non-existent email returns 401
+- Location: tests\e2e\auth\login.spec.ts:30:5
+
+# Error details
+
+```
+Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: 201
+Received: 429
+```
+
+# Test source
+
+```ts
+  1  | import { test, expect, signUpUser, loginUser } from '../fixtures/test-context';
+  2  | 
+  3  | const TEST_EMAIL = `login-test-${Date.now()}@test.nebula`;
+  4  | const TEST_PASS = 'Password123!';
+  5  | 
+  6  | test.beforeAll(async ({ request }) => {
+  7  |   const res = await request.post('http://localhost:8000/api/v1/auth/signup', {
+  8  |     data: { email: TEST_EMAIL, password: TEST_PASS },
+  9  |   });
+> 10 |   if (res.status() !== 409) expect(res.status()).toBe(201);
+     |                                                  ^ Error: expect(received).toBe(expected) // Object.is equality
+  11 | });
+  12 | 
+  13 | test('login with valid credentials returns tokens', async ({ request }) => {
+  14 |   const res = await request.post('http://localhost:8000/api/v1/auth/login', {
+  15 |     data: { email: TEST_EMAIL, password: TEST_PASS },
+  16 |   });
+  17 |   expect(res.ok()).toBeTruthy();
+  18 |   const body = await res.json();
+  19 |   expect(body.access_token).toBeTruthy();
+  20 |   expect(body.refresh_token).toBeTruthy();
+  21 | });
+  22 | 
+  23 | test('login with wrong password returns 401', async ({ request }) => {
+  24 |   const res = await request.post('http://localhost:8000/api/v1/auth/login', {
+  25 |     data: { email: TEST_EMAIL, password: 'WrongPass!' },
+  26 |   });
+  27 |   expect(res.status()).toBe(401);
+  28 | });
+  29 | 
+  30 | test('login with non-existent email returns 401', async ({ request }) => {
+  31 |   const res = await request.post('http://localhost:8000/api/v1/auth/login', {
+  32 |     data: { email: 'noone@test.nebula', password: TEST_PASS },
+  33 |   });
+  34 |   expect(res.status()).toBe(401);
+  35 | });
+  36 | 
+```
