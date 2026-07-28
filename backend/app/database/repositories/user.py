@@ -62,9 +62,19 @@ class UserRepository:
 
     async def update_email_verified(self, user_id: int, verified: bool) -> None:
         """Update email verification status."""
+        now = datetime.now(timezone.utc).isoformat()
         await self._db.execute(
-            "UPDATE users SET email_verified = ? WHERE id = ?",
-            (verified, user_id),
+            "UPDATE users SET email_verified = ?, updated_at = ? WHERE id = ?",
+            (verified, now, user_id),
+        )
+        await self._db.commit()
+
+    async def update_email(self, user_id: int, new_email: str) -> None:
+        """Update user email address."""
+        now = datetime.now(timezone.utc).isoformat()
+        await self._db.execute(
+            "UPDATE users SET email = ?, email_verified = TRUE, updated_at = ? WHERE id = ?",
+            (new_email, now, user_id),
         )
         await self._db.commit()
 

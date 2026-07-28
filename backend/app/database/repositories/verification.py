@@ -9,12 +9,12 @@ class EmailVerificationRepository:
     def __init__(self, db: DatabaseConnection):
         self._db = db
 
-    async def create(self, user_id: int, token_hash: str, expires_at: datetime) -> int:
+    async def create(self, user_id: int, token_hash: str, expires_at: datetime, pending_email: str = None) -> int:
         """Create an email verification token."""
         sql = """INSERT INTO email_verification 
-                 (user_id, token_hash, expires_at) 
-                 VALUES (?, ?, ?)"""
-        cursor = await self._db.execute(sql, (user_id, token_hash, expires_at.isoformat()))
+                 (user_id, token_hash, expires_at, pending_email) 
+                 VALUES (?, ?, ?, ?)"""
+        cursor = await self._db.execute(sql, (user_id, token_hash, expires_at.isoformat(), pending_email))
         await self._db.commit()
         
         if hasattr(cursor, "lastrowid"):
@@ -24,7 +24,7 @@ class EmailVerificationRepository:
     async def get_by_token_hash(self, token_hash: str):
         """Get verification token by hash."""
         return await self._db.fetchone(
-            """SELECT id, user_id, token_hash, is_used, expires_at, created_at 
+            """SELECT id, user_id, token_hash, is_used, expires_at, created_at, pending_email 
                FROM email_verification 
                WHERE token_hash = ? AND is_used = FALSE AND is_deleted = FALSE""",
             (token_hash,),

@@ -43,9 +43,14 @@ async def verify_email(request: Request, token: str, db=Depends(get_db)):
     # Mark token as used
     await verification_repo.mark_as_used(verification["id"])
     
-    # Update user email_verified status
     users = UserRepository(db)
-    await users.update_email_verified(verification["user_id"], True)
+    
+    # If this verification has a pending email change, apply it
+    if verification.get("pending_email"):
+        await users.update_email(verification["user_id"], verification["pending_email"])
+    else:
+        # Standard verification: update email_verified status
+        await users.update_email_verified(verification["user_id"], True)
     
     # Invalidate any other unused tokens for this user
     await verification_repo.invalidate_user_tokens(verification["user_id"])
@@ -271,7 +276,7 @@ async def change_email(
         user["id"],
         token_hash,
         expires_at,
-        email=new_email  # Store pending email
+        pending_email=new_email,  # Store pending email
     )
     
     # Send verification email to new address

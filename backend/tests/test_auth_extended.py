@@ -245,9 +245,8 @@ class TestAccountManagement(APITestBase):
         )
         assert response.status_code == 400
 
-    @pytest.mark.xfail(reason="Bug in auth_extended.py: EmailVerificationRepository.create() doesn't accept 'email' kwarg")
     def test_change_email_success(self):
-        """POST /change-email success flow."""
+        """POST /change-email success flow — verify token must be used before email changes."""
         headers = self._create_and_login("changeemailok@example.com")
         response = self.client.post(
             "/api/v1/auth/change-email",
@@ -257,6 +256,18 @@ class TestAccountManagement(APITestBase):
         assert response.status_code == 200
         data = response.json()
         assert "Verification email" in data["message"]
+
+        # User's email should NOT have changed yet (still needs verification)
+        old_login = self.client.post("/api/v1/auth/login", json={
+            "email": "changeemailok@example.com", "password": "Password1!"
+        })
+        assert old_login.status_code == 200
+
+        # New email should NOT be usable yet (unverified)
+        new_login = self.client.post("/api/v1/auth/login", json={
+            "email": "newemailok@example.com", "password": "Password1!"
+        })
+        assert new_login.status_code == 401
 
     def test_change_email_already_registered(self):
         """POST /change-email with existing email returns 409."""
