@@ -4,6 +4,9 @@ import * as os from 'os';
 import * as path from 'path';
 import { env } from '../config/env';
 
+// Requires AI provider (OPENAI_API_KEY or AI_PROVIDER) — skip if not configured
+test.skip(!process.env.OPENAI_API_KEY && !process.env.AI_PROVIDER, 'OPENAI_API_KEY / AI_PROVIDER not set — skipping AI-dependent tests');
+
 const EMAIL = `summarize-${Date.now()}@test.nebula`;
 const PASS = 'SumP1!';
 

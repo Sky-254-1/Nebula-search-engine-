@@ -210,6 +210,25 @@ class StopWordRemover:
         """Clear cache."""
         self._cache.clear()
 
+    def remove(self, tokens: list[str], language: str = 'en') -> list[str]:
+        """
+        Remove stop words from tokens (synchronous alias for pipeline compatibility).
+        
+        Args:
+            tokens: List of tokens
+            language: Language code (ignored, uses instance language)
+            
+        Returns:
+            List of tokens with stop words removed
+        """
+        if not tokens:
+            return []
+        filtered = [
+            token for token in tokens
+            if token.lower() not in self.stop_words
+        ]
+        return filtered
+
 
 # Singleton instance
 stop_word_remover = StopWordRemover()

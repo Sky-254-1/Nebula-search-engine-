@@ -1,5 +1,8 @@
 import { test, expect } from '../fixtures/test-context';
 
+// Requires external search backend (Wikipedia API) — skip if BRAVE_API_KEY and SERPAPI_KEY are both unset
+test.skip(!process.env.BRAVE_API_KEY && !process.env.SERPAPI_KEY, 'BRAVE_API_KEY / SERPAPI_KEY not set — skipping external search tests');
+
 const EMAIL = `search-test-${Date.now()}@test.nebula`;
 const PASS = 'SearchP1!';
 
