@@ -136,4 +136,7 @@ docs/_build/
 graphify-out/
 
 # Search history exports (user data)
-storage/exports/**/*.jsontests/e2e/playwright-report/  
+storage/exports/**/*.json
+
+# Playwright test reports (generated output)
+tests/e2e/playwright-report/
