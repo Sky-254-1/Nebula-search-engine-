@@ -38,6 +38,8 @@ from app.routes.suggestions import router as suggestions_router
 from app.routes.analytics import router as analytics_router
 from app.routes.analytics_extended import router as analytics_extended_router
 from app.routes.auth_extended import router as auth_extended_router
+from app.routes.mfa import router as mfa_router
+from app.routes.oauth import router as oauth_router
 from app.routes.documents import router as documents_router
 from app.routes.indexing import router as indexing_router
 from app.incremental.routes import router as incremental_router
@@ -498,6 +500,8 @@ app.include_router(crawler.router)  # Crawler management
 app.include_router(features.router)  # Collections, bookmarks, saved searches
 app.include_router(hybrid_router)  # Hybrid search engine
 app.include_router(autocomplete_router)  # Autocomplete system
+app.include_router(mfa_router)  # Multi-factor authentication
+app.include_router(oauth_router)  # OAuth provider authentication
 app.include_router(spell_router)  # Spell correction system
 app.include_router(suggestions_router)  # Search suggestions system
 
