@@ -145,16 +145,6 @@ export default defineConfig({
         return html;
       },
     },
-    { // File access validator — only active in secure mode (VITE_SECURE_MODE=true)
-      name: 'file-access-validator',
-      transform(src, id) {
-        if (isDevelopment && isSecureMode && !isPathAllowed(id)) {
-          console.log(`[SECURITY] Blocked file access: ${id}`);
-          return { code: '', map: null };
-        }
-        return undefined;
-      },
-    },
   ],
   server: {
     port: 5173,

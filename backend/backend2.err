@@ -1,0 +1,205 @@
+ELEVENLABS_API_KEY not set - audio features disabled
+Email service disabled - SMTP not configured
+INFO:     Started server process [13368]
+INFO:     Waiting for application startup.
+2026-07-29 10:18:16,276 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4AB383B0>
+2026-07-29 10:18:16,284 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4AB383B0> completed
+2026-07-29 10:18:16,285 DEBUG [aiosqlite] executing functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4A743970>, 'PRAGMA foreign_keys = OFF', ())
+2026-07-29 10:18:16,288 DEBUG [aiosqlite] operation functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4A743970>, 'PRAGMA foreign_keys = OFF', ()) completed
+2026-07-29 10:18:16,289 DEBUG [aiosqlite] executing functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4A743970>, "\nCREATE TABLE IF NOT EXISTS schema_migrations (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    filename TEXT UNIQUE NOT NULL,\n    version TEXT NOT NULL,\n    applied_at TEXT NOT NULL DEFAULT (datetime('now'))\n)\n", ())
+2026-07-29 10:18:16,292 DEBUG [aiosqlite] operation functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4A743970>, "\nCREATE TABLE IF NOT EXISTS schema_migrations (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    filename TEXT UNIQUE NOT NULL,\n    version TEXT NOT NULL,\n    applied_at TEXT NOT NULL DEFAULT (datetime('now'))\n)\n", ()) completed
+2026-07-29 10:18:16,292 DEBUG [aiosqlite] executing functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4A743970>, 'SELECT filename FROM schema_migrations ORDER BY applied_at', ())
+2026-07-29 10:18:16,293 DEBUG [aiosqlite] operation functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4A743970>, 'SELECT filename FROM schema_migrations ORDER BY applied_at', ()) completed
+2026-07-29 10:18:16,293 DEBUG [aiosqlite] executing functools.partial(<built-in method fetchall of sqlite3.Cursor object at 0x000001FA4AAFFF40>)
+2026-07-29 10:18:16,293 DEBUG [aiosqlite] operation functools.partial(<built-in method fetchall of sqlite3.Cursor object at 0x000001FA4AAFFF40>) completed
+2026-07-29 10:18:16,294 DEBUG [aiosqlite] executing functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4A743970>, 'PRAGMA foreign_keys = ON', ())
+2026-07-29 10:18:16,294 DEBUG [aiosqlite] operation functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4A743970>, 'PRAGMA foreign_keys = ON', ()) completed
+2026-07-29 10:18:16,294 DEBUG [aiosqlite] executing functools.partial(<built-in method commit of sqlite3.Connection object at 0x000001FA4A743970>)
+2026-07-29 10:18:16,294 DEBUG [aiosqlite] operation functools.partial(<built-in method commit of sqlite3.Connection object at 0x000001FA4A743970>) completed
+2026-07-29 10:18:16,294 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4A743970>)
+2026-07-29 10:18:16,294 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4A743970>) completed
+2026-07-29 10:18:16,295 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4AB38670>
+2026-07-29 10:18:16,295 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4AB38670> completed
+2026-07-29 10:18:16,484 INFO [nebula.crawler.scheduler] Crawl job scheduler started
+2026-07-29 10:18:16,485 INFO [nebula.analytics.background] Analytics background worker started
+2026-07-29 10:18:16,485 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4AEB7480>
+2026-07-29 10:18:16,486 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4AEB7480> completed
+2026-07-29 10:18:16,486 DEBUG [aiosqlite] executing functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4AECD120>, 'SELECT 1', ())
+2026-07-29 10:18:16,489 DEBUG [aiosqlite] operation functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4AECD120>, 'SELECT 1', ()) completed
+2026-07-29 10:18:16,489 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4AECD120>)
+2026-07-29 10:18:16,489 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4AECD120>) completed
+2026-07-29 10:18:16,489 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4AED0BF0>
+2026-07-29 10:18:16,490 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4AED0BF0> completed
+2026-07-29 10:18:16,490 INFO [nebula] Database health check passed
+2026-07-29 10:18:16,490 INFO [nebula] Cache health check: in-memory (no Redis configured)
+2026-07-29 10:18:16,491 INFO [nebula] All dependency health checks passed
+2026-07-29 10:18:16,491 INFO [nebula] Nebula Search API started (env=testing, db=sqlite)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-07-29 10:19:16,499 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4AF187D0>
+2026-07-29 10:19:16,503 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4AF187D0> completed
+2026-07-29 10:19:16,507 DEBUG [aiosqlite] executing functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4AECDA80>, 'SELECT \n                COUNT(*) as total_queries,\n                COUNT(DISTINCT user_id) as unique_users,\n                SUM(CASE WHEN results_count = 0 THEN 1 ELSE 0 END) as zero_results,\n                AVG(response_time_ms) as avg_response_time\n            FROM search_events \n            WHERE created_at >= ? AND created_at < ?', ('2026-07-29 09:00:00', '2026-07-29 10:00:00'))
+2026-07-29 10:19:16,513 DEBUG [aiosqlite] operation functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4AECDA80>, 'SELECT \n                COUNT(*) as total_queries,\n                COUNT(DISTINCT user_id) as unique_users,\n                SUM(CASE WHEN results_count = 0 THEN 1 ELSE 0 END) as zero_results,\n                AVG(response_time_ms) as avg_response_time\n            FROM search_events \n            WHERE created_at >= ? AND created_at < ?', ('2026-07-29 09:00:00', '2026-07-29 10:00:00')) completed
+2026-07-29 10:19:16,518 DEBUG [aiosqlite] executing functools.partial(<built-in method fetchone of sqlite3.Cursor object at 0x000001FA4AE91A40>)
+2026-07-29 10:19:16,518 DEBUG [aiosqlite] operation functools.partial(<built-in method fetchone of sqlite3.Cursor object at 0x000001FA4AE91A40>) completed
+2026-07-29 10:19:16,519 DEBUG [aiosqlite] executing functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4AECDA80>, 'INSERT OR REPLACE INTO analytics_hourly \n                (hour_timestamp, total_queries, unique_users, zero_result_queries, avg_response_time, updated_at)\n                VALUES (?, ?, ?, ?, ?, ?)', ('2026-07-29 09:00:00', 0, 0, None, None, '2026-07-29T10:19:16.518964'))
+2026-07-29 10:19:16,524 DEBUG [aiosqlite] operation functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4AECDA80>, 'INSERT OR REPLACE INTO analytics_hourly \n                (hour_timestamp, total_queries, unique_users, zero_result_queries, avg_response_time, updated_at)\n                VALUES (?, ?, ?, ?, ?, ?)', ('2026-07-29 09:00:00', 0, 0, None, None, '2026-07-29T10:19:16.518964')) completed
+2026-07-29 10:19:16,525 DEBUG [aiosqlite] executing functools.partial(<built-in method commit of sqlite3.Connection object at 0x000001FA4AECDA80>)
+2026-07-29 10:19:16,535 INFO [app.services.analytics_service] Hourly aggregation completed for 2026-07-29 09:00:00
+2026-07-29 10:19:16,536 DEBUG [aiosqlite] operation functools.partial(<built-in method commit of sqlite3.Connection object at 0x000001FA4AECDA80>) completed
+2026-07-29 10:19:16,537 DEBUG [nebula.analytics.background] Hourly aggregation completed
+2026-07-29 10:19:16,544 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4AECDA80>)
+2026-07-29 10:19:16,548 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4AECDA80>) completed
+2026-07-29 10:19:16,553 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4AF1AB90>
+2026-07-29 10:19:16,559 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4AF1AB90> completed
+2026-07-29 10:19:16,562 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4AF18510>
+2026-07-29 10:19:16,575 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4AF18510> completed
+2026-07-29 10:19:16,575 DEBUG [aiosqlite] executing functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4AECD5D0>, "SELECT query, COUNT(*) as count \n                FROM search_events \n                WHERE created_at >= datetime('now', '-1 day')\n                GROUP BY query \n                ORDER BY count DESC \n                LIMIT 50", ())
+2026-07-29 10:19:16,579 DEBUG [aiosqlite] operation functools.partial(<built-in method execute of sqlite3.Connection object at 0x000001FA4AECD5D0>, "SELECT query, COUNT(*) as count \n                FROM search_events \n                WHERE created_at >= datetime('now', '-1 day')\n                GROUP BY query \n                ORDER BY count DESC \n                LIMIT 50", ()) completed
+2026-07-29 10:19:16,580 DEBUG [aiosqlite] executing functools.partial(<built-in method fetchall of sqlite3.Cursor object at 0x000001FA4AE91A40>)
+2026-07-29 10:19:16,580 DEBUG [aiosqlite] operation functools.partial(<built-in method fetchall of sqlite3.Cursor object at 0x000001FA4AE91A40>) completed
+2026-07-29 10:19:16,580 DEBUG [nebula.analytics.background] Trending searches computed: 0 queries
+2026-07-29 10:19:16,581 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4AECD5D0>)
+2026-07-29 10:19:16,581 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4AECD5D0>) completed
+2026-07-29 10:19:16,581 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4AED0CA0>
+2026-07-29 10:19:16,582 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4AED0CA0> completed
+2026-07-29 10:19:31,654 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:19:31,657 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4AF4F740>
+2026-07-29 10:19:31,658 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4AF4F740> completed
+2026-07-29 10:19:31,676 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4AF2ED40>)
+2026-07-29 10:19:31,680 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4AF2ED40>) completed
+2026-07-29 10:19:31,681 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4AF4FA00>
+2026-07-29 10:19:31,681 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4AF4FA00> completed
+2026-07-29 10:19:33,737 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:19:33,738 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B0726C0>
+2026-07-29 10:19:33,739 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B0726C0> completed
+2026-07-29 10:19:33,739 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4AF2FD30>)
+2026-07-29 10:19:33,740 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4AF2FD30>) completed
+2026-07-29 10:19:33,740 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B072980>
+2026-07-29 10:19:33,740 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B072980> completed
+2026-07-29 10:19:35,777 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:19:35,785 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B0A1E80>
+2026-07-29 10:19:35,785 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B0A1E80> completed
+2026-07-29 10:19:35,786 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B098E50>)
+2026-07-29 10:19:35,786 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B098E50>) completed
+2026-07-29 10:19:35,786 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0A2140>
+2026-07-29 10:19:35,786 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0A2140> completed
+2026-07-29 10:19:37,821 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:19:37,825 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B0BD4E0>
+2026-07-29 10:19:37,826 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B0BD4E0> completed
+2026-07-29 10:19:37,826 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B099D50>)
+2026-07-29 10:19:37,827 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B099D50>) completed
+2026-07-29 10:19:37,827 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0BD7A0>
+2026-07-29 10:19:37,827 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0BD7A0> completed
+2026-07-29 10:19:39,856 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:19:39,866 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B0CCB40>
+2026-07-29 10:19:39,867 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B0CCB40> completed
+2026-07-29 10:19:39,867 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B09AC50>)
+2026-07-29 10:19:39,867 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B09AC50>) completed
+2026-07-29 10:19:39,867 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0CCE00>
+2026-07-29 10:19:39,868 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0CCE00> completed
+2026-07-29 10:19:41,909 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:19:41,928 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B0E8250>
+2026-07-29 10:19:41,929 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B0E8250> completed
+2026-07-29 10:19:41,929 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B09BD30>)
+2026-07-29 10:19:41,930 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B09BD30>) completed
+2026-07-29 10:19:41,930 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0E8460>
+2026-07-29 10:19:41,931 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0E8460> completed
+2026-07-29 10:19:43,966 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:19:43,967 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B0EB740>
+2026-07-29 10:19:43,967 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B0EB740> completed
+2026-07-29 10:19:43,967 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B0F5210>)
+2026-07-29 10:19:43,968 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B0F5210>) completed
+2026-07-29 10:19:43,968 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0EBA00>
+2026-07-29 10:19:43,968 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0EBA00> completed
+2026-07-29 10:19:45,993 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:19:45,997 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B0FADA0>
+2026-07-29 10:19:45,999 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B0FADA0> completed
+2026-07-29 10:19:45,999 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B0F67A0>)
+2026-07-29 10:19:46,000 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B0F67A0>) completed
+2026-07-29 10:19:46,000 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0FB060>
+2026-07-29 10:19:46,001 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0FB060> completed
+2026-07-29 10:19:48,026 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:19:48,029 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B11A400>
+2026-07-29 10:19:48,029 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B11A400> completed
+2026-07-29 10:19:48,030 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B0F7B50>)
+2026-07-29 10:19:48,030 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B0F7B50>) completed
+2026-07-29 10:19:48,030 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B11A6C0>
+2026-07-29 10:19:48,030 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B11A6C0> completed
+2026-07-29 10:21:36,570 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:21:36,582 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B136A30>
+2026-07-29 10:21:36,588 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B136A30> completed
+2026-07-29 10:21:36,603 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B129990>)
+2026-07-29 10:21:36,606 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B129990>) completed
+2026-07-29 10:21:36,606 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B136CF0>
+2026-07-29 10:21:36,606 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B136CF0> completed
+2026-07-29 10:21:38,647 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:21:38,649 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B14E090>
+2026-07-29 10:21:38,650 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B14E090> completed
+2026-07-29 10:21:38,650 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B12AB60>)
+2026-07-29 10:21:38,650 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B12AB60>) completed
+2026-07-29 10:21:38,650 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B14E350>
+2026-07-29 10:21:38,651 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B14E350> completed
+2026-07-29 10:21:40,687 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:21:40,691 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B1657A0>
+2026-07-29 10:21:40,692 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B1657A0> completed
+2026-07-29 10:21:40,692 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B12BD30>)
+2026-07-29 10:21:40,693 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B12BD30>) completed
+2026-07-29 10:21:40,693 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B165A60>
+2026-07-29 10:21:40,693 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B165A60> completed
+2026-07-29 10:21:42,726 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:21:42,727 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B17CEB0>
+2026-07-29 10:21:42,727 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B17CEB0> completed
+2026-07-29 10:21:42,728 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B170E50>)
+2026-07-29 10:21:42,728 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B170E50>) completed
+2026-07-29 10:21:42,728 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B17D2D0>
+2026-07-29 10:21:42,728 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B17D2D0> completed
+2026-07-29 10:21:44,752 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:21:44,755 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B1907D0>
+2026-07-29 10:21:44,758 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B1907D0> completed
+2026-07-29 10:21:44,758 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B171F30>)
+2026-07-29 10:21:44,758 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B171F30>) completed
+2026-07-29 10:21:44,759 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0CD900>
+2026-07-29 10:21:44,759 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B0CD900> completed
+2026-07-29 10:21:46,815 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:21:46,816 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B1A03B0>
+2026-07-29 10:21:46,824 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B1A03B0> completed
+2026-07-29 10:21:46,824 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B173010>)
+2026-07-29 10:21:46,825 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B173010>) completed
+2026-07-29 10:21:46,825 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B1A0670>
+2026-07-29 10:21:46,826 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B1A0670> completed
+2026-07-29 10:21:48,881 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:21:48,883 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B1A3C10>
+2026-07-29 10:21:48,884 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B1A3C10> completed
+2026-07-29 10:21:48,885 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B1AC130>)
+2026-07-29 10:21:48,886 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B1AC130>) completed
+2026-07-29 10:21:48,886 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B1A3ED0>
+2026-07-29 10:21:48,886 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B1A3ED0> completed
+2026-07-29 10:21:50,919 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:21:50,920 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B1BF270>
+2026-07-29 10:21:50,920 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B1BF270> completed
+2026-07-29 10:21:50,921 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B1AD210>)
+2026-07-29 10:21:50,921 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B1AD210>) completed
+2026-07-29 10:21:50,921 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B1BF530>
+2026-07-29 10:21:50,922 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B1BF530> completed
+2026-07-29 10:21:52,956 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:21:52,958 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4B1D6980>
+2026-07-29 10:21:52,963 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4B1D6980> completed
+2026-07-29 10:21:52,969 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B1AE2F0>)
+2026-07-29 10:21:52,975 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B1AE2F0>) completed
+2026-07-29 10:21:52,976 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B1D6C40>
+2026-07-29 10:21:52,978 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4B1D6C40> completed
+2026-07-29 10:22:14,324 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:22:14,326 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4C1BE090>
+2026-07-29 10:22:14,327 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4C1BE090> completed
+2026-07-29 10:22:14,327 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B1AF3D0>)
+2026-07-29 10:22:14,327 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4B1AF3D0>) completed
+2026-07-29 10:22:14,328 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4C1BE350>
+2026-07-29 10:22:14,328 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4C1BE350> completed
+2026-07-29 10:22:16,374 DEBUG [nebula.ratelimit] Rate limit auth extraction failed, falling back to API key/IP: 401: Missing or invalid authentication
+2026-07-29 10:22:16,377 DEBUG [aiosqlite] executing <function connect.<locals>.connector at 0x000001FA4C1D56F0>
+2026-07-29 10:22:16,377 DEBUG [aiosqlite] operation <function connect.<locals>.connector at 0x000001FA4C1D56F0> completed
+2026-07-29 10:22:16,378 DEBUG [aiosqlite] executing functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4C1D04F0>)
+2026-07-29 10:22:16,378 DEBUG [aiosqlite] operation functools.partial(<built-in method close of sqlite3.Connection object at 0x000001FA4C1D04F0>) completed
+2026-07-29 10:22:16,378 DEBUG [aiosqlite] executing <function Connection.stop.<locals>.close_and_stop at 0x000001FA4C1D59B0>
+2026-07-29 10:22:16,378 DEBUG [aiosqlite] operation <function Connection.stop.<locals>.close_and_stop at 0x000001FA4C1D59B0> completed
