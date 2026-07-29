@@ -53,7 +53,7 @@ def test_jwt_secret_validation():
     
     try:
         settings = get_settings()
-        print(f"  JWT_SECRET: {settings.jwt_secret}")
+        print(f"  JWT_SECRET length: {len(settings.jwt_secret)} (value redacted)")
         print("  [PASS] Short secret allowed in development")
     except Exception as e:
         print(f"  [FAIL] Unexpected error: {e}")
