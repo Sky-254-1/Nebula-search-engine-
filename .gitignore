@@ -140,3 +140,6 @@ storage/exports/**/*.json
 
 # Playwright test reports (generated output)
 tests/e2e/playwright-report/
+
+# Local debug logs
+backend/*.err

@@ -9,6 +9,7 @@ const ALLOWED_PATHS = [
   path.resolve(__dirname, 'src'),
   path.resolve(__dirname, 'public'),
   path.resolve(__dirname, 'node_modules'),
+  path.resolve(__dirname, 'tests'),
 ];
 
 // Security: Blocked patterns to prevent path traversal
@@ -143,6 +144,16 @@ export default defineConfig({
           );
         }
         return html;
+      },
+    },
+    { // File access validator — only active in secure mode (VITE_SECURE_MODE=true)
+      name: 'file-access-validator',
+      transform(src, id) {
+        if (isDevelopment && isSecureMode && !isPathAllowed(id)) {
+          console.log(`[SECURITY] Blocked file access: ${id}`);
+          return { code: '', map: null };
+        }
+        return undefined;
       },
     },
   ],

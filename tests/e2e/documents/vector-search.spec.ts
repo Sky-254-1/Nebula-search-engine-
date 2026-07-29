@@ -2,14 +2,8 @@ import { test, expect } from '../fixtures/test-context';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Signup/login returns 422 because test passwords (VecP1! = 6 chars) fail Pydantic
-// min_length=8 validation. The rate limiter is NOT the issue — X-RateLimit-Remaining
-// stays at ~9990+ under sequential requests. These tests pass in CI where the
-// backend may use a different validation schema. Skip locally.
-test.skip(!process.env.CI, 'Signup/login returns 422: test passwords fail Pydantic min_length=8 validation');
-
 const EMAIL = `vec-test-${Date.now()}@test.nebula`;
-const PASS = 'VecP1!';
+const PASS = 'VecTest1!';
 
 test.beforeAll(async ({ request }) => {
   await request.post('http://localhost:8000/api/v1/auth/signup', {
