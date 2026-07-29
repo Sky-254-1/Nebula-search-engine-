@@ -8,7 +8,7 @@ import path from 'path';
 const ALLOWED_PATHS = [
   path.resolve(__dirname, 'src'),
   path.resolve(__dirname, 'public'),
-  path.resolve(__dirname, 'node_modules/@nebula'),
+  path.resolve(__dirname, 'node_modules'),
   path.resolve(__dirname, 'tests/unit'),
   path.resolve(__dirname, 'tests/security'),
   path.resolve(__dirname, 'tests/e2e'),
@@ -24,7 +24,6 @@ const BLOCKED_PATTERNS = [
   /\.aws\//gi,
   /\.ssh\//gi,
   /\/etc\//gi,
-  /^[A-Za-z]:/gi,
   /\/proc\//gi,
   /\/var\//gi,
   /\/sys\//gi,
@@ -39,6 +38,11 @@ const isSecureMode = process.env.VITE_SECURE_MODE === 'true';
 
 function isPathAllowed(filePath: string): boolean {
   if (!isDevelopment) return true;
+  
+  // Skip Vite virtual modules (e.g., /@react-refresh, /@vite-client)
+  if (filePath.startsWith('/@') || filePath.startsWith('virtual:') || filePath.startsWith('\0')) {
+    return true;
+  }
   
   const resolvedPath = path.resolve(filePath);
   
@@ -150,8 +154,9 @@ export default defineConfig({
       transform(src, id) {
         if (isDevelopment && !isPathAllowed(id)) {
           console.log(`[SECURITY] Blocked file access: ${id}`);
+          return { code: '', map: null };
         }
-        return null;
+        return undefined;
       },
     },
   ],
