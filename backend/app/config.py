@@ -84,6 +84,22 @@ class Settings:
             "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173",
         )
     )
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """Parse CORS origins into a list.
+
+        A literal ``*`` is rejected because ``allow_credentials=True`` is set
+        in the CORS middleware — combining wildcard origins with credentials
+        is invalid per the CORS spec and silently fails in most browsers.
+        """
+        raw = self.cors_origins.strip()
+        if raw == "*":
+            raise ValueError(
+                "CORS_ORIGINS='*' is not allowed when allow_credentials=True. "
+                "Set CORS_ORIGINS to an explicit allow-list of origins."
+            )
+        return [origin.strip() for origin in raw.split(",") if origin.strip()]
     cache_ttl_seconds: int = field(
         default_factory=lambda: int(os.getenv("CACHE_TTL_SECONDS", "300"))
     )
@@ -340,12 +356,6 @@ class Settings:
         return self.app_env.lower() == "production"
 
     @property
-    def cors_origin_list(self) -> list[str]:
-        if self.cors_origins.strip() == "*":
-            return ["*"]
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
-
-    @property
     def storage_uploads(self) -> Path:
         return Path(self.storage_root) / "uploads"
 
@@ -388,6 +398,22 @@ class Settings:
         if len(key) < 32:
             key = key.ljust(32, b"\0")
         return key[:32]
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """Parse CORS origins into a list.
+
+        A literal ``*`` is rejected because ``allow_credentials=True`` is set
+        in the CORS middleware — combining wildcard origins with credentials
+        is invalid per the CORS spec and silently fails in most browsers.
+        """
+        raw = self.cors_origins.strip()
+        if raw == "*":
+            raise ValueError(
+                "CORS_ORIGINS='*' is not allowed when allow_credentials=True. "
+                "Set CORS_ORIGINS to an explicit allow-list of origins."
+            )
+        return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
 @lru_cache
