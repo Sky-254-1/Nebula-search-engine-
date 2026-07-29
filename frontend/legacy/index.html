@@ -609,6 +609,7 @@
   <div id="sp-apikey-wrap">
     <label class="sp-label" for="sp-apikey">API Key</label>
     <input class="sp-input" id="sp-apikey" type="password" placeholder="Paste your API key here">
+    <p style="font-size:0.72rem;color:var(--text-dim);margin-top:0.3rem;">⚠️ Key is held in memory only for this session — not persisted to storage. Closing the tab clears it.</p>
   </div>
   <label class="sp-check"><input type="checkbox" id="sp-private"> Private mode — don't save history</label>
   <label class="sp-check"><input type="checkbox" id="sp-safe" checked> Safe search</label>
@@ -767,11 +768,13 @@
   /* ────────────────────────────
      STORAGE HELPERS
   ──────────────────────────── */
+  // Config (including API keys) uses sessionStorage — not persisted across sessions/devices.
+  // Search result cache uses localStorage (no secrets in cache).
   function lsj(k, def) {
-    try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; }
+    try { const v = sessionStorage.getItem(k); return v ? JSON.parse(v) : def; }
     catch { return def; }
   }
-  function ssj(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  function ssj(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch {} }
 
   /* ────────────────────────────
      CACHE
