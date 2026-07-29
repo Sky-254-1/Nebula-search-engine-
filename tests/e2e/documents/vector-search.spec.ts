@@ -2,10 +2,9 @@ import { test, expect } from '../fixtures/test-context';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Vector search endpoints also require stable auth from the beforeAll signup/login chain,
-// which fails under concurrent 3-profile Playwright execution (IP-based rate-limit exhaustion).
-// Skip locally; runs in CI with a single profile.
-test.skip(!process.env.CI, 'Auth flow returns 401 under concurrent Playwright profiles — run singly');
+// Same signup/login beforeAll 401 issue as upload.spec.ts (rate-limit exhaustion under
+// concurrent profiles). Skip locally; passes singly in CI.
+test.skip(!process.env.CI, 'Signup/login beforeAll returns 401 under multi-profile Playwright');
 
 const EMAIL = `vec-test-${Date.now()}@test.nebula`;
 const PASS = 'VecP1!';

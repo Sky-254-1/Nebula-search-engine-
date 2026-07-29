@@ -2,11 +2,10 @@ import { test, expect } from '../fixtures/test-context';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Storage endpoints require multipart file upload and stable auth. Under concurrent 3-profile
-// Playwright execution, the signup/login chain in beforeAll returns 401 because the anonymous
-// IP-based rate-limit window gets exhausted by simultaneous requests. These tests pass when
-// run singly (--project=chromium --workers=1) or in CI with a single profile.
-test.skip(!process.env.CI, 'Auth flow returns 401 under concurrent Playwright profiles — run singly');
+// Signup/login beforeAll returns 401 in this environment (rate-limit middleware cannot
+// extract auth from POST body under concurrent execution, exhausting IP-based limits).
+// These tests pass when run singly in CI. Skip locally.
+test.skip(!process.env.CI, 'Signup/login beforeAll returns 401 under multi-profile Playwright');
 
 const EMAIL = `doc-test-${Date.now()}@test.nebula`;
 const PASS = 'DocP1!';
