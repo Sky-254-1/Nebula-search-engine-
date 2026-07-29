@@ -1,9 +1,11 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+import logging
 import time
 from typing import Dict, Any
 import os
 
+logger = logging.getLogger("nebula.health")
 router = APIRouter()
 
 
@@ -53,9 +55,10 @@ async def readiness_check() -> Dict[str, Any]:
             "message": "Database connection successful"
         }
     except Exception as e:
+        logger.error("Database health check failed", exc_info=True)
         checks["database"] = {
             "status": "unhealthy",
-            "message": f"Database connection failed: {str(e)}"
+            "message": "Database connection failed"
         }
         overall_status = "not_ready"
     
@@ -74,9 +77,10 @@ async def readiness_check() -> Dict[str, Any]:
                 "message": "Redis not configured (in-memory cache)"
             }
     except Exception as e:
+        logger.error("Redis health check failed", exc_info=True)
         checks["redis"] = {
             "status": "unhealthy",
-            "message": f"Redis connection failed: {str(e)}"
+            "message": "Redis connection failed"
         }
         overall_status = "not_ready"
     
@@ -93,9 +97,10 @@ async def readiness_check() -> Dict[str, Any]:
         if disk_free_percent < 10:
             overall_status = "not_ready"
     except Exception as e:
+        logger.error("Disk health check failed", exc_info=True)
         checks["disk"] = {
             "status": "unknown",
-            "message": f"Could not check disk: {str(e)}"
+            "message": "Could not check disk"
         }
     
     response = {
@@ -125,7 +130,8 @@ async def detailed_health_check() -> Dict[str, Any]:
         await db.close()
         checks["database"] = {"status": "healthy", "details": {}}
     except Exception as e:
-        checks["database"] = {"status": "unhealthy", "error": str(e)}
+        logger.error("Database detailed health check failed", exc_info=True)
+        checks["database"] = {"status": "unhealthy", "error": "check failed"}
     
     # Redis check
     try:
@@ -141,7 +147,8 @@ async def detailed_health_check() -> Dict[str, Any]:
         else:
             checks["redis"] = {"status": "not_configured", "message": "Using in-memory cache"}
     except Exception as e:
-        checks["redis"] = {"status": "unhealthy", "error": str(e)}
+        logger.error("Redis detailed health check failed", exc_info=True)
+        checks["redis"] = {"status": "unhealthy", "error": "check failed"}
     
     # Storage check
     try:
@@ -155,7 +162,8 @@ async def detailed_health_check() -> Dict[str, Any]:
         os.remove(test_file)
         checks["storage"] = {"status": "healthy", "path": str(storage_path)}
     except Exception as e:
-        checks["storage"] = {"status": "unhealthy", "error": str(e)}
+        logger.error("Storage health check failed", exc_info=True)
+        checks["storage"] = {"status": "unhealthy", "error": "check failed"}
     
     # Workers check (if applicable)
     try:
@@ -169,14 +177,16 @@ async def detailed_health_check() -> Dict[str, Any]:
         from app.services.ai_provider import check_ai_providers
         checks["ai_providers"] = check_ai_providers()
     except Exception as e:
-        checks["ai_providers"] = {"status": "unknown", "error": str(e)}
+        logger.error("AI providers health check failed", exc_info=True)
+        checks["ai_providers"] = {"status": "unknown", "error": "check failed"}
     
     # Search indexes check
     try:
         from app.hybrid.services import check_search_indexes
         checks["search_indexes"] = check_search_indexes()
     except Exception as e:
-        checks["search_indexes"] = {"status": "unknown", "error": str(e)}
+        logger.error("Search indexes health check failed", exc_info=True)
+        checks["search_indexes"] = {"status": "unknown", "error": "check failed"}
     
     overall_status = "healthy" if all(
         c.get("status") in ["healthy", "not_configured"] for c in checks.values()
