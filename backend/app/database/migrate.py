@@ -1,4 +1,4 @@
-"""Apply database migrations."""
+"""Apply database migrations with idempotency tracking."""
 
 import re
 from pathlib import Path
@@ -7,6 +7,24 @@ from app.config import get_settings
 from app.database.engine import connect
 
 MIGRATIONS_DIR = Path(__file__).parent / "migrations"
+
+TRACKING_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    id SERIAL PRIMARY KEY,
+    filename TEXT UNIQUE NOT NULL,
+    version TEXT NOT NULL,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)
+"""
+
+TRACKING_TABLE_SQL_SQLITE = """
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    filename TEXT UNIQUE NOT NULL,
+    version TEXT NOT NULL,
+    applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+)
+"""
 
 
 async def run_migrations() -> None:
@@ -22,13 +40,36 @@ async def run_migrations() -> None:
             continue
         files.append(p)
     files.sort()
+
     db = await connect()
     try:
         # Disable foreign key constraints for SQLite during migrations
         if not settings.uses_postgres:
             await db.execute("PRAGMA foreign_keys = OFF")
         
+        # Create/ensure schema_migrations tracking table
+        tracking_sql = TRACKING_TABLE_SQL if settings.uses_postgres else TRACKING_TABLE_SQL_SQLITE
+        await db.execute(tracking_sql)
+        
+        # Get already-applied migrations
+        applied = set()
+        try:
+            cursor = await db.execute(
+                "SELECT filename FROM schema_migrations ORDER BY applied_at"
+            )
+            rows = await cursor.fetchall()
+            applied = {row[0] for row in rows}
+        except Exception:
+            # Table might not exist on first run (shouldn't happen, but be safe)
+            pass
+        
         for path in files:
+            filename = path.name
+            
+            # Skip already-applied migrations (idempotency via tracking table)
+            if filename in applied:
+                continue
+            
             sql = path.read_text(encoding="utf-8")
             for statement in _split_statements(sql):
                 # For SQLite, handle ALTER TABLE ADD COLUMN with idempotency check
@@ -44,7 +85,22 @@ async def run_migrations() -> None:
                     error_msg = str(exc).lower()
                     if not settings.uses_postgres and ("duplicate column" in error_msg or "duplicate column name" in error_msg):
                         continue
+                    # For Postgres: check for "already exists" errors (defense in depth)
+                    if settings.uses_postgres and any(
+                        phrase in error_msg
+                        for phrase in ["already exists", "duplicate column", "duplicate key"]
+                    ):
+                        continue
                     raise
+            
+            # Record migration as applied
+            version = path.stem.split("_")[0]
+            await db.execute(
+                "INSERT INTO schema_migrations (filename, version) VALUES ($1, $2)"
+                if settings.uses_postgres
+                else "INSERT INTO schema_migrations (filename, version) VALUES (?, ?)",
+                [filename, version],
+            )
         
         # Re-enable foreign key constraints for SQLite after migrations
         if not settings.uses_postgres:

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] - 2026-07-01
+## [1.1.0] - 2026-07-28
 
 ### Added
 
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Content hash deduplication
 - **Citation Tracking** - Source attribution for search results
   - Track which chunks were cited in answers
-  -APA/MLA/Chicago citation formatting helpers
+  - APA/MLA/Chicago citation formatting helpers
 - **Hybrid Search API** - `/api/v1/vector/*` endpoints
   - Document indexing: `POST /api/v1/vector/documents/{id}/index-now`
   - Vector search: `POST /api/v1/vector/search`
@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Voice recognition integration
 - **Background Worker** - `vector/worker.py` for async document processing
 - **Migration 002** - Add document_chunks, embeddings, citations, search_sessions tables
+- **MFA Support** - TOTP-based multi-factor authentication with backup codes
+- **Postgres Migration Parity** - All 12 migrations now support both SQLite and Postgres
+- **Migration Idempotency** - `schema_migrations` tracking table prevents duplicate application
+- **E2E Test Skip Guards** - Tests requiring external API keys now properly skip when keys are unset
 
 ### Changed
 
@@ -36,18 +40,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AI Provider Router** - Better fallback logic for provider selection
 - **Rate Limiting** - Path-specific rate limiting keys
 - **Security Headers** - HSTS added for production environments
+- **Migration Runner** - Now uses `schema_migrations` tracking table (standard Alembic-style pattern)
+- **Postgres Migrations** - All `ALTER TABLE ADD COLUMN` use `IF NOT EXISTS`; all `CREATE INDEX` use `IF NOT EXISTS`
 
 ### Fixed
 
 - **Security** - SQL injection in audit.py (placeholder substitution)
 - **Session Management** - Session family revocation on logout
 - **CORS Configuration** - Default localhost origins
+- **Postgres Migration 003** - Missing MFA columns (`mfa_enabled`, `mfa_secret`, `mfa_backup_codes`) and auth columns now properly added
+- **StopWordRemover** - `'StopWordRemover' object has no attribute 'remove'` crash in query pipeline (added missing `remove()` method)
+- **npm Audit** - 5 moderate findings accepted as non-breaking (react-router SSR CVE does not apply to SPA; prismjs requires breaking upgrade)
 
 ### Security
 
 - Added Content-Security-Policy headers
 - Enhanced password policy enforcement
 - Improved brute-force protection
+- TOTP-based MFA with encrypted backup codes
 
 ---
 
@@ -82,8 +92,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenAI embeddings as default
 - FAISS or pgvector for large-scale vector storage
 - E2E coverage gate at 95% in CI
-- Email verification on signup
-- Password reset flow
 - OAuth2 providers (Google, GitHub)
 
 ---
@@ -96,6 +104,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 2. Configure `REDIS_URL` for production (recommended)
 3. Set `STORAGE_ROOT` environment variable
 4. Run vector worker: `npm run vector:worker`
+
+### v1.1 → v1.1.1
+
+1. Run `python run_migrations.py` — the new `schema_migrations` tracking table ensures idempotent re-application
+2. No breaking changes. All existing endpoints remain stable.
 
 ### Breaking Changes
 
