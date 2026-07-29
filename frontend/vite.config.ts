@@ -9,9 +9,6 @@ const ALLOWED_PATHS = [
   path.resolve(__dirname, 'src'),
   path.resolve(__dirname, 'public'),
   path.resolve(__dirname, 'node_modules'),
-  path.resolve(__dirname, 'tests/unit'),
-  path.resolve(__dirname, 'tests/security'),
-  path.resolve(__dirname, 'tests/e2e'),
 ];
 
 // Security: Blocked patterns to prevent path traversal
@@ -69,14 +66,13 @@ function isPathAllowed(filePath: string): boolean {
 function secureConfigureServer(server: any): any {
   if (!isDevelopment) return server;
   
-  // Security: Restrict server configuration
-  if (server.fs) {
+  // Only apply strict fs restrictions when explicitly enabled via VITE_SECURE_MODE
+  if (isSecureMode && server.fs) {
     server.fs.strict = true;
     server.fs.allow = ALLOWED_PATHS.filter(p => fs.existsSync(p));
   }
   
   server.host = '127.0.0.1';
-  server.cors = { origin: false };
   
   return server;
 }
@@ -149,10 +145,10 @@ export default defineConfig({
         return html;
       },
     },
-    { // File access validator
+    { // File access validator — only active in secure mode (VITE_SECURE_MODE=true)
       name: 'file-access-validator',
       transform(src, id) {
-        if (isDevelopment && !isPathAllowed(id)) {
+        if (isDevelopment && isSecureMode && !isPathAllowed(id)) {
           console.log(`[SECURITY] Blocked file access: ${id}`);
           return { code: '', map: null };
         }
