@@ -136,6 +136,9 @@ jobs:
           docker compose up -d postgres redis
           sleep 30
 
+      - name: Install Playwright WebKit browser
+        run: npx playwright install --with-deps webkit
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
