@@ -245,8 +245,14 @@ Output:
         print(f"    The JWT_SECRET and ENCRYPTION_KEY are unique to this installation.")
         print(f"    Back them up in a password manager before deploying.\n")
     else:
-        # Print to stdout
-        print(env_content)
+        # Print redacted preview — never dump secrets to stdout
+        for line in env_content.strip().splitlines():
+            key = line.split("=")[0] if "=" in line else line
+            if any(s in key.upper() for s in ("SECRET", "KEY", "PASSWORD", "TOKEN")):
+                print(f"{key}=***REDACTED***")
+            else:
+                print(line)
+        print(f"\n  {YELLOW}[NOTE]{RESET} Secret values redacted. Use --output to write the full .env file.")
 
 
 GREEN = "\033[92m"
