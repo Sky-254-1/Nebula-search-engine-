@@ -83,7 +83,11 @@ async def run_migrations() -> None:
                 except Exception as exc:
                     # Fallback: SQLite ALTER may fail if column already exists on re-run
                     error_msg = str(exc).lower()
-                    if not settings.uses_postgres and ("duplicate column" in error_msg or "duplicate column name" in error_msg):
+                    if not settings.uses_postgres and (
+                        "duplicate column" in error_msg
+                        or "duplicate column name" in error_msg
+                        or "no such column" in error_msg
+                    ):
                         continue
                     # For Postgres: check for "already exists" errors (defense in depth)
                     if settings.uses_postgres and any(
