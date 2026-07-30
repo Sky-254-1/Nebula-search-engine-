@@ -1,9 +1,7 @@
 """Targeted tests for zero-coverage local modules."""
 
-import asyncio
 import os
 import tempfile
-from unittest.mock import MagicMock, patch
 
 import pytest
 

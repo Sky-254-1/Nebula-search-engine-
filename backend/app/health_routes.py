@@ -54,7 +54,7 @@ async def readiness_check() -> Dict[str, Any]:
             "status": "healthy",
             "message": "Database connection successful"
         }
-    except Exception as e:
+    except Exception:
         logger.error("Database health check failed", exc_info=True)
         checks["database"] = {
             "status": "unhealthy",
@@ -76,7 +76,7 @@ async def readiness_check() -> Dict[str, Any]:
                 "status": "healthy",
                 "message": "Redis not configured (in-memory cache)"
             }
-    except Exception as e:
+    except Exception:
         logger.error("Redis health check failed", exc_info=True)
         checks["redis"] = {
             "status": "unhealthy",
@@ -96,7 +96,7 @@ async def readiness_check() -> Dict[str, Any]:
         }
         if disk_free_percent < 10:
             overall_status = "not_ready"
-    except Exception as e:
+    except Exception:
         logger.error("Disk health check failed", exc_info=True)
         checks["disk"] = {
             "status": "unknown",
@@ -129,7 +129,7 @@ async def detailed_health_check() -> Dict[str, Any]:
         await db.execute("SELECT 1")
         await db.close()
         checks["database"] = {"status": "healthy", "details": {}}
-    except Exception as e:
+    except Exception:
         logger.error("Database detailed health check failed", exc_info=True)
         checks["database"] = {"status": "unhealthy", "error": "check failed"}
     
@@ -146,7 +146,7 @@ async def detailed_health_check() -> Dict[str, Any]:
             }
         else:
             checks["redis"] = {"status": "not_configured", "message": "Using in-memory cache"}
-    except Exception as e:
+    except Exception:
         logger.error("Redis detailed health check failed", exc_info=True)
         checks["redis"] = {"status": "unhealthy", "error": "check failed"}
     
@@ -161,7 +161,7 @@ async def detailed_health_check() -> Dict[str, Any]:
             f.write("ok")
         os.remove(test_file)
         checks["storage"] = {"status": "healthy", "path": str(storage_path)}
-    except Exception as e:
+    except Exception:
         logger.error("Storage health check failed", exc_info=True)
         checks["storage"] = {"status": "unhealthy", "error": "check failed"}
     
@@ -176,7 +176,7 @@ async def detailed_health_check() -> Dict[str, Any]:
     try:
         from app.services.ai_provider import check_ai_providers
         checks["ai_providers"] = check_ai_providers()
-    except Exception as e:
+    except Exception:
         logger.error("AI providers health check failed", exc_info=True)
         checks["ai_providers"] = {"status": "unknown", "error": "check failed"}
     
@@ -184,7 +184,7 @@ async def detailed_health_check() -> Dict[str, Any]:
     try:
         from app.hybrid.services import check_search_indexes
         checks["search_indexes"] = check_search_indexes()
-    except Exception as e:
+    except Exception:
         logger.error("Search indexes health check failed", exc_info=True)
         checks["search_indexes"] = {"status": "unknown", "error": "check failed"}
     

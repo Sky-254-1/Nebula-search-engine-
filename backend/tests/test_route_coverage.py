@@ -1,7 +1,5 @@
 """Tests for backend route handlers to improve coverage."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 
 

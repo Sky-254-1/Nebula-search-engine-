@@ -1,8 +1,6 @@
 """Tests for app/routes/auth_extended.py — email verification, password reset, account management."""
 
 import pytest
-import time
-from unittest.mock import ANY
 
 
 class APITestBase:

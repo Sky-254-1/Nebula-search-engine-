@@ -1,18 +1,15 @@
 """Functional tests that exercise actual code paths for coverage improvement."""
 
 import asyncio
-import json
 import time
-from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.indexing.events import EventBus, EventType, IndexingEvent, event_bus, get_event_bus
+from app.indexing.events import EventBus, EventType, IndexingEvent
 from app.indexing.models import (
-    CancelRequest, DeadLetterJobResponse, IndexJobProgressResponse,
-    IndexJobResponse, IndexingMetricsResponse, ReindexRequest,
-    RetryRequest, StartIndexRequest, WorkerHealthResponse,
+    DeadLetterJobResponse, IndexJobProgressResponse,
+    IndexJobResponse, StartIndexRequest, WorkerHealthResponse,
 )
 from app.search.orchestrator import sanitize_query, orchestrate_search, run_web_search
 from app.services.search import sanitize_query as svc_sanitize_query
@@ -273,7 +270,6 @@ class TestSecurityMiddlewareFunctional:
         assert middleware._validate_csrf_token(token) is True
 
     def test_csrf_token_expiry(self):
-        import time
         from app.middleware.security import CSRFProtectionMiddleware
         from starlette.applications import Starlette
         app = Starlette()
@@ -292,7 +288,6 @@ class TestSecurityMiddlewareFunctional:
         assert middleware._validate_csrf_token("") is False
 
     def test_csrf_get_token_expired(self):
-        import time
         from app.middleware.security import CSRFProtectionMiddleware
         from starlette.applications import Starlette
         app = Starlette()
