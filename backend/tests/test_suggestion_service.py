@@ -5,7 +5,7 @@ suggestion_service.py).  The conftest.py does NOT mock this, so the import
 succeeds.  We mock cache_service.get/set at the module path for each test.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
