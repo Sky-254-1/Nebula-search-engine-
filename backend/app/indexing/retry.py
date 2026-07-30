@@ -153,7 +153,7 @@ class RetryHandler:
         raise last_error
 
 
-import asyncio
+import asyncio  # noqa: E402
 
 
 # Global retry handler

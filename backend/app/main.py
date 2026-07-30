@@ -455,7 +455,7 @@ app.add_middleware(MetricsMiddleware)
 app.add_middleware(CSRFProtectionMiddleware)
 
 # Register compression middleware
-from app.middleware.compression import CompressionMiddleware
+from app.middleware.compression import CompressionMiddleware # noqa: E402
 app.add_middleware(CompressionMiddleware, minimum_size=1024)
 
 # --- Static files ---
