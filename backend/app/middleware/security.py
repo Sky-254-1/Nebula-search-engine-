@@ -29,19 +29,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if settings.is_production:
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
         
-        # Content Security Policy
-        csp_directives = [
-            "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # Allow inline for development
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: https:",
-            "font-src 'self' data:",
-            "connect-src 'self' https: wss:",  # Allow WebSocket connections
-            "frame-ancestors 'none'",
-            "base-uri 'self'",
-            "form-action 'self'",
-        ]
-        response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
+        # Content Security Policy — use config-driven values for production safety
+        response.headers["Content-Security-Policy"] = settings.csp_policy
+
+        # Cross-Origin isolation headers
+        response.headers["Cross-Origin-Embedder-Policy"] = settings.cross_origin_embedder_policy
+        response.headers["Cross-Origin-Opener-Policy"] = settings.cross_origin_opener_policy
+        response.headers["Cross-Origin-Resource-Policy"] = settings.cross_origin_resource_policy
         
         return response
 
@@ -56,9 +50,12 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         "/openapi.json",
     }
     
+    # Token expiry in seconds (30 minutes)
+    _TOKEN_TTL = 1800
+
     def __init__(self, app):
         super().__init__(app)
-        self._csrf_tokens: dict[str, str] = {}
+        self._csrf_tokens: dict[str, tuple[str, float]] = {}  # session_id -> (token, expiry_timestamp)
     
     async def dispatch(self, request: Request, call_next) -> Response:
         # Skip CSRF check for safe methods and exempt paths
@@ -96,20 +93,37 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
     
     def _validate_csrf_token(self, token: str) -> bool:
-        """Validate CSRF token."""
-        # In production, use a more robust CSRF token validation
-        # This is a simplified version
-        return len(token) >= 32 and token in self._csrf_tokens.values()
+        """Validate CSRF token with expiry check."""
+        if len(token) < 32:
+            return False
+        import time
+        now = time.time()
+        # Check all tokens and clean up expired ones
+        expired = [sid for sid, (tok, exp) in self._csrf_tokens.items() if exp < now]
+        for sid in expired:
+            del self._csrf_tokens[sid]
+        # Check if token exists and is not expired
+        for sid, (tok, exp) in self._csrf_tokens.items():
+            if tok == token and exp > now:
+                return True
+        return False
     
     def generate_csrf_token(self, session_id: str) -> str:
-        """Generate CSRF token for session."""
+        """Generate CSRF token for session with expiry."""
+        import time
         token = secrets.token_urlsafe(32)
-        self._csrf_tokens[session_id] = token
+        self._csrf_tokens[session_id] = (token, time.time() + self._TOKEN_TTL)
         return token
     
     def get_csrf_token(self, session_id: str) -> Optional[str]:
-        """Get CSRF token for session."""
-        return self._csrf_tokens.get(session_id)
+        """Get CSRF token for session if not expired."""
+        import time
+        entry = self._csrf_tokens.get(session_id)
+        if entry and entry[1] > time.time():
+            return entry[0]
+        if entry:
+            del self._csrf_tokens[session_id]
+        return None
 
 
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):

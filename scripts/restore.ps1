@@ -1,4 +1,4 @@
-me<#
+<#
 .SYNOPSIS
 Restore Nebula Search Engine database from backup.
 
@@ -28,11 +28,11 @@ Skip backup validation before restore. Default: false
 param(
     [Parameter(Mandatory=$true)]
     [string]$BackupFile,
-    
+
     [string]$DatabaseName = "nebula",
-    
+
     [string]$Password = "",
-    
+
     [bool]$SkipValidation = $false
 )
 
