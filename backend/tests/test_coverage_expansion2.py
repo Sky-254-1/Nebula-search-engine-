@@ -200,7 +200,7 @@ class TestOrchestratorFunctional:
     async def test_run_web_search_invalid_backend(self):
         """Test that run_web_search rejects invalid backends."""
         try:
-            result = await run_web_search("test", backend="invalid_backend")
+            await run_web_search("test", backend="invalid_backend")
         except Exception as e:
             assert isinstance(e, (ValueError, Exception))
 
