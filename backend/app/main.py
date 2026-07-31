@@ -30,7 +30,7 @@ from app.middleware.versioning import VersioningMiddleware
 from app.middleware.response import ResponseStandardizationMiddleware
 from app.middleware.rate_limit import RateLimitHeadersMiddleware
 from app.services.monitoring import MetricsMiddleware
-from app.routes import admin, ai, audio, auth, crawler, features, health, search, storage, vector
+from app.routes import admin, ai, audio, auth, crawler, features, health, mobile, search, storage, vector
 from app.health_routes import router as health_router
 from app.routes.autocomplete import router as autocomplete_router
 from app.routes.spell import router as spell_router
@@ -499,6 +499,7 @@ app.include_router(webhooks_router)
 app.include_router(crawler.router)  # Crawler management
 app.include_router(features.router)  # Collections, bookmarks, saved searches
 app.include_router(hybrid_router)  # Hybrid search engine
+app.include_router(mobile.router)  # Mobile-specific endpoints
 app.include_router(autocomplete_router)  # Autocomplete system
 app.include_router(mfa_router)  # Multi-factor authentication
 app.include_router(oauth_router)  # OAuth provider authentication
