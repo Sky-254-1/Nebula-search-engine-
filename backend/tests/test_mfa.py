@@ -1,11 +1,7 @@
 """Tests for app/services/mfa.py — TOTP/2FA secret generation, verification, backup codes."""
 
 import time
-import hashlib
-import hmac
-from io import BytesIO
 
-import pytest
 import pyotp
 
 from app.services.mfa import MFAService, enroll_mfa, verify_mfa_token, MFAEnrollment

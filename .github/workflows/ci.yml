@@ -53,9 +53,26 @@ jobs:
         working-directory: backend
         run: python scripts/ci_check_coverage.py
 
+      - name: Run router-mount regression guard
+        working-directory: backend
+        run: python -m pytest tests/test_router_mounts.py -v
+
       - name: Verify app imports
         working-directory: backend
         run: python scripts/ci_verify_imports.py
+
+      - name: mypy type-check baseline ceiling
+        working-directory: backend
+        run: |
+          python -m mypy app --config-file mypy.ini > mypy_report.txt || true
+          echo "===== mypy report (first 200 lines) ====="
+          head -n 200 mypy_report.txt
+          COUNT=$(grep -cE "^backend\.app|^backend\\vector" mypy_report.txt || echo 0)
+          echo "mypy_error_count=$COUNT"
+          if [ "$COUNT" -gt 240 ]; then
+            echo "Mypy error ceiling breached: $COUNT > 240"
+            exit 1
+          fi
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4

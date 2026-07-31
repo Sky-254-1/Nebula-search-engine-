@@ -299,15 +299,34 @@ class DocumentIngester:
         return content.strip()
 
     async def _parse_html(self, file_path: Path) -> str:
-        """Parse HTML file"""
+        """Parse HTML file using BeautifulSoup (proper HTML parser, not regex).
+
+        Replaces the previous regex-based tag stripping which was bypassable
+        via malformed/nested tags (e.g. <scr<script>ipt>) and didn't handle
+        attribute-based vectors. BeautifulSoup's parser correctly handles
+        nested/malformed HTML and extracts only the text content.
+        """
         async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
             content = await f.read()
-        # Remove HTML tags (basic implementation)
-        content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL)
-        content = re.sub(r'<style[^>]*>.*?</style>', '', content, flags=re.DOTALL)
-        content = re.sub(r'<[^>]+>', ' ', content)
-        content = re.sub(r'\s+', ' ', content)
-        return content.strip()
+
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(content, 'html.parser')
+            # Remove script and style elements entirely
+            for tag in soup(['script', 'style', 'noscript']):
+                tag.decompose()
+            text = soup.get_text(separator=' ', strip=True)
+            # Collapse whitespace
+            text = re.sub(r'\s+', ' ', text)
+            return text.strip()
+        except ImportError:
+            logger.warning("beautifulsoup4 not installed, falling back to regex (less secure)")
+            # Fallback: regex-based (less secure, but better than nothing)
+            content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL)
+            content = re.sub(r'<style[^>]*>.*?</style>', '', content, flags=re.DOTALL)
+            content = re.sub(r'<[^>]+>', ' ', content)
+            content = re.sub(r'\s+', ' ', content)
+            return content.strip()
 
     async def _parse_pdf(self, file_path: Path) -> str:
         """Parse PDF file"""
