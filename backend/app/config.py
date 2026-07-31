@@ -73,6 +73,16 @@ class Settings:
     ai_provider: str = field(default_factory=lambda: os.getenv("AI_PROVIDER", "auto"))
     brave_api_key: str = field(default_factory=lambda: os.getenv("BRAVE_API_KEY", ""))
     serpapi_key: str = field(default_factory=lambda: os.getenv("SERPAPI_KEY", ""))
+    # OAuth provider settings
+    enable_oauth: bool = field(default_factory=lambda: os.getenv("ENABLE_OAUTH", "false").lower() == "true")
+    google_client_id: str = field(default_factory=lambda: os.getenv("GOOGLE_CLIENT_ID", ""))
+    google_client_secret: str = field(default_factory=lambda: os.getenv("GOOGLE_CLIENT_SECRET", ""))
+    github_client_id: str = field(default_factory=lambda: os.getenv("GITHUB_CLIENT_ID", ""))
+    github_client_secret: str = field(default_factory=lambda: os.getenv("GITHUB_CLIENT_SECRET", ""))
+    microsoft_client_id: str = field(default_factory=lambda: os.getenv("MICROSOFT_CLIENT_ID", ""))
+    microsoft_client_secret: str = field(default_factory=lambda: os.getenv("MICROSOFT_CLIENT_SECRET", ""))
+    apple_client_id: str = field(default_factory=lambda: os.getenv("APPLE_CLIENT_ID", ""))
+    apple_client_secret: str = field(default_factory=lambda: os.getenv("APPLE_CLIENT_SECRET", ""))
     redis_url: str = field(default_factory=lambda: os.getenv("REDIS_URL", ""))
     app_env: str = field(default_factory=lambda: os.getenv("APP_ENV", "development"))
     rate_limit_per_minute: int = field(
