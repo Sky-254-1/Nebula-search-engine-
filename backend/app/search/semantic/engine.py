@@ -57,7 +57,7 @@ class SemanticEngine:
         self.config = kwargs
         self._embedding_provider = None
         self._vector_store = vector_store
-        self._cache = {}
+        self._cache: dict[str, Any] = {}
         self._vector_store_backend = kwargs.get("vector_store_backend") or "local"
 
         # Initialize embedding provider

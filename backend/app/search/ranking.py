@@ -57,7 +57,7 @@ class BM25Ranker:
         self.b = b
         self.avg_doc_length = 0.0
         self.doc_count = 0
-        self.doc_freq = Counter()  # Term -> number of docs containing it
+        self.doc_freq: Counter[str] = Counter()  # Term -> number of docs containing it
         
     def index_documents(self, documents: list[dict]):
         """Index documents for BM25 scoring"""

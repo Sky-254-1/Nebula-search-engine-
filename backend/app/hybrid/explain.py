@@ -256,14 +256,14 @@ class ExplanationGenerator:
         avg_score = sum(scores) / len(scores) if scores else 0
         
         # Count boost applications
-        boost_counts = {}
+        boost_counts: dict[str, int] = {}
         for expl in explanations:
             for boost in expl.get("boosts", []):
                 boost_type = boost.get("type", "unknown")
                 boost_counts[boost_type] = boost_counts.get(boost_type, 0) + 1
         
         # Count matched term occurrences
-        term_matches = {}
+        term_matches: dict[str, list] = {}
         for expl in explanations:
             for term in expl.get("matched_terms", []):
                 term_matches[term] = term_matches.get(term, 0) + 1

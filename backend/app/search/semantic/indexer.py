@@ -45,7 +45,7 @@ class DocumentIndexer:
         self.semantic_engine = semantic_engine
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self._cache = {}
+        self._cache: dict[str, Any] = {}
     
     async def index_document(
         self,
