@@ -1,0 +1,12 @@
+{
+  "name": "Nebula",
+  "displayName": "Nebula Search",
+  "version": "1.1.0",
+  "platforms": ["ios"],
+  "description": "Nebula Search iOS mobile application",
+  "main": "capacitor.config.json",
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

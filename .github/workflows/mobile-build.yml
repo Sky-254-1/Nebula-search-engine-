@@ -1,0 +1,213 @@
+name: Mobile Build & Test
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/mobile-*
+    paths:
+      - 'mobile/**'
+      - 'frontend/dist/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'mobile/**'
+      - 'frontend/dist/**'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Build platform (ios, android, all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - ios
+          - android
+          - all
+      build-type:
+        description: 'Build type (debug, release)'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+# Limit concurrency to prevent overlapping builds
+concurrency:
+  group: mobile-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================
+  # iOS Build Job
+  # ============================================
+  ios-build:
+    name: iOS Build (${{ matrix.configuration }})
+    runs-on: macos-14
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+      
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.3'
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      
+      - name: Install dependencies
+        working-directory: mobile
+        run: |
+          npm ci
+          npx cap sync
+      
+      - name: Build iOS
+        working-directory: mobile
+        run: |
+          cd ios
+          if [ "${{ matrix.configuration }}" = "Release" ]; then
+            xcodebuild -workspace Nebula.xcworkspace -scheme Nebula -configuration Release -archivePath "build/Nebula.xcarchive" archive
+          else
+            xcodebuild -workspace Nebula.xcworkspace -scheme Nebula -configuration Debug -archivePath "build/Nebula.xcarchive" archive
+          fi
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      
+      - name: Upload iOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-${{ matrix.configuration }}-build
+          path: |
+            mobile/ios/build/*.xcarchive
+            mobile/ios/build/*.ipa
+          retention-days: 7
+        if: matrix.configuration == 'Release'
+      
+      - name: Upload debug symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-${{ matrix.configuration }}-dSYMs
+          path: mobile/ios/build/*.dSYM
+          retention-days: 7
+
+  # ============================================
+  # Android Build Job
+  # ============================================
+  android-build:
+    name: Android Build (${{ matrix.abi }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        abi: [armeabi-v7a, arm64-v8a, x86_64]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      
+      - name: Install dependencies
+        working-directory: mobile
+        run: |
+          npm ci
+          npx cap sync
+      
+      - name: Build Android APK
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --abi=${{ matrix.abi }}
+          ./gradlew bundleDebug --abi=${{ matrix.abi }}
+      
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ matrix.abi }}-build
+          path: |
+            mobile/android/app/build/outputs/apk/**/*.apk
+            mobile/android/app/build/outputs/bundle/**/*.aab
+          retention-days: 7
+
+  # ============================================
+  # Mobile E2E Tests Job
+  # ============================================
+  mobile-e2e:
+    name: Mobile E2E Tests
+    runs-on: ubuntu-latest
+    needs: [ios-build, android-build]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+      
+      - name: Run mobile E2E tests
+        working-directory: mobile
+        run: |
+          npm run test:e2e
+        env:
+          CI: true
+
+  # ============================================
+  # Mobile Performance Tests Job
+  # ============================================
+  mobile-performance:
+    name: Mobile Performance Tests
+    runs-on: ubuntu-latest
+    needs: [ios-build, android-build]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+      
+      - name: Run performance tests
+        working-directory: mobile
+        run: |
+          npm run test:performance
+        env:
+          CI: true

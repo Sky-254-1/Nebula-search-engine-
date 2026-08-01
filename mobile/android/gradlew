@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+# This is a generated file please DO NOT edit
+
+if [ -z "$GRADLE_OPTS" ]; then
+    GRADLE_OPTS="-Xmx64m"
+fi
+
+if [ -f "$HOME/.gradle/jvmopts" ]; then
+    GRADLE_OPTS="$GRADLE_OPTS $(cat $HOME/.gradle/jvmopts)"
+fi
+
+exec java $GRADLE_OPTS -classpath "`dirname "$0"`/gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"

@@ -1,0 +1,48 @@
+platform :ios, '14.0'
+use_frameworks! :linkage => :static
+
+workspace 'Nebula.xcworkspace'
+project 'Nebula', 'Profile' => :debug
+
+abstract_target 'NebulaPods' do
+  pod 'Capacitor', :git => 'https://github.com/ionic-team/capacitor.git', :branch => 'main'
+  pod 'CapacitorCordova', :git => 'https://github.com/ionic-team/capacitor-cordova-ios.git', :branch => 'main'
+  
+  target 'Nebula' do
+    # Capacitor plugins
+    pod 'CapacitorPlugins', :path => '../../node_modules/@capacitor/ios'
+    
+    # Add any additional pods here
+  end
+  
+  target 'NebulaTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+      config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '10.15'
+      config.build_settings['EXPANDED_CODE_SIGN_IDENTITY'] = ""
+      config.build_settings['CODE_SIGNING_REQUIRED'] = "NO"
+      config.build_settings['CODE_SIGNING_ALLOWED'] = "NO"
+    end
+  end
+  
+  installer.aggregate_targets.each do |aggregate|
+    aggregate.user_project.native_targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+      end
+    end
+    aggregate.user_project.save
+  end
+  
+  installer.xcode_projects.each do |project|
+    project.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+    end
+  end
+end
