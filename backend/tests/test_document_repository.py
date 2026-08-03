@@ -237,11 +237,10 @@ class TestContentHashOperations:
     @pytest.mark.asyncio
     async def test_find_by_hash_not_indexed(self, repo):
         """Should return None when document is not indexed."""
+        # When querying for indexed documents with this hash, return empty (no indexed docs)
         repo._db._rows_by_query[("SELECT id, filename, content_hash, status FROM documents "
             "WHERE user_id = ? AND content_hash = ? AND status = 'indexed'",
-            (1, "hash123"))] = [
-            {"id": 1, "filename": "test.pdf", "content_hash": "hash123", "status": "processing"}
-        ]
+            (1, "hash123"))] = []
         doc = await repo.find_by_hash(1, "hash123")
         assert doc is None
 

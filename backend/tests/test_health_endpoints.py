@@ -68,6 +68,8 @@ class TestHealthEndpoints:
         assert response.status_code == 200
         
         data = response.json()
+        # Debug: print response data
+        print(f"Health response: {data}")
         assert data["status"] == "healthy"
         assert data["service"] == "nebula-backend"
         assert "timestamp" in data

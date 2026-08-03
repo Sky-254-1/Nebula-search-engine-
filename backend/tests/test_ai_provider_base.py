@@ -123,6 +123,14 @@ class TestAIProviderImplementation:
             async def complete(self, prompt: str, system: str | None = None) -> str | None:
                 return None
 
+            async def stream(self, prompt: str, system: str | None = None):
+                # Yield nothing for None return case
+                if prompt == "error":
+                    raise ValueError("Test error")
+                return_value = await self.complete(prompt, system)
+                if return_value is not None:
+                    yield return_value
+
         none_provider = NoneProvider()
         result = await none_provider.complete("test")
         assert result is None

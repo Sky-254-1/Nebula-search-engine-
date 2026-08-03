@@ -311,7 +311,9 @@ class TestInvalidateOperations:
             yield "prefix:key1"
             yield "prefix:key2"
             yield "other:key3"
-        service._redis.scan_iter = mock_scan_iter
+        
+        # Configure scan_iter to be an async generator when called
+        type(service._redis).scan_iter = MagicMock(side_effect=mock_scan_iter)
         service._redis.delete = AsyncMock()
 
         await service.invalidate_prefix("prefix:")

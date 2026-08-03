@@ -60,21 +60,23 @@ class TestSendEmail:
     @pytest.mark.asyncio
     async def test_send_email_disabled_service(self):
         """Should return False when service is disabled."""
-        service = EmailService()
-        service.enabled = False
+        # Create service with disabled settings
+        with patch("app.services.email.settings") as mock_settings:
+            mock_settings.smtp_host = ""
+            mock_settings.smtp_username = ""
 
-        result = await service.send_email(
-            to_email="user@example.com",
-            subject="Test Subject",
-            html_content="<p>Test</p>",
-        )
-        assert result is False
+            service = EmailService()
+
+            result = await service.send_email(
+                to_email="user@example.com",
+                subject="Test Subject",
+                html_content="<p>Test</p>",
+            )
+            assert result is False
 
     @pytest.mark.asyncio
     async def test_send_email_success(self):
         """Should send email successfully."""
-        service = EmailService()
-
         with patch("app.services.email.settings") as mock_settings:
             mock_settings.smtp_host = "smtp.example.com"
             mock_settings.smtp_port = 587
@@ -83,6 +85,8 @@ class TestSendEmail:
             mock_settings.smtp_password = "pass"
             mock_settings.smtp_from_name = "Nebula"
             mock_settings.smtp_from_email = "noreply@example.com"
+
+            service = EmailService()
 
             with patch("app.services.email.smtplib.SMTP") as mock_smtp:
                 mock_server = MagicMock()
