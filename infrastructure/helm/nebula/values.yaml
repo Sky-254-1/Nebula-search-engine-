@@ -7,6 +7,10 @@ global:
   imageRegistry: ""
   imageTag: latest
 
+# Secrets configuration
+secrets:
+  create: true
+
 # Backend service configuration
 backend:
   replicaCount: 2
@@ -20,10 +24,10 @@ backend:
   resources:
     requests:
       cpu: 250m
-      memory: 256Mi
-    limits:
-      cpu: 500m
       memory: 512Mi
+    limits:
+      cpu: 2
+      memory: 1Gi
   autoscaling:
     enabled: true
     minReplicas: 2
@@ -54,13 +58,14 @@ frontend:
       cpu: 100m
       memory: 128Mi
     limits:
-      cpu: 200m
+      cpu: 500m
       memory: 256Mi
   autoscaling:
     enabled: true
     minReplicas: 2
     maxReplicas: 8
     targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
 
 # Vector worker configuration
 vectorWorker:
@@ -69,18 +74,53 @@ vectorWorker:
     repository: nebula/vector-worker
     tag: latest
     pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8001
   resources:
     requests:
       cpu: 500m
-      memory: 512Mi
-    limits:
-      cpu: 1000m
       memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
   autoscaling:
     enabled: true
     minReplicas: 1
     maxReplicas: 4
-    targetCPUUtilizationPercentage: 80
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  env:
+    APP_ENV: production
+    LOG_LEVEL: INFO
+    VECTOR_DIMENSION: "768"
+
+# Index worker configuration
+indexWorker:
+  replicaCount: 1
+  image:
+    repository: nebula/index-worker
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8002
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  env:
+    APP_ENV: production
+    LOG_LEVEL: INFO
 
 # PostgreSQL configuration
 postgresql:

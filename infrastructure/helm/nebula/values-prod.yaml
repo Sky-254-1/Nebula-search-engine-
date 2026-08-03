@@ -1,0 +1,328 @@
+# Production values for Nebula Search Engine
+
+# Image tags - specific versions for production
+global:
+  environment: production
+  imageRegistry: ""
+  imageTag: "1.0.0"
+
+# Backend service - production configuration
+backend:
+  replicaCount: 3
+  image:
+    repository: nebula/backend
+    tag: "1.0.0"
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  storage:
+    size: 10Gi
+    storageClass: standard
+    accessModes:
+      - ReadWriteOnce
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+  env:
+    APP_ENV: production
+    LOG_LEVEL: INFO
+    LOG_JSON_FORMAT: "true"
+    CORS_ORIGINS: "https://nebula.example.com"
+
+# Frontend service - production configuration
+frontend:
+  replicaCount: 3
+  image:
+    repository: nebula/frontend
+    tag: "1.0.0"
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+# Vector worker - production configuration
+vectorWorker:
+  replicaCount: 2
+  image:
+    repository: nebula/vector-worker
+    tag: "1.0.0"
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8001
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      cpu: 4
+      memory: 8Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  env:
+    APP_ENV: production
+    LOG_LEVEL: INFO
+    VECTOR_DIMENSION: "768"
+
+# Index worker - production configuration
+indexWorker:
+  replicaCount: 2
+  image:
+    repository: nebula/index-worker
+    tag: "1.0.0"
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8002
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  env:
+    APP_ENV: production
+    LOG_LEVEL: INFO
+
+# PostgreSQL - production configuration
+postgresql:
+  enabled: true
+  auth:
+    database: nebula
+    username: nebula
+    password: ""
+    existingSecret: nebula-secrets
+    secretKeys:
+      adminPasswordKey: postgres-password
+      userPasswordKey: password
+  primary:
+    persistence:
+      size: 50Gi
+      storageClass: standard
+      accessModes:
+        - ReadWriteOnce
+    resources:
+      requests:
+        cpu: 1
+        memory: 2Gi
+      limits:
+        cpu: 4
+        memory: 8Gi
+    probes:
+      livenessProbe:
+        enabled: true
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readinessProbe:
+        enabled: true
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        timeoutSeconds: 1
+        successThreshold: 1
+        failureThreshold: 3
+      startupProbe:
+        enabled: true
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 30
+    extraFlags:
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+    initdb:
+      initdbConfigMap: ""
+      initdbSecret: ""
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Redis - production configuration
+redis:
+  enabled: true
+  architecture: replication
+  auth:
+    password: ""
+    existingSecret: nebula-secrets
+    existingSecretPasswordKey: redis-password
+  master:
+    persistence:
+      size: 20Gi
+      storageClass: standard
+      accessModes:
+        - ReadWriteOnce
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+  replica:
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Ingress - production configuration with TLS
+ingress:
+  enabled: true
+  className: nginx
+  host: nebula.example.com
+  tls:
+    enabled: true
+    secretName: nebula-tls
+    clusterIssuer: nebula-letsencrypt
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    cert-manager.io/cluster-issuer: "nebula-letsencrypt"
+
+# Monitoring stack - production configuration
+monitoring:
+  enabled: true
+  prometheus:
+    retention: 30d
+    storage: 50Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+  grafana:
+    adminPassword: ""
+    existingSecret: nebula-secrets
+    existingSecretAdminPasswordKey: grafana-admin-password
+    storage: 10Gi
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  loki:
+    retention: 30d
+    storage: 100Gi
+
+# Backup configuration - production
+backup:
+  enabled: true
+  schedule: "0 2 * * *"
+  retention: 90
+  storage: 50Gi
+  s3:
+    bucket: nebula-backups-prod
+    region: us-east-1
+  encryption:
+    enabled: true
+    algorithm: AES256
+
+# Resource quotas
+resourceQuotas:
+  enabled: true
+  hard:
+    requests.cpu: "16"
+    requests.memory: "32Gi"
+    limits.cpu: "32"
+    limits.memory: "64Gi"
+    persistentvolumeclaims: "20"
+    pods: "50"
+
+# Service account
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# Pod disruption budgets
+podDisruptionBudget:
+  backend:
+    enabled: true
+    minAvailable: 2
+  frontend:
+    enabled: true
+    minAvailable: 2
+  vectorWorker:
+    enabled: true
+    minAvailable: 1
+  indexWorker:
+    enabled: true
+    minAvailable: 1
+
+# Affinity rules for high availability
+affinity:
+  backend:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: nebula-backend
+            topologyKey: kubernetes.io/hostname
+  frontend:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: nebula-frontend
+            topologyKey: kubernetes.io/hostname

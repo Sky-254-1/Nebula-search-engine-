@@ -32,6 +32,8 @@ from app.middleware.rate_limit import RateLimitHeadersMiddleware
 from app.services.monitoring import MetricsMiddleware
 from app.routes import admin, ai, audio, auth, crawler, features, health, mobile, search, storage, vector
 from app.health_routes import router as health_router
+from vector.health import router as vector_health_router
+from app.indexing.health import router as indexing_health_router
 from app.routes.autocomplete import router as autocomplete_router
 from app.routes.spell import router as spell_router
 from app.routes.suggestions import router as suggestions_router
@@ -505,6 +507,10 @@ app.include_router(mfa_router)  # Multi-factor authentication
 app.include_router(oauth_router)  # OAuth provider authentication
 app.include_router(spell_router)  # Spell correction system
 app.include_router(suggestions_router)  # Search suggestions system
+
+# --- Health endpoints for worker services ---
+app.include_router(vector_health_router)  # Vector worker health
+app.include_router(indexing_health_router)  # Indexing worker health
 
 # --- Prometheus /metrics endpoint (mounted after routes) ---
 

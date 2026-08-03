@@ -73,6 +73,10 @@ class TestAIProviderImplementation:
                     raise ValueError("Test error")
                 return f"Response to: {prompt}"
 
+            async def stream(self, prompt: str, system: str | None = None):
+                # Default implementation yields the complete response
+                yield await self.complete(prompt, system)
+
         return TestProvider()
 
     @pytest_asyncio.fixture

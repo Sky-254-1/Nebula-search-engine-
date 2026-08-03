@@ -306,9 +306,12 @@ class TestInvalidateOperations:
         """Should invalidate keys by prefix in Redis."""
         service = CacheService()
         service._redis = MagicMock()
-        service._redis.scan_iter = AsyncMock(
-            return_value=["prefix:key1", "prefix:key2", "other:key3"]
-        )
+        # scan_iter is an async generator, not a coroutine
+        async def mock_scan_iter(match=None):
+            yield "prefix:key1"
+            yield "prefix:key2"
+            yield "other:key3"
+        service._redis.scan_iter = mock_scan_iter
         service._redis.delete = AsyncMock()
 
         await service.invalidate_prefix("prefix:")
@@ -337,7 +340,10 @@ class TestInvalidateOperations:
         """Should invalidate keys by pattern in Redis."""
         service = CacheService()
         service._redis = MagicMock()
-        service._redis.scan_iter = AsyncMock(return_value=["prefix:key1"])
+        # scan_iter is an async generator, not a coroutine
+        async def mock_scan_iter(match=None):
+            yield "prefix:key1"
+        service._redis.scan_iter = mock_scan_iter
         service._redis.delete = AsyncMock()
 
         await service.invalidate_pattern("prefix:")

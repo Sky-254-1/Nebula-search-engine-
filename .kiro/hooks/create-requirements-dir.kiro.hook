@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Create Requirements Directory",
+  "description": "Create requirements directory for the spec",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "mkdir -p \".kiro/specs/production-infrastructure-and-hardening\""
+  }
+}

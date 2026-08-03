@@ -44,7 +44,7 @@ from app.mobile.models import (
     MobileFeatureFlags,
 )
 
-router = APIRouter(prefix="/mobile", tags=["Mobile"])
+router = APIRouter(prefix="/api/v1/mobile", tags=["Mobile"])
 settings = get_settings()
 mobile_settings = get_mobile_settings()
 

@@ -188,7 +188,7 @@ jobs:
               cat backend/pytest_output.txt
             else
               echo "All E2E tests passed"
-            end if
+            fi
           fi
 
       - name: Stop test services
@@ -208,10 +208,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Run Ruff linting
+        run: |
+          pip install ruff
+          ruff check backend/app/ backend/tests/ || true
+          ruff format --check backend/app/ backend/tests/ || true
+
       - name: Run Bandit (Python security)
         run: |
           pip install bandit
-          bandit -r backend/app/ -f json -o bandit-report.json || true
+          bandit -r backend/app/ -f json -o bandit-report.json -x backend/vector,backend/tests || true
 
       - name: Check dependencies for vulnerabilities
         working-directory: backend
@@ -219,10 +225,39 @@ jobs:
           pip install safety
           safety check -r requirements.txt || true
 
-      - name: Upload security report
+      - name: Run pip-audit
+        working-directory: backend
+        run: |
+          pip install pip-audit
+          pip-audit || true
+
+      - name: Build and push Docker images (with security scanning)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.prod
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:commit-${{ github.sha }}
+            ghcr.io/${{ github.repository }}:timestamp-${{ github.event.head_commit.timestamp }}
+          build-args: |
+            BUILD_COMMIT=${{ github.sha }}
+            BUILD_TIMESTAMP=${{ github.event.head_commit.timestamp }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trivy container scanning
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        run: |
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.48.0/trivy_0.48.0_Linux-64bit.tar.gz
+          tar -xzf trivy_0.48.0_Linux-64bit.tar.gz
+          ./trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ghcr.io/${{ github.repository }}:commit-${{ github.sha }} || true
+
+      - name: Upload security reports
         uses: actions/upload-artifact@v4
         with:
           name: security-reports
           path: |
             bandit-report.json
-            **/safety-report.txt
+            trivy-report.json

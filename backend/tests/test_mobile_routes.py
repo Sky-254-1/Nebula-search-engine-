@@ -19,24 +19,25 @@ os.environ["JWT_SECRET"] = "test-secret-key-for-mobile-tests-only"
 os.environ["APP_ENV"] = "testing"
 os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 
-from app.main import app # noqa: E402
-from app.database import init_db # noqa: E402
+from app.main import app  # noqa: E402
+from app.database import init_db  # noqa: E402
 from app.services.auth import create_access_token
 
 
 @pytest_asyncio.fixture(scope="module")
 async def test_client():
     """Create test client and initialize database."""
-    from httpx import AsyncClient
-    
     # Initialize test database
     await init_db()
     
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        yield client
+    # Use TestClient for FastAPI testing (synchronous wrapper for async apps)
+    from starlette.testclient import TestClient
+    client = TestClient(app)
+    client.headers.update({"Content-Type": "application/json"})
+    
+    yield client
     
     # Cleanup
-    import asyncio
     from app.database.engine import close_pool
     await close_pool()
     if _TEST_DB_PATH.exists():
@@ -54,8 +55,8 @@ async def auth_headers():
 
 @pytest.mark.asyncio
 async def test_mobile_status_endpoint(test_client, auth_headers):
-    """Test /mobile/status endpoint returns correct structure."""
-    response = await test_client.get("/mobile/status", headers=auth_headers)
+    """Test /api/v1/mobile/status endpoint returns correct structure."""
+    response = test_client.get("/api/v1/mobile/status", headers=auth_headers)
     assert response.status_code == 200
     
     data = response.json()
@@ -69,8 +70,8 @@ async def test_mobile_status_endpoint(test_client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_mobile_features_endpoint(test_client, auth_headers):
-    """Test /mobile/features endpoint returns feature flags."""
-    response = await test_client.get("/mobile/features", headers=auth_headers)
+    """Test /api/v1/mobile/features endpoint returns feature flags."""
+    response = test_client.get("/api/v1/mobile/features", headers=auth_headers)
     assert response.status_code == 200
     
     data = response.json()
@@ -85,16 +86,15 @@ async def test_mobile_features_endpoint(test_client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_bulk_upload_endpoint(test_client, auth_headers):
-    """Test /mobile/bulk/upload endpoint."""
+    """Test /api/v1/mobile/bulk/upload endpoint."""
     bulk_upload_data = {
-        "files": [
-            {"name": "test1.txt", "content_type": "text/plain"},
-            {"name": "test2.txt", "content_type": "text/plain"},
-        ]
+        "files": ["test1.txt", "test2.txt"],
+        "folder_id": None,
+        "notify_on_complete": True
     }
     
-    response = await test_client.post(
-        "/mobile/bulk/upload",
+    response = test_client.post(
+        "/api/v1/mobile/bulk/upload",
         json=bulk_upload_data,
         headers=auth_headers
     )
@@ -107,7 +107,7 @@ async def test_bulk_upload_endpoint(test_client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_batch_notifications_endpoint(test_client, auth_headers):
-    """Test /mobile/bulk/notifications endpoint."""
+    """Test /api/v1/mobile/bulk/notifications endpoint."""
     batch_data = {
         "notifications": [
             {"type": "system", "title": "Test", "message": "Test message"},
@@ -115,8 +115,8 @@ async def test_batch_notifications_endpoint(test_client, auth_headers):
         "priority": "normal"
     }
     
-    response = await test_client.post(
-        "/mobile/bulk/notifications",
+    response = test_client.post(
+        "/api/v1/mobile/bulk/notifications",
         json=batch_data,
         headers=auth_headers
     )
@@ -128,16 +128,18 @@ async def test_batch_notifications_endpoint(test_client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_device_registration_endpoint(test_client, auth_headers):
-    """Test /mobile/devices/register endpoint."""
+    """Test /api/v1/mobile/devices/register endpoint."""
     device_data = {
         "device_id": "test-device-123",
         "device_name": "Test Phone",
+        "device_type": "mobile",
         "platform": "ios",
+        "push_token": None,
         "app_version": "1.0.0"
     }
     
-    response = await test_client.post(
-        "/mobile/devices/register",
+    response = test_client.post(
+        "/api/v1/mobile/devices/register",
         json=device_data,
         headers=auth_headers
     )
@@ -149,15 +151,15 @@ async def test_device_registration_endpoint(test_client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_offline_sync_endpoint(test_client, auth_headers):
-    """Test /mobile/sync endpoint."""
+    """Test /api/v1/mobile/sync endpoint."""
     sync_data = {
         "device_id": "test-device-123",
         "sync_type": "incremental",
         "include_types": ["documents", "notifications"]
     }
     
-    response = await test_client.post(
-        "/mobile/sync",
+    response = test_client.post(
+        "/api/v1/mobile/sync",
         json=sync_data,
         headers=auth_headers
     )
@@ -169,6 +171,12 @@ async def test_offline_sync_endpoint(test_client, auth_headers):
 
 def test_mobile_settings():
     """Test mobile settings configuration."""
+    # Set test environment variables first
+    os.environ["MOBILE_API_VERSION"] = "v1"
+    os.environ["MOBILE_PREFIX"] = "/api/v1/mobile"
+    os.environ["BULK_UPLOAD_MAX_FILES"] = "50"
+    os.environ["BATCH_NOTIFICATIONS_MAX_COUNT"] = "100"
+    
     from app.mobile.config import get_mobile_settings
     
     settings = get_mobile_settings()
@@ -188,7 +196,7 @@ def test_mobile_models():
     
     # Test BulkUploadRequest
     upload_request = BulkUploadRequest(
-        files=[{"name": "test.txt"}],
+        files=["test.txt"],
         notify_on_complete=True
     )
     assert len(upload_request.files) == 1
@@ -200,3 +208,12 @@ def test_mobile_models():
     )
     assert status.status == "healthy"
     assert status.offline_enabled is True
+    
+    # Test MobileFeatureFlags
+    features = MobileFeatureFlags(
+        offline_sync=True,
+        bulk_upload=True,
+        batch_notifications=True,
+        device_registration=True
+    )
+    assert features.offline_sync is True

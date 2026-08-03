@@ -15,11 +15,6 @@ CREATE TABLE IF NOT EXISTS search_suggestions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Handle stale schemas where search_suggestions exists without the type column.
--- The migration runner's _make_add_column_idempotent ensures this only runs once.
-ALTER TABLE search_suggestions ADD COLUMN type TEXT;
-UPDATE search_suggestions SET type = 'personalized' WHERE type IS NULL;
-
 -- Indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_search_suggestions_query ON search_suggestions(query);
 CREATE INDEX IF NOT EXISTS idx_search_suggestions_type ON search_suggestions(type);

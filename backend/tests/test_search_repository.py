@@ -28,6 +28,8 @@ class FakeDB:
     def __init__(self):
         self.committed = False
         self.executed_queries = []
+        self.fetchall_queries = []
+        self.fetchone_queries = []
         self._rows_by_query = {}
 
     async def execute(self, sql, args=None):
@@ -39,11 +41,13 @@ class FakeDB:
 
     async def fetchone(self, sql, args=None):
         query_key = (sql, tuple(args) if args else ())
+        self.fetchone_queries.append((sql, args))
         rows = self._rows_by_query.get(query_key, [{}])
         return rows[0] if rows else None
 
     async def fetchall(self, sql, args=None):
         query_key = (sql, tuple(args) if args else ())
+        self.fetchall_queries.append((sql, args))
         return list(self._rows_by_query.get(query_key, []))
 
 
@@ -127,7 +131,7 @@ class TestRecentSearches:
             {"query": "second", "backend": "bm25", "results_count": 3, "searched_at": "2024-01-01T09:00:00"},
         ]
         searches = await repo.recent_for_user(1, limit=20)
-        assert len(searchs) == 2
+        assert len(searches) == 2
         assert searches[0]["query"] == "first"
         assert searches[0]["backend"] == "unified"
 
@@ -147,7 +151,7 @@ class TestRecentSearches:
             "WHERE user_id = ? ORDER BY searched_at DESC LIMIT ?",
             (1, 10))] = []
         await repo.recent_for_user(1, limit=10)
-        executed = repo._db.executed_queries[-1]
+        executed = repo._db.fetchall_queries[-1]
         assert "LIMIT ?" in executed[0]
 
     @pytest.mark.asyncio
@@ -157,8 +161,10 @@ class TestRecentSearches:
             "WHERE user_id = ? ORDER BY searched_at DESC LIMIT ?",
             (1, 20))] = []
         await repo.recent_for_user(1)
-        executed = repo._db.executed_queries[-1]
-        assert "20" in executed[1] or 20 in executed[1]
+        executed = repo._db.fetchall_queries[-1]
+        # Check that 20 is in the args (position 1 of tuple)
+        assert executed[1] is not None
+        assert 20 in executed[1]
 
     @pytest.mark.asyncio
     async def test_recent_for_user_ordering(self, repo):
@@ -167,7 +173,7 @@ class TestRecentSearches:
             "WHERE user_id = ? ORDER BY searched_at DESC LIMIT ?",
             (1, 20))] = []
         await repo.recent_for_user(1, limit=20)
-        executed = repo._db.executed_queries[-1]
+        executed = repo._db.fetchall_queries[-1]
         assert "ORDER BY searched_at DESC" in executed[0]
 
 
@@ -282,5 +288,5 @@ class TestEdgeCases:
             "WHERE user_id = ? ORDER BY searched_at DESC LIMIT ?",
             (1, 1000))] = []
         await repo.recent_for_user(1, limit=1000)
-        executed = repo._db.executed_queries[-1]
+        executed = repo._db.fetchall_queries[-1]
         assert "LIMIT ?" in executed[0]

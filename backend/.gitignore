@@ -5,3 +5,9 @@ __pycache__/
 nebula.db
 test_nebula.db
 *.db-journal
+coverage.json
+*.txt
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+pytest_errors.txt

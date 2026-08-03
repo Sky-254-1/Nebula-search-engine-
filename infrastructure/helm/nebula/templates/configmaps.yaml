@@ -1,0 +1,84 @@
+# ConfigMaps for Nebula Search Engine
+
+# Backend ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nebula.fullname" . }}-backend-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-backend
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: nebula
+data:
+  {{- range $key, $value := .Values.backend.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+
+# Frontend ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nebula.fullname" . }}-frontend-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-frontend
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: nebula
+data:
+  {{- range $key, $value := .Values.frontend.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+
+# Vector Worker ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nebula.fullname" . }}-vector-worker-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-vector-worker
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: vector-worker
+    app.kubernetes.io/part-of: nebula
+data:
+  {{- range $key, $value := .Values.vectorWorker.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+
+# Index Worker ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nebula.fullname" . }}-index-worker-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-index-worker
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: index-worker
+    app.kubernetes.io/part-of: nebula
+data:
+  {{- range $key, $value := .Values.indexWorker.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+
+# Application ConfigMap (shared configuration)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nebula.fullname" . }}-app-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: nebula
+data:
+  APP_ENV: {{ .Values.global.environment | default "production" | quote }}
+  {{- if .Values.global.imageRegistry }}
+  IMAGE_REGISTRY: {{ .Values.global.imageRegistry | quote }}
+  {{- end }}
+  {{- if .Values.global.imageTag }}
+  IMAGE_TAG: {{ .Values.global.imageTag | quote }}
+  {{- end }}

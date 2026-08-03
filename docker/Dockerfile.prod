@@ -26,7 +26,8 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/home/nebula/.local/bin:$PATH"
+    PATH="/home/nebula/.local/bin:$PATH" \
+    READINESS_PROBE_PORT=8000
 
 # Install runtime system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -36,8 +37,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Create non-root user
-RUN groupadd -r nebula && useradd -r -g nebula -m -d /home/nebula nebula
+# Create non-root user with UID 1000 for consistent file permissions
+RUN groupadd -r nebula && useradd -r -u 1000 -g nebula -m -d /home/nebula -s /bin/sh nebula
 
 # Copy installed dependencies from builder
 COPY --from=builder /install /home/nebula/.local
@@ -49,10 +50,11 @@ COPY --chown=nebula:nebula backend/static /app/static
 COPY --chown=nebula:nebula docker/entrypoint.sh /app/entrypoint.sh
 COPY --chown=nebula:nebula docker/scheduler-entrypoint.sh /app/scheduler-entrypoint.sh
 
-# Create necessary directories
-RUN mkdir -p /app/storage /app/logs \
-    && chmod +x /app/entrypoint.sh /app/scheduler-entrypoint.sh \
-    && chown -R nebula:nebula /app
+# Create necessary directories with proper permissions
+# /tmp needs to be writable for temp files
+RUN mkdir -p /app/storage /app/logs /tmp && \
+    chmod 1777 /tmp && \
+    chown -R nebula:nebula /app /tmp
 
 # Switch to non-root user
 USER nebula
@@ -60,9 +62,9 @@ USER nebula
 # Expose port
 EXPOSE 8000
 
-# Health check
+# Health check for /health/live endpoint
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live')" || exit 1
 
 # Start application with dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]

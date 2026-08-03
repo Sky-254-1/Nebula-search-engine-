@@ -1,0 +1,235 @@
+# Development values for Nebula Search Engine
+
+# Image tags - development versions
+global:
+  environment: development
+  imageRegistry: ""
+  imageTag: "dev"
+
+# Backend service - development configuration
+backend:
+  replicaCount: 1
+  image:
+    repository: nebula/backend
+    tag: "dev"
+    pullPolicy: Never
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: false
+  storage:
+    size: 2Gi
+    storageClass: standard
+    accessModes:
+      - ReadWriteOnce
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  env:
+    APP_ENV: development
+    LOG_LEVEL: DEBUG
+    LOG_JSON_FORMAT: "false"
+    CORS_ORIGINS: "*"
+    DATABASE_URL: "postgresql://nebula:nebula@nebula-postgresql:5432/nebula"
+    REDIS_URL: "redis://nebula-redis-master:6379/0"
+
+# Frontend service - development configuration
+frontend:
+  replicaCount: 1
+  image:
+    repository: nebula/frontend
+    tag: "dev"
+    pullPolicy: Never
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  autoscaling:
+    enabled: false
+
+# Vector worker - development configuration
+vectorWorker:
+  replicaCount: 1
+  image:
+    repository: nebula/vector-worker
+    tag: "dev"
+    pullPolicy: Never
+  service:
+    type: ClusterIP
+    port: 8001
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  autoscaling:
+    enabled: false
+  env:
+    APP_ENV: development
+    LOG_LEVEL: DEBUG
+    VECTOR_DIMENSION: "768"
+
+# Index worker - development configuration
+indexWorker:
+  replicaCount: 1
+  image:
+    repository: nebula/index-worker
+    tag: "dev"
+    pullPolicy: Never
+  service:
+    type: ClusterIP
+    port: 8002
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  autoscaling:
+    enabled: false
+  env:
+    APP_ENV: development
+    LOG_LEVEL: DEBUG
+
+# PostgreSQL - development configuration (can use SQLite for local development)
+postgresql:
+  enabled: true
+  auth:
+    database: nebula
+    username: nebula
+    password: "nebula"
+  primary:
+    persistence:
+      size: 5Gi
+      storageClass: standard
+      accessModes:
+        - ReadWriteOnce
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+  metrics:
+    enabled: false
+
+# Redis - development configuration
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    password: "nebula"
+  master:
+    persistence:
+      size: 2Gi
+      storageClass: standard
+      accessModes:
+        - ReadWriteOnce
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 250m
+        memory: 512Mi
+  metrics:
+    enabled: false
+
+# SQLite for local development (alternative to PostgreSQL)
+sqlite:
+  enabled: false
+  persistence:
+    size: 2Gi
+
+# Ingress - development configuration
+ingress:
+  enabled: true
+  className: nginx
+  host: localhost
+  tls:
+    enabled: false
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+
+# Monitoring stack - development configuration
+monitoring:
+  enabled: false
+  prometheus:
+    retention: 1d
+    storage: 2Gi
+  grafana:
+    adminPassword: admin
+    storage: 2Gi
+  loki:
+    retention: 1d
+    storage: 5Gi
+
+# Backup configuration - development
+backup:
+  enabled: false
+  schedule: "0 4 * * *"
+  retention: 7
+  storage: 5Gi
+  s3:
+    bucket: nebula-backups-dev
+    region: us-east-1
+  encryption:
+    enabled: false
+
+# Resource quotas - relaxed for development
+resourceQuotas:
+  enabled: false
+  hard:
+    requests.cpu: "2"
+    requests.memory: "4Gi"
+    limits.cpu: "4"
+    limits.memory: "8Gi"
+    persistentvolumeclaims: "5"
+    pods: "10"
+
+# Service account
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# Pod disruption budgets - disabled for development
+podDisruptionBudget:
+  backend:
+    enabled: false
+  frontend:
+    enabled: false
+  vectorWorker:
+    enabled: false
+  indexWorker:
+    enabled: false
+
+# Affinity rules - disabled for development
+affinity:
+  backend:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution: []
+  frontend:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution: []

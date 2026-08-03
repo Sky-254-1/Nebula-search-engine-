@@ -150,10 +150,13 @@ class TestNotificationRetrieval:
     @pytest.mark.asyncio
     async def test_list_for_user_with_limit(self, repo):
         """Should respect limit parameter."""
-        repo._db._rows_by_query[("SELECT id, type, category, title, message, data, is_read, "
-            "read_at, created_at, expires_at "
-            "FROM notifications WHERE user_id = ? AND is_deleted = FALSE "
-            "ORDER BY created_at DESC LIMIT ?", (1, 10))] = []
+        # Add a mock that also records queries
+        original_fetchall = repo._db.fetchall
+        async def mock_fetchall(sql, args=None):
+            repo._db.executed_queries.append((sql, args))
+            return []
+        repo._db.fetchall = mock_fetchall
+        
         await repo.list_for_user(1, limit=10)
         executed = repo._db.executed_queries[-1]
         assert "LIMIT ?" in executed[0]
@@ -161,10 +164,13 @@ class TestNotificationRetrieval:
     @pytest.mark.asyncio
     async def test_list_for_user_default_limit(self, repo):
         """Should use default limit of 50."""
-        repo._db._rows_by_query[("SELECT id, type, category, title, message, data, is_read, "
-            "read_at, created_at, expires_at "
-            "FROM notifications WHERE user_id = ? AND is_deleted = FALSE "
-            "ORDER BY created_at DESC LIMIT ?", (1, 50))] = []
+        # Add a mock that also records queries
+        original_fetchall = repo._db.fetchall
+        async def mock_fetchall(sql, args=None):
+            repo._db.executed_queries.append((sql, args))
+            return []
+        repo._db.fetchall = mock_fetchall
+        
         await repo.list_for_user(1)
         executed = repo._db.executed_queries[-1]
         assert "50" in executed[1] or 50 in executed[1]

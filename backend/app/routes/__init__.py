@@ -7,6 +7,7 @@ from app.routes import auth
 from app.routes import crawler
 from app.routes import features
 from app.routes import health
+from app.routes import indexing
 from app.routes import mobile
 from app.routes import oauth
 from app.routes import search

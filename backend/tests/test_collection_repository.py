@@ -17,6 +17,7 @@ class FakeCursor:
     def __init__(self, row=None, rows=None):
         self._row = row
         self._rows = rows or []
+        self.lastrowid = 1 if row else 0
 
     async def fetchone(self):
         return self._row
@@ -29,6 +30,8 @@ class FakeDB:
     def __init__(self):
         self.committed = False
         self.executed_queries = []
+        self.fetchone_queries = []
+        self.fetchall_queries = []
         self._rows_by_query = {}
 
     async def execute(self, sql, args=None):
@@ -40,12 +43,30 @@ class FakeDB:
 
     async def fetchone(self, sql, args=None):
         query_key = (sql, tuple(args) if args else ())
+        self.fetchone_queries.append((sql, args))
+        
+        # Track in executed_queries for backwards compatibility
+        if any(cmd in sql.upper() for cmd in ["INSERT", "UPDATE", "DELETE", "CREATE", "ALTER"]):
+            self.executed_queries.append((sql, args))
+        
+        # Handle INSERT...RETURNING by returning a mock row with lastrowid
+        if "INSERT INTO" in sql and "RETURNING" in sql:
+            # Return a mock row with id=1
+            return {"id": 1}
+        
         rows = self._rows_by_query.get(query_key, [{}])
         return rows[0] if rows else None
 
     async def fetchall(self, sql, args=None):
         query_key = (sql, tuple(args) if args else ())
-        return list(self._rows_by_query.get(query_key, []))
+        self.fetchall_queries.append((sql, args))
+        
+        # Track in executed_queries for backwards compatibility
+        if any(cmd in sql.upper() for cmd in ["INSERT", "UPDATE", "DELETE", "CREATE", "ALTER"]):
+            self.executed_queries.append((sql, args))
+        
+        rows = self._rows_by_query.get(query_key, [])
+        return list(rows)
 
 
 @pytest.fixture
@@ -68,8 +89,8 @@ class TestCollectionCRUD:
         )
         assert collection_id is not None
         assert collection_id >= 0
-        assert repo._db.committed is True
-        assert any("INSERT INTO collections" in q[0] for q in repo._db.executed_queries)
+        assert repo.db.committed is True
+        assert any("INSERT INTO collections" in q[0] for q in repo.db.executed_queries)
 
     @pytest.mark.asyncio
     async def test_create_collection_no_description(self, repo):
@@ -85,7 +106,7 @@ class TestCollectionCRUD:
     @pytest.mark.asyncio
     async def test_list_for_user(self, repo):
         """Should list collections for a user."""
-        repo._db._rows_by_query[(("""SELECT c.*, (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) as item_count
+        repo.db._rows_by_query[(("""SELECT c.*, (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) as item_count
                FROM collections c WHERE c.user_id = ? ORDER BY c.updated_at DESC""",
             (1,)))] = [
             {"id": 1, "name": "Collection 1", "item_count": 5},
@@ -99,7 +120,7 @@ class TestCollectionCRUD:
     @pytest.mark.asyncio
     async def test_list_for_user_empty(self, repo):
         """Should return empty list when user has no collections."""
-        repo._db._rows_by_query[(("""SELECT c.*, (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) as item_count
+        repo.db._rows_by_query[(("""SELECT c.*, (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) as item_count
                FROM collections c WHERE c.user_id = ? ORDER BY c.updated_at DESC""",
             (999,)))] = []
         collections = await repo.list_for_user(999)
@@ -108,11 +129,11 @@ class TestCollectionCRUD:
     @pytest.mark.asyncio
     async def test_get_by_id(self, repo):
         """Should retrieve collection by ID."""
-        repo._db._rows_by_query[("SELECT * FROM collections WHERE id = ? AND user_id = ?",
+        repo.db._rows_by_query[("SELECT * FROM collections WHERE id = ? AND user_id = ?",
             (1, 1))] = [
             {"id": 1, "name": "My Collection"}
         ]
-        repo._db._rows_by_query[("SELECT COUNT(*) as cnt FROM collection_items WHERE collection_id = ?",
+        repo.db._rows_by_query[("SELECT COUNT(*) as cnt FROM collection_items WHERE collection_id = ?",
             (1,))] = [{"cnt": 5}]
         
         collection = await repo.get_by_id(1, 1)
@@ -123,7 +144,7 @@ class TestCollectionCRUD:
     @pytest.mark.asyncio
     async def test_get_by_id_not_found(self, repo):
         """Should return None when collection not found."""
-        repo._db._rows_by_query[("SELECT * FROM collections WHERE id = ? AND user_id = ?",
+        repo.db._rows_by_query[("SELECT * FROM collections WHERE id = ? AND user_id = ?",
             (999, 1))] = []
         collection = await repo.get_by_id(999, 1)
         assert collection is None
@@ -131,7 +152,7 @@ class TestCollectionCRUD:
     @pytest.mark.asyncio
     async def test_get_by_id_wrong_user(self, repo):
         """Should return None when accessing another user's collection."""
-        repo._db._rows_by_query[("SELECT * FROM collections WHERE id = ? AND user_id = ?",
+        repo.db._rows_by_query[("SELECT * FROM collections WHERE id = ? AND user_id = ?",
             (1, 2))] = []
         collection = await repo.get_by_id(1, 2)
         assert collection is None
@@ -140,8 +161,8 @@ class TestCollectionCRUD:
     async def test_update_collection(self, repo):
         """Should update collection."""
         await repo.update(1, 1, name="Updated Name", is_public=True)
-        assert repo._db.committed is True
-        assert any("UPDATE collections SET" in q[0] for q in repo._db.executed_queries)
+        assert repo.db.committed is True
+        assert any("UPDATE collections SET" in q[0] for q in repo.db.executed_queries)
 
     @pytest.mark.asyncio
     async def test_update_collection_no_changes(self, repo):
@@ -149,14 +170,14 @@ class TestCollectionCRUD:
         # All None values should not generate any UPDATE
         await repo.update(1, 1, name=None, description=None)
         # No committed changes expected
-        assert repo._db.committed is False
+        assert repo.db.committed is False
 
     @pytest.mark.asyncio
     async def test_update_collection_partial(self, repo):
         """Should update only provided fields."""
         await repo.update(1, 1, name="New Name")
-        assert repo._db.committed is True
-        update_query = [q for q in repo._db.executed_queries if "UPDATE collections SET" in q[0]]
+        assert repo.db.committed is True
+        update_query = [q for q in repo.db.executed_queries if "UPDATE collections SET" in q[0]]
         assert len(update_query) == 1
         assert "name = ?" in update_query[0][0]
 
@@ -164,16 +185,16 @@ class TestCollectionCRUD:
     async def test_delete_collection(self, repo):
         """Should delete collection and its items."""
         await repo.delete(1, 1)
-        assert repo._db.committed is True
-        assert any("DELETE FROM collection_items" in q[0] for q in repo._db.executed_queries)
-        assert any("DELETE FROM collections" in q[0] for q in repo._db.executed_queries)
+        assert repo.db.committed is True
+        assert any("DELETE FROM collection_items" in q[0] for q in repo.db.executed_queries)
+        assert any("DELETE FROM collections" in q[0] for q in repo.db.executed_queries)
 
     @pytest.mark.asyncio
     async def test_delete_collection_not_found(self, repo):
         """Should handle deletion of non-existent collection."""
         # delete method doesn't check if collection exists
         await repo.delete(999, 1)
-        assert repo._db.committed is True
+        assert repo.db.committed is True
 
 
 class TestCollectionItemOperations:
@@ -190,8 +211,8 @@ class TestCollectionItemOperations:
         )
         assert item_id is not None
         assert item_id >= 0
-        assert repo._db.committed is True
-        assert any("INSERT INTO collection_items" in q[0] for q in repo._db.executed_queries)
+        assert repo.db.committed is True
+        assert any("INSERT INTO collection_items" in q[0] for q in repo.db.executed_queries)
 
     @pytest.mark.asyncio
     async def test_add_item_with_search_result(self, repo):
@@ -229,7 +250,7 @@ class TestCollectionItemOperations:
     @pytest.mark.asyncio
     async def test_list_items(self, repo):
         """Should list items in a collection."""
-        repo._db._rows_by_query[("SELECT * FROM collection_items WHERE collection_id = ? ORDER BY created_at DESC",
+        repo.db._rows_by_query[("SELECT * FROM collection_items WHERE collection_id = ? ORDER BY created_at DESC",
             (1,))] = [
             {"id": 1, "document_id": 5, "search_result_id": None, "note": "Note 1"},
             {"id": 2, "document_id": None, "search_result_id": 100, "note": "Note 2"},
@@ -241,7 +262,7 @@ class TestCollectionItemOperations:
     @pytest.mark.asyncio
     async def test_list_items_empty(self, repo):
         """Should return empty list when collection has no items."""
-        repo._db._rows_by_query[("SELECT * FROM collection_items WHERE collection_id = ? ORDER BY created_at DESC",
+        repo.db._rows_by_query[("SELECT * FROM collection_items WHERE collection_id = ? ORDER BY created_at DESC",
             (999,))] = []
         items = await repo.list_items(999)
         assert items == []
@@ -250,14 +271,14 @@ class TestCollectionItemOperations:
     async def test_remove_item(self, repo):
         """Should remove item from collection."""
         await repo.remove_item(1)
-        assert repo._db.committed is True
-        assert any("DELETE FROM collection_items WHERE id = ?" in q[0] for q in repo._db.executed_queries)
+        assert repo.db.committed is True
+        assert any("DELETE FROM collection_items WHERE id = ?" in q[0] for q in repo.db.executed_queries)
 
     @pytest.mark.asyncio
     async def test_remove_item_not_found(self, repo):
         """Should handle removal of non-existent item."""
         await repo.remove_item(999)
-        assert repo._db.committed is True
+        assert repo.db.committed is True
 
 
 class TestEdgeCases:
@@ -277,11 +298,11 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_list_for_user_with_limit(self, repo):
         """Should order by updated_at descending."""
-        repo._db._rows_by_query[(("""SELECT c.*, (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) as item_count
+        repo.db._rows_by_query[(("""SELECT c.*, (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) as item_count
                FROM collections c WHERE c.user_id = ? ORDER BY c.updated_at DESC""",
             (1,)))] = []
         await repo.list_for_user(1)
-        executed = repo._db.executed_queries[-1]
+        executed = repo.db.executed_queries[-1]
         assert "ORDER BY c.updated_at DESC" in executed[0]
 
     @pytest.mark.asyncio
@@ -289,16 +310,16 @@ class TestEdgeCases:
         """Should handle empty kwargs dict."""
         # Empty kwargs should not generate any SQL
         await repo.update(1, 1)
-        assert repo._db.committed is False
+        assert repo.db.committed is False
 
     @pytest.mark.asyncio
     async def test_get_by_id_with_no_items(self, repo):
         """Should handle collection with zero items."""
-        repo._db._rows_by_query[("SELECT * FROM collections WHERE id = ? AND user_id = ?",
+        repo.db._rows_by_query[("SELECT * FROM collections WHERE id = ? AND user_id = ?",
             (1, 1))] = [
             {"id": 1, "name": "Empty Collection"}
         ]
-        repo._db._rows_by_query[("SELECT COUNT(*) as cnt FROM collection_items WHERE collection_id = ?",
+        repo.db._rows_by_query[("SELECT COUNT(*) as cnt FROM collection_items WHERE collection_id = ?",
             (1,))] = [{"cnt": 0}]
         
         collection = await repo.get_by_id(1, 1)
@@ -307,10 +328,10 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_list_items_ordering(self, repo):
         """Should order items by created_at descending."""
-        repo._db._rows_by_query[("SELECT * FROM collection_items WHERE collection_id = ? ORDER BY created_at DESC",
+        repo.db._rows_by_query[("SELECT * FROM collection_items WHERE collection_id = ? ORDER BY created_at DESC",
             (1,))] = []
         await repo.list_items(1)
-        executed = repo._db.executed_queries[-1]
+        executed = repo.db.executed_queries[-1]
         assert "ORDER BY created_at DESC" in executed[0]
 
 
@@ -343,8 +364,8 @@ class TestPublicCollections:
     async def test_update_public_status(self, repo):
         """Should update collection public/private status."""
         await repo.update(1, 1, is_public=True)
-        assert repo._db.committed is True
-        update_query = [q for q in repo._db.executed_queries if "UPDATE collections SET" in q[0]]
+        assert repo.db.committed is True
+        update_query = [q for q in repo.db.executed_queries if "UPDATE collections SET" in q[0]]
         assert "is_public = ?" in update_query[0][0]
 
 
@@ -360,12 +381,12 @@ class TestMultipleItems:
         assert item1 is not None
         assert item2 is not None
         assert item3 is not None
-        assert len(repo._db.executed_queries) >= 3
+        assert len(repo.db.executed_queries) >= 3
 
     @pytest.mark.asyncio
     async def test_list_items_pagination(self, repo):
         """Should return all items in list."""
-        repo._db._rows_by_query[("SELECT * FROM collection_items WHERE collection_id = ? ORDER BY created_at DESC",
+        repo.db._rows_by_query[("SELECT * FROM collection_items WHERE collection_id = ? ORDER BY created_at DESC",
             (1,))] = [
             {"id": i, "document_id": i*10, "search_result_id": None, "note": f"Item {i}"}
             for i in range(1, 11)

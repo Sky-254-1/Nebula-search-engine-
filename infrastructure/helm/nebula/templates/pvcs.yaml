@@ -1,0 +1,232 @@
+# PersistentVolumeClaims for Nebula Search Engine
+
+# Backend PVC
+{{- if and .Values.backend.storage.size .Values.backend.storage.enabled (not .Values.backend.storage.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nebula.fullname" . }}-backend-storage
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-backend
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: backend-storage
+    app.kubernetes.io/part-of: nebula
+spec:
+  accessModes:
+    {{- toYaml .Values.backend.storage.accessModes | nindent 4 }}
+  storageClassName: {{ .Values.backend.storage.storageClass | default "standard" }}
+  resources:
+    requests:
+      storage: {{ .Values.backend.storage.size }}
+{{- end }}
+
+# Frontend PVC (for static assets caching)
+{{- if and .Values.frontend.storage.size .Values.frontend.storage.enabled (not .Values.frontend.storage.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nebula.fullname" . }}-frontend-storage
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-frontend
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: frontend-storage
+    app.kubernetes.io/part-of: nebula
+spec:
+  accessModes:
+    {{- toYaml .Values.frontend.storage.accessModes | nindent 4 }}
+  storageClassName: {{ .Values.frontend.storage.storageClass | default "standard" }}
+  resources:
+    requests:
+      storage: {{ .Values.frontend.storage.size }}
+{{- end }}
+
+# PostgreSQL PVC
+{{- if and .Values.postgresql.enabled .Values.postgresql.primary.persistence.size }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nebula.fullname" . }}-postgresql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-postgresql
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: nebula
+spec:
+  accessModes:
+    {{- toYaml .Values.postgresql.primary.persistence.accessModes | nindent 4 }}
+  storageClassName: {{ .Values.postgresql.primary.persistence.storageClass | default "standard" }}
+  resources:
+    requests:
+      storage: {{ .Values.postgresql.primary.persistence.size }}
+{{- end }}
+
+# Redis PVC
+{{- if and .Values.redis.enabled .Values.redis.master.persistence.size }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nebula.fullname" . }}-redis
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-redis
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/part-of: nebula
+spec:
+  accessModes:
+    {{- toYaml .Values.redis.master.persistence.accessModes | nindent 4 }}
+  storageClassName: {{ .Values.redis.master.persistence.storageClass | default "standard" }}
+  resources:
+    requests:
+      storage: {{ .Values.redis.master.persistence.size }}
+{{- end }}
+
+# Vector index PVC
+{{- if and .Values.vectorWorker.storage.size .Values.vectorWorker.storage.enabled (not .Values.vectorWorker.storage.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nebula.fullname" . }}-vector-index
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-vector-worker
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: vector-index
+    app.kubernetes.io/part-of: nebula
+spec:
+  accessModes:
+    {{- toYaml .Values.vectorWorker.storage.accessModes | nindent 4 }}
+  storageClassName: {{ .Values.vectorWorker.storage.storageClass | default "standard" }}
+  resources:
+    requests:
+      storage: {{ .Values.vectorWorker.storage.size }}
+{{- end }}
+
+# Index worker PVC
+{{- if and .Values.indexWorker.storage.size .Values.indexWorker.storage.enabled (not .Values.indexWorker.storage.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nebula.fullname" . }}-index-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-index-worker
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: index-worker
+    app.kubernetes.io/part-of: nebula
+spec:
+  accessModes:
+    {{- toYaml .Values.indexWorker.storage.accessModes | nindent 4 }}
+  storageClassName: {{ .Values.indexWorker.storage.storageClass | default "standard" }}
+  resources:
+    requests:
+      storage: {{ .Values.indexWorker.storage.size }}
+{{- end }}
+
+# Backup PVC
+{{- if and .Values.backup.enabled .Values.backup.storage.size }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nebula.fullname" . }}-backup
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-backup
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: backup
+    app.kubernetes.io/part-of: nebula
+spec:
+  accessModes:
+    {{- toYaml .Values.backup.storage.accessModes | nindent 4 }}
+  storageClassName: {{ .Values.backup.storage.storageClass | default "standard" }}
+  resources:
+    requests:
+      storage: {{ .Values.backup.storage.size }}
+{{- end }}
+
+# Monitoring PVC - Prometheus
+{{- if and .Values.monitoring.enabled .Values.monitoring.prometheus.storage }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nebula.fullname" . }}-prometheus
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-prometheus
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: prometheus
+    app.kubernetes.io/part-of: nebula
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.monitoring.prometheus.storageClass | default "standard" }}
+  resources:
+    requests:
+      storage: {{ .Values.monitoring.prometheus.storage }}
+{{- end }}
+
+# Monitoring PVC - Grafana
+{{- if and .Values.monitoring.enabled .Values.monitoring.grafana.storage }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nebula.fullname" . }}-grafana
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: grafana
+    app.kubernetes.io/part-of: nebula
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.monitoring.grafana.storageClass | default "standard" }}
+  resources:
+    requests:
+      storage: {{ .Values.monitoring.grafana.storage }}
+{{- end }}
+
+# Monitoring PVC - Loki
+{{- if and .Values.monitoring.enabled .Values.monitoring.loki.storage }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nebula.fullname" . }}-loki
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-loki
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: loki
+    app.kubernetes.io/part-of: nebula
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.monitoring.loki.storageClass | default "standard" }}
+  resources:
+    requests:
+      storage: {{ .Values.monitoring.loki.storage }}
+{{- end }}
+
+# SQLite PVC (for development)
+{{- if and .Values.sqlite.enabled .Values.sqlite.persistence.size }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nebula.fullname" . }}-sqlite
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-sqlite
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: sqlite
+    app.kubernetes.io/part-of: nebula
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.sqlite.persistence.storageClass | default "standard" }}
+  resources:
+    requests:
+      storage: {{ .Values.sqlite.persistence.size }}
+{{- end }}

@@ -12,7 +12,6 @@ class AIProvider(ABC):
     async def complete(self, prompt: str, system: Optional[str] = None) -> Optional[str]:
         pass
 
+    @abstractmethod
     async def stream(self, prompt: str, system: Optional[str] = None) -> AsyncIterator[str]:
-        answer = await self.complete(prompt, system)
-        if answer:
-            yield answer
+        pass

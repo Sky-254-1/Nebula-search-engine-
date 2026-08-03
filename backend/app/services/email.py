@@ -16,7 +16,8 @@ class EmailService:
     """Email service with SMTP support."""
 
     def __init__(self):
-        self.enabled = bool(settings.smtp_host and settings.smtp_username)
+        self._settings = settings
+        self.enabled = bool(self._settings.smtp_host and self._settings.smtp_username)
         if self.enabled:
             logger.info("Email service enabled")
         else:
@@ -37,7 +38,7 @@ class EmailService:
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
-            msg["From"] = f"{settings.smtp_from_name} <{settings.smtp_from_email}>"
+            msg["From"] = f"{self._settings.smtp_from_name} <{self._settings.smtp_from_email}>"
             msg["To"] = to_email
 
             # Add text part
@@ -48,11 +49,11 @@ class EmailService:
             msg.attach(MIMEText(html_content, "html"))
 
             # Send email
-            with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-                if settings.smtp_use_tls:
+            with smtplib.SMTP(self._settings.smtp_host, self._settings.smtp_port) as server:
+                if self._settings.smtp_use_tls:
                     server.starttls()
-                if settings.smtp_username and settings.smtp_password:
-                    server.login(settings.smtp_username, settings.smtp_password)
+                if self._settings.smtp_username and self._settings.smtp_password:
+                    server.login(self._settings.smtp_username, self._settings.smtp_password)
                 server.send_message(msg)
 
             logger.info("Email sent to %s: %s", to_email, subject)

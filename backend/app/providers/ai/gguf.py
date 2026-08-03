@@ -5,6 +5,7 @@ Falls back gracefully when not configured.
 """
 
 import logging
+from collections.abc import AsyncIterator
 from typing import Optional
 
 from app.config import get_settings
@@ -38,3 +39,8 @@ class GGUFProvider(AIProvider):
         except Exception as exc:
             logger.debug("GGUF inference failed: %s", exc)
             return None
+
+    async def stream(self, prompt: str, system: Optional[str] = None) -> AsyncIterator[str]:
+        answer = await self.complete(prompt, system)
+        if answer:
+            yield answer

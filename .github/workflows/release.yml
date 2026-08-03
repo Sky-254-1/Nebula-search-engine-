@@ -1,0 +1,222 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # ============================================
+  # Version Validation
+  # ============================================
+  validate-version:
+    name: Validate Version
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          
+          # Validate version format (v1.2.3)
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version format: $VERSION"
+            echo "Expected format: v1.2.3"
+            exit 1
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Extract version info
+        id: extract
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "major=$(echo $VERSION | cut -d. -f1 | cut -d'v' -f2)" >> $GITHUB_OUTPUT
+          echo "minor=$(echo $VERSION | cut -d. -f2)" >> $GITHUB_OUTPUT
+          echo "patch=$(echo $VERSION | cut -d. -f3)" >> $GITHUB_OUTPUT
+          echo "full=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Validate version matches CHANGELOG
+        run: |
+          VERSION="${{ steps.extract.outputs.full }}"
+          MAJOR="${{ steps.extract.outputs.major }}"
+          MINOR="${{ steps.extract.outputs.minor }}"
+          PATCH="${{ steps.extract.outputs.patch }}"
+          
+          # Check if version exists in CHANGELOG
+          if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "Version $VERSION not found in CHANGELOG.md"
+            exit 1
+          fi
+          
+          echo "Version $VERSION validated in CHANGELOG.md"
+
+  # ============================================
+  # Build and Push Docker Images
+  # ============================================
+  build-images:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: validate-version
+    
+    strategy:
+      matrix:
+        service: [backend, frontend, vector-worker]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-${{ matrix.service }}
+          tags: |
+            type=raw,value=${{ needs.validate-version.outputs.full }}
+            type=raw,value=latest
+            type=raw,value=${{ needs.validate-version.outputs.major }}.${{ needs.validate-version.outputs.minor }}
+      
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/${{ matrix.service }}.Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================
+  # Create GitHub Release
+  # ============================================
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate-version, build-images]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate Release Notes
+        id: release-notes
+        run: |
+          VERSION="${{ needs.validate-version.outputs.full }}"
+          
+          # Extract changelog section for this version
+          changelog_section=$(awk -v ver="$VERSION" '/^## \[/' CHANGELOG.md | head -1)
+          
+          # Extract content between this version and the next version (or end of file)
+          awk -v ver="$VERSION" '
+            /^## \[/ { found=0 }
+            $0 ~ "## \\[" ver "\\]" { found=1; next }
+            found { print }
+          ' CHANGELOG.md > release-notes.txt || true
+          
+          # If no next version found, read until end
+          if [ ! -s release-notes.txt ]; then
+            awk '/^## \[/ { found=0 } found { print } /^## \[1\.[0-9]+\.[0-9]+\]/ { found=1 }' CHANGELOG.md > release-notes.txt || true
+          fi
+          
+          # Read content
+          RELEASE_NOTES=$(cat release-notes.txt)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ needs.validate-version.outputs.full }}
+          tag_name: ${{ needs.validate-version.outputs.full }}
+          body: ${{ steps.release-notes.outputs.notes }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================
+  # Publish to Helm Repository
+  # ============================================
+  publish-helm:
+    name: Publish to Helm Repository
+    runs-on: ubuntu-latest
+    needs: [create-release]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.13.0'
+      
+      - name: Package Helm Chart
+        run: |
+          helm package infrastructure/helm/nebula
+          mv nebula-*.tgz helm-repo/
+      
+      - name: Update Helm Index
+        run: |
+          helm repo index helm-repo/ --url https://${{ github.repository }}.github.io/nebula/
+      
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./helm-repo
+          destination_branch: gh-pages
+
+  # ============================================
+  # Slack Notification
+  # ============================================
+  notify-release:
+    name: Slack Notification
+    runs-on: ubuntu-latest
+    needs: create-release
+    
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🚀 New Release Published",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🚀 *New Release Published*\n\n*Version:* `${{ needs.validate-version.outputs.full }}`\n<${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.validate-version.outputs.full }}|View Release>\n\nRelease Notes:\n> ${{ steps.release-notes.outputs.notes }}"
+                }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true

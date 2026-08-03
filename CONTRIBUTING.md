@@ -59,8 +59,10 @@ npm install
 
 # Run tests
 cd ../backend
-pytest
+pytest tests/  # Only backend/tests/ is collected
 ```
+
+**Note:** The project has been cleaned up - duplicate test directories have been removed. Only `backend/tests/` is active (1408 tests). Root `tests/` directory is no longer collected by pytest.
 
 ## Development Workflow
 
@@ -177,13 +179,15 @@ export function SearchBar({ value, onChange, onSubmit, loading }) {
 
 - **Framework:** pytest + pytest-asyncio
 - **Coverage:** Minimum 80% (enforced by CI)
-- **Location:** `tests/` directory
+- **Location:** `backend/tests/` directory
 
 **Run tests:**
 ```bash
 cd backend
 pytest --cov=app --cov-report=term-missing
 ```
+
+**Note:** The pytest configuration (`pytest.ini`) is set to only collect tests from `backend/tests/`. Root `tests/` directory is no longer used.
 
 **Test structure:**
 ```python
