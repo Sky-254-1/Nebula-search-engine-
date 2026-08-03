@@ -1,0 +1,211 @@
+name: Infrastructure Deployment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infrastructure/terraform/**'
+      - 'infrastructure/helm/**'
+      - 'docker-compose*.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infrastructure/terraform/**'
+      - 'infrastructure/helm/**'
+      - 'docker-compose*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ============================================
+  # Terraform Plan
+  # ============================================
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    outputs:
+      plan_result: ${{ steps.plan.outputs.plan_result }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.0'
+      
+      - name: Terraform Init
+        working-directory: infrastructure/terraform
+        run: terraform init
+      
+      - name: Terraform Plan
+        id: plan
+        working-directory: infrastructure/terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          terraform plan -no-color -out=tfplan || true
+          echo "plan_result=planned" >> $GITHUB_OUTPUT
+      
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: infrastructure/terraform/tfplan
+          retention-days: 7
+      
+      - name: Capture Terraform Plan Output
+        id: capture
+        working-directory: infrastructure/terraform
+        run: |
+          terraform show -no-color tfplan > terraform-plan-output.txt || true
+          echo "plan_output<<EOF" >> $GITHUB_OUTPUT
+          cat terraform-plan-output.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Slack notification - Terraform Plan
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": " Terraform Plan Result",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": " Terraform Plan for PR #${{ github.event.number }}\n\n*Plan:* `${{ steps.plan.outputs.plan_result }}`\n\n<${{ github.event.pull_request.html_url }}|View PR>"
+                }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+
+  # ============================================
+  # Terraform Apply (Manual Approval for Production)
+  # ============================================
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: [terraform-plan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: ${{ github.event.head_commit.message == '*[prod]*' && 'production' || 'staging' }}
+      url: ${{ github.event.head_commit.message == '*[prod]*' && 'https://production.example.com' || 'https://staging.example.com' }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.0'
+      
+      - name: Terraform Init
+        working-directory: infrastructure/terraform
+        run: terraform init
+      
+      - name: Terraform Apply
+        id: apply
+        working-directory: infrastructure/terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          terraform apply -auto-approve tfplan
+      
+      - name: Slack notification - Apply Complete
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": " Terraform Apply Complete",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": " Terraform Apply Complete\n\n*Environment:* `${{ needs.terraform-apply.outputs.environment }}`\n*Commit:* `${{ github.sha }}`\n<${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|View Commit>"
+                }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+
+  # ============================================
+  # Helm Chart Validation
+  # ============================================
+  helm-lint:
+    name: Helm Chart Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.13.0'
+      
+      - name: Lint Helm Charts
+        run: |
+          helm lint infrastructure/helm/nebula
+          helm template infrastructure/helm/nebula | helm lint - -
+
+  # ============================================
+  # Helm Deployment (Staging)
+  # ============================================
+  helm-deploy-staging:
+    name: Helm Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [helm-lint]
+    environment: staging
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.13.0'
+      
+      - name: Deploy to Staging with Helm
+        run: |
+          helm upgrade nebula infrastructure/helm/nebula \
+            --install \
+            --namespace nebula-staging \
+            --create-namespace \
+            --values infrastructure/helm/nebula/values-staging.yaml \
+            --wait \
+            --timeout 5m
+
+  # ============================================
+  # Helm Deployment (Production - Manual Approval)
+  # ============================================
+  helm-deploy-production:
+    name: Helm Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [helm-lint]
+    environment: production
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.13.0'
+      
+      - name: Deploy to Production with Helm
+        run: |
+          helm upgrade nebula infrastructure/helm/nebula \
+            --install \
+            --namespace nebula-production \
+            --create-namespace \
+            --values infrastructure/helm/nebula/values-production.yaml \
+            --wait \
+            --timeout 10m

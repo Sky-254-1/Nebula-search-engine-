@@ -308,3 +308,63 @@ Git Push/PR
    
    # Force restart
    kubectl rollout restart deployment/nebula-backend -n nebula
+## Troubleshooting
+
+### Common Issues
+
+1. **Deployment fails at health check**
+   ```bash
+   # Check service logs
+   docker compose logs --tail=100 backend
+   
+   # Check database connectivity
+   docker compose exec postgres pg_isready -U nebula
+   
+   # Restart service
+   docker compose restart backend
+   ```
+
+2. **Migration fails**
+   ```bash
+   # Check migration status
+   docker compose exec postgres psql -U nebula -c "SELECT * FROM migrations;"
+   
+   # Run migration manually
+   docker compose run --rm backend python run_migrations.py
+   ```
+
+3. **Rollback fails**
+   ```bash
+   # Check rollback script logs
+   cat database/backups/rollback-records/rollback_*.log
+   
+   # Manual database restore
+   gunzip -c database/backups/nebula_*.sql.gz | docker compose exec -T postgres psql -U nebula
+   ```
+
+4. **Kubernetes pod stuck**
+   ```bash
+   # Describe pod for details
+   kubectl describe pod -n nebula -l app.kubernetes.io/name=nebula-backend
+   
+   # Check pod logs
+   kubectl logs -n nebula -l app.kubernetes.io/name=nebula-backend --tail=100
+   
+   # Force restart
+   kubectl rollout restart deployment/nebula-backend -n nebula
+   ```
+
+### Playwright/WebKit Setup
+
+For E2E tests that require headless browsers:
+
+```bash
+# Install WebKit browser for Playwright
+npx playwright install-deps
+npx playwright install webkit
+
+# Or run all browsers
+npx playwright install
+```
+
+Note: The CI/CD pipeline includes Playwright browser installation as part of the test setup. Local development should run these commands before running E2E tests.

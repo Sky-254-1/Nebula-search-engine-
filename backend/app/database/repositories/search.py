@@ -31,4 +31,7 @@ class SearchRepository:
     async def count_all(self) -> int:
         """Return total search log count."""
         row = await self._db.fetchone("SELECT COUNT(*) as count FROM search_logs")
-        return int(row["count"]) if row else 0
+        if not row:
+            return 0
+        count = row["count"]
+        return int(count) if count is not None else 0

@@ -61,7 +61,7 @@ async def get_reindex_status() -> APIResponse:
         # Placeholder for db session
         db_session = None
         
-        stats = {}
+        stats: dict[str, Any] = {}
         if db_session:
             stats = await service.get_stats(db_session)
         
@@ -97,7 +97,7 @@ async def get_reindex_stats() -> APIResponse:
         
         # Placeholder for db session
         db_session = None
-        stats = {}
+        stats: dict[str, Any] = {}
         
         if db_session:
             stats = await service.get_stats(db_session)

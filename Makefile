@@ -1,9 +1,16 @@
-.PHONY: help install test lint format clean deploy migrate backup restore
+.PHONY: help install test lint format clean deploy migrate backup restore docker-help
 
 help: ## Show this help message
 	@echo "Nebula Search Engine - Available Commands:"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+docker-help: ## Show Docker-related commands (run from docker/ directory)
+	@echo "Docker Commands (run from docker/ directory):"
+	@echo "  docker-compose up -d           - Start all services"
+	@echo "  docker-compose down            - Stop all services"
+	@echo "  docker-compose logs -f         - Show logs"
+	@echo "  docker-compose build           - Build images"
 
 install: ## Install all dependencies
 	@echo "Installing backend dependencies..."
@@ -14,11 +21,8 @@ install: ## Install all dependencies
 
 dev: ## Start development environment
 	@echo "Starting development environment..."
-	docker-compose up -d postgres redis
-	@echo "✅ Development environment started"
-	@echo "Backend: http://localhost:8000"
-	@echo "Frontend: http://localhost:5173"
-	@echo "API Docs: http://localhost:8000/docs"
+	@echo "⚠️  Run from docker/ directory: cd docker && docker-compose up -d postgres redis"
+	@echo "  Or use: cd docker && docker-compose up -d"
 
 dev-backend: ## Start backend in development mode
 	@echo "Starting backend..."
@@ -77,7 +81,7 @@ security: ## Run security scans
 
 build: ## Build Docker images
 	@echo "Building Docker images..."
-	docker-compose build
+	@echo "⚠️  Run from docker/ directory: cd docker && docker-compose build"
 
 build-backend: ## Build backend Docker image
 	@echo "Building backend image..."
@@ -89,10 +93,10 @@ build-frontend: ## Build frontend Docker image
 
 deploy: ## Deploy to production
 	@echo "Deploying to production..."
-	@echo "⚠️  This will deploy to production. Are you sure? (y/n)"
+	@echo "⚠️  Run from docker/ directory: cd docker && docker-compose -f docker-compose.prod.yml up -d"
+	@echo "  Or use: cd docker && docker-compose -f docker-compose.prod.yml up -d"
+	@echo "  Are you sure? (y/n)"
 	@read -p "" confirm; [ "$$confirm" = "y" ]
-	docker-compose -f docker-compose.prod.yml up -d
-	@echo "✅ Deployed to production"
 
 deploy-k8s: ## Deploy to Kubernetes
 	@echo "Deploying to Kubernetes..."
@@ -127,13 +131,13 @@ restore: ## Restore database from backup
 	@echo "✅ Database restored"
 
 logs: ## Show application logs
-	docker-compose logs -f
+	@echo "⚠️  Run from docker/ directory: cd docker && docker-compose logs -f"
 
 logs-backend: ## Show backend logs
-	docker-compose logs -f backend
+	@echo "⚠️  Run from docker/ directory: cd docker && docker-compose logs -f backend"
 
 logs-frontend: ## Show frontend logs
-	docker-compose logs -f frontend
+	@echo "⚠️  Run from docker/ directory: cd docker && docker-compose logs -f frontend"
 
 clean: ## Clean up temporary files
 	@echo "Cleaning up..."
@@ -147,9 +151,8 @@ clean: ## Clean up temporary files
 
 clean-docker: ## Clean Docker resources
 	@echo "Cleaning Docker resources..."
-	docker-compose down -v
-	docker system prune -f
-	@echo "✅ Docker cleaned"
+	@echo "⚠️  Run from docker/ directory: cd docker && docker-compose down -v"
+	@echo "  Or use: cd docker && docker system prune -f"
 
 monitor: ## Start monitoring stack
 	@echo "Starting monitoring stack..."
@@ -164,20 +167,20 @@ monitor-stop: ## Stop monitoring stack
 	@echo "✅ Monitoring stopped"
 
 shell-backend: ## Open backend shell
-	docker-compose exec backend bash
+	@echo "⚠️  Run from docker/ directory: cd docker && docker-compose exec backend bash"
 
 shell-postgres: ## Open PostgreSQL shell
-	docker-compose exec postgres psql -U nebula -d nebula
+	@echo "⚠️  Run from docker/ directory: cd docker && docker-compose exec postgres psql -U nebula -d nebula"
 
 shell-redis: ## Open Redis shell
-	docker-compose exec redis redis-cli
+	@echo "⚠️  Run from docker/ directory: cd docker && docker-compose exec redis redis-cli"
 
 health: ## Check service health
 	@echo "Checking service health..."
+	@echo "⚠️  Backend should be accessible at http://localhost:8000"
 	@curl -s http://localhost:8000/health > /dev/null && echo "✅ Backend: Healthy" || echo "❌ Backend: Unhealthy"
 	@curl -s http://localhost:5173 > /dev/null && echo "✅ Frontend: Healthy" || echo "❌ Frontend: Unhealthy"
-	@docker-compose exec -T postgres pg_isready -U nebula > /dev/null 2>&1 && echo "✅ PostgreSQL: Healthy" || echo "❌ PostgreSQL: Unhealthy"
-	@docker-compose exec -T redis redis-cli ping > /dev/null 2>&1 && echo "✅ Redis: Healthy" || echo "❌ Redis: Unhealthy"
+	@echo "⚠️  For container health, run from docker/: cd docker && docker-compose exec -T postgres pg_isready -U nebula"
 
 benchmark: ## Run performance benchmarks
 	@echo "Running benchmarks..."

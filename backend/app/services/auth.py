@@ -12,7 +12,7 @@ from fastapi import HTTPException, Request
 from app.config import get_settings
 from app.services.cache import cache_service
 
-settings = get_settings()
+# Use get_settings() function directly to get fresh config (with proper caching behavior)
 
 
 def validate_password(password: str, email: str | None = None) -> None:
@@ -64,6 +64,7 @@ def hash_token(token: str) -> str:
 
 def create_access_token(email: str, role: str = "user", jti: str | None = None) -> str:
     """Create a JWT access token with standard claims."""
+    settings = get_settings()
     now = datetime.now(timezone.utc)
     payload = {
         "sub": email,
@@ -94,6 +95,7 @@ async def check_brute_force(ip: str, email: str) -> None:
 
 async def record_login_failure(ip: str, email: str) -> int:
     """Track failed login attempts and apply lockout/delay."""
+    settings = get_settings()
     attempts_key = f"attempts:{ip}:{email}"
     attempts = (await cache_service.get(attempts_key)) or 0
     attempts += 1
@@ -116,6 +118,7 @@ async def clear_login_attempts(ip: str, email: str) -> None:
 
 def decode_token(token: str, expected_type: str | None = None) -> dict:
     """Decode and validate a JWT token with audience, issuer, and type checking."""
+    settings = get_settings()
     try:
         payload = jwt.decode(
             token,
@@ -146,6 +149,7 @@ def create_token(email: str) -> str:
 
 
 async def get_current_user_token_payload(request: Request) -> dict:
+    settings = get_settings()
     token = None
     if settings.auth_cookie_mode:
         token = request.cookies.get("access_token")

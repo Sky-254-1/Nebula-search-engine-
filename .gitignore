@@ -17,6 +17,7 @@ wheels/
 .env
 .env.local
 .env.*.local
+.env.*
 *.db
 test_nebula.db
 nebula.db
@@ -115,6 +116,9 @@ full_structure.txt
 .coverage.*
 coverage.xml
 htmlcov/
+coverage_report_latest.txt
+backend_coverage_latest.txt
+frontend/coverage/
 
 # Jupyter
 .ipynb_checkpoints
@@ -143,3 +147,10 @@ tests/e2e/playwright-report/
 
 # Local debug logs
 backend/*.err
+
+# Generated diagnostic artifacts
+coverage_gap_analysis.txt
+bandit-report.json
+mypy_full.txt
+mypy_report.txt
+test_summary.txt

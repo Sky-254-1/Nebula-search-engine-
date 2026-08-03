@@ -1,22 +1,17 @@
 """Comprehensive functional tests for query understanding, services, and routes."""
 
-import asyncio
-import json
-import time
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from app.search.query_understanding.tokenizer import QueryTokenizer, query_tokenizer, Tokenizer
 from app.search.query_understanding.normalizer import QueryNormalizer
-from app.search.query_understanding.stopwords import StopWordRemover, StopwordRemover
-from app.search.query_understanding.stemmer import Stemmer, QueryStemmer
+from app.search.query_understanding.stopwords import StopWordRemover
+from app.search.query_understanding.stemmer import Stemmer
 from app.search.query_understanding.language_detector import LanguageDetector
 from app.search.query_understanding.entity_extractor import EntityExtractor
 from app.search.query_understanding.intent_classifier import IntentClassifier
 from app.search.query_understanding.synonym_expander import SynonymExpander
-from app.services.spell_service import SpellService, SpellResult, levenshtein_distance, normalize_text
+from app.services.spell_service import levenshtein_distance, normalize_text
 from app.services.cache import CacheService
 from app.services.queue import JobQueue
 
@@ -499,7 +494,7 @@ class TestSearchModulesFunctional:
     """Functional tests for search modules."""
 
     def test_search_intelligence_import(self):
-        from app.search.intelligence import personalization_engine, spell_corrector
+        from app.search.intelligence import personalization_engine
         assert personalization_engine is not None
 
     def test_search_indexer_import(self):

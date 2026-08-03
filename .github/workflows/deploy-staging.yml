@@ -1,0 +1,182 @@
+name: Staging Deployment
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ============================================
+  # Build and Push Docker Image
+  # ============================================
+  build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.prod
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-latest
+          build-args: |
+            BUILD_COMMIT=${{ github.sha }}
+            BUILD_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Trivy container scanning
+        run: |
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.48.0/trivy_0.48.0_Linux-64bit.tar.gz
+          tar -xzf trivy_0.48.0_Linux-64bit.tar.gz
+          ./trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-${{ github.sha }} || true
+      
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-security-report
+          path: trivy-report.json
+
+  # ============================================
+  # Staging Deployment
+  # ============================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    environment: staging
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+      
+      - name: Set up Kubernetes config
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > $HOME/.kube/config
+      
+      - name: Deploy to Staging Environment
+        run: |
+          echo "Deploying to STAGING environment..."
+          
+          # Deploy to staging namespace
+          kubectl apply -f - <<EOF
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: nebula-backend-staging
+            namespace: nebula-staging
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: nebula-backend
+                environment: staging
+            template:
+              metadata:
+                labels:
+                  app: nebula-backend
+                  environment: staging
+              spec:
+                containers:
+                - name: backend
+                  image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-${{ github.sha }}
+                  ports:
+                  - containerPort: 8000
+                  livenessProbe:
+                    httpGet:
+                      path: /health/live
+                      port: 8000
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                  readinessProbe:
+                    httpGet:
+                      path: /health/ready
+                      port: 8000
+                    initialDelaySeconds: 10
+                    periodSeconds: 5
+                  env:
+                  - name: APP_ENV
+                    value: staging
+                  - name: DATABASE_URL
+                    valueFrom:
+                      secretKeyRef:
+                        name: nebula-secrets
+                        key: database-url
+          EOF
+          
+          echo "Staging deployment applied"
+      
+      - name: Wait for Staging Deployment
+        run: |
+          echo "Waiting for staging deployment to be ready..."
+          kubectl rollout status deployment/nebula-backend-staging -n nebula-staging --timeout=300s || true
+      
+      - name: Run Health Check on Staging
+        run: |
+          echo "Running health check on STAGING environment..."
+          
+          # Get staging pod name
+          STAGING_POD=$(kubectl get pods -n nebula-staging -l app=nebula-backend,environment=staging -o jsonpath="{.items[0].metadata.name}")
+          
+          # Run health check
+          for i in $(seq 1 30); do
+            STATUS=$(kubectl exec -n nebula-staging $STAGING_POD -- curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health/ready || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Staging health check passed!"
+              break
+            fi
+            echo "Waiting for staging health check... (${i}/30) Status: $STATUS"
+            sleep 10
+          done
+          
+          if [ "$STATUS" != "200" ]; then
+            echo "Staging health check failed"
+            exit 1
+          fi
+      
+      - name: Slack notification - Deployment successful
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🚀 Staging Deployment Successful",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🚀 *Staging Deployment Successful*\n\n*Commit:* `${{ github.sha }}`\n*Image:* `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-${{ github.sha }}`\n*Environment:* Staging"
+                }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true

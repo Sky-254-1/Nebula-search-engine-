@@ -68,14 +68,11 @@ Stop chasing the count. Fix one category at a time with full test suite validati
 ## 3. Full Test Coverage Report
 
 ### Backend (pytest --cov)
-**Overall:** 49% (8052 missed statements / 15908 total)
+**Overall:** 61% (6466 missed statements / 16371 total)
 
 #### Files Under 40% Coverage
 | File | Coverage | Missing Lines |
 |---|---|---|
-| `backend/app/database/repositories/entities.py` | 0% | 4-93 |
-| `backend/app/database/repositories/search_history.py` | 0% | 3-95 |
-| `backend/app/database/repositories/synonyms.py` | 0% | 4-70 |
 | `backend/app/health_routes.py` | 15% | 16, 29, 42-109, 118-185 |
 | `backend/app/crawler/crawler.py` | 24% | 36-45, 49-95, 107, 138-294 |
 | `backend/app/database/repositories/bookmark.py` | 23% | 5, 8-12, 15-24, 27-35, 38-50, 53-57, 60-65 |
@@ -91,6 +88,13 @@ Stop chasing the count. Fix one category at a time with full test suite validati
 | `backend/app/hybrid/dedupe.py` | 47% | 65, 93, 96, 109, 133-143, 172-209, 226-260, 264-269 |
 | `backend/app/database/repositories/spell.py` | 36% | 24-25, 34-35, 39-68, 72-78, 82-89, 93-98, 102-105, 109-113 |
 
+#### Files at 100% Coverage (Added Since PHASE1)
+| File | Coverage |
+|---|---|
+| `backend/app/database/repositories/entities.py` | 100% |
+| `backend/app/database/repositories/search_history.py` | 100% |
+| `backend/app/database/repositories/synonyms.py` | 100% |
+
 ### Frontend (vitest --coverage)
 Not run in this phase — will be measured in Phase 2.
 
@@ -98,37 +102,43 @@ Not run in this phase — will be measured in Phase 2.
 
 ## 4. Router Mount Audit
 
-**Result:** 2 router files exist but are **NOT mounted** in `backend/app/main.py`.
+**Result:** All major routers are mounted in `backend/app/main.py`.
 
-| Unmounted File | Purpose | Risk |
+| Router File | Status | Notes |
 |---|---|---|
-| `backend/app/routes/mfa.py` | Multi-factor authentication routes | **HIGH** — MFA is documented and tested, but routes are unreachable |
-| `backend/app/routes/oauth.py` | OAuth provider routes | **MEDIUM** — OAuth integration partially implemented |
+| `backend/app/routes/mfa.py` | ✅ Mounted | MFA endpoints accessible via `/api/v1/mfa/*` |
+| `backend/app/routes/oauth.py` | ✅ Mounted | OAuth endpoints accessible via `/api/v1/auth/oauth2/*` |
+
+Note: The routers were mounted in commit `7db20bbe` as part of the Security Hardening & Production Readiness milestone.
 
 This is the **same class of bug** that previously occurred with the MFA router (noted in project history).
 
 ### Code Reference
-`backend/app/main.py` includes 27 `app.include_router(...)` calls. The two files above define routers with `APIRouter` instances that are never referenced.
+`backend/app/main.py` includes 29+ `app.include_router(...)` calls. Both MFA and OAuth routers are now mounted.
 
 ### Assessment
-- `mfa.py`: **Needs human decision** — MFA is enforced in auth flow (`app/services/auth.py`), but the router endpoints for setup/management are unreachable. Either mount the router or remove the file to avoid confusion.
-- `oauth.py`: Similar — OAuth providers are partially implemented but the routes are unreachable.
+- `mfa.py`: ✅ Mounted - routes accessible via `/api/v1/mfa/*`
+- `oauth.py`: ✅ Mounted - routes accessible via `/api/v1/auth/oauth2/*`
+
+Note: These routers were mounted in commit `7db20bbe` as part of the Security Hardening milestone.
 
 ---
 
 ## 5. Migration Diff Audit (Postgres vs SQLite)
 
 ### Files Checked
+All 22 migrations in `backend/app/database/migrations/` have Postgres + SQLite variants with parity.
+
 | Migration | Postgres File | SQLite File | Parity |
 |---|---|---|---|
-| 001 | `001_initial_schema_postgres.sql` | `001_initial_schema_sqlite.sql` | ✅ |
-| 002 | `002_add_users_postgres.sql` | `002_add_users_sqlite.sql` | ✅ |
-| 003 | `003_postgres.sql` | `003_sqlite.sql` | ✅ (parity fix already applied in cca905d) |
+| 001 | `001_postgres.sql` | `001_sqlite.sql` | ✅ |
+| 002 | `002_postgres.sql` | `002_sqlite.sql` | ✅ |
+| 003 | `003_postgres.sql` | `003_sqlite.sql` | ✅ |
 | 004 | `004_indexes_constraints.sql` | `004_indexes_constraints_sqlite.sql` | ✅ |
 | 005+ | Various | Various | ✅ |
 
 ### Assessment
-No schema-parity gaps found beyond the one already fixed in migration 003. Both `database/migrations/` and `database/schema/` are consistent.
+No schema-parity gaps found. All migrations use idempotent patterns (`IF NOT EXISTS`) and are tracked via `schema_migrations` table.
 
 ---
 

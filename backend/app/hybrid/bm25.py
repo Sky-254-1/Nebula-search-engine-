@@ -56,8 +56,8 @@ class BM25Engine:
         # Index statistics
         self.doc_count = 0
         self.avg_doc_length = 0.0
-        self.doc_freq = Counter()
-        self.doc_lengths = {}
+        self.doc_freq: Counter[str] = Counter()
+        self.doc_lengths: dict[str, int] = {}
         self.field_doc_freq = defaultdict(Counter)
         self.field_doc_lengths = defaultdict(dict)
         

@@ -30,8 +30,10 @@ from app.middleware.versioning import VersioningMiddleware
 from app.middleware.response import ResponseStandardizationMiddleware
 from app.middleware.rate_limit import RateLimitHeadersMiddleware
 from app.services.monitoring import MetricsMiddleware
-from app.routes import admin, ai, audio, auth, crawler, features, health, search, storage, vector
+from app.routes import admin, ai, audio, auth, crawler, features, health, mobile, search, storage, vector
 from app.health_routes import router as health_router
+from vector.health import router as vector_health_router
+from app.indexing.health import router as indexing_health_router
 from app.routes.autocomplete import router as autocomplete_router
 from app.routes.spell import router as spell_router
 from app.routes.suggestions import router as suggestions_router
@@ -455,7 +457,7 @@ app.add_middleware(MetricsMiddleware)
 app.add_middleware(CSRFProtectionMiddleware)
 
 # Register compression middleware
-from app.middleware.compression import CompressionMiddleware
+from app.middleware.compression import CompressionMiddleware # noqa: E402
 app.add_middleware(CompressionMiddleware, minimum_size=1024)
 
 # --- Static files ---
@@ -499,11 +501,16 @@ app.include_router(webhooks_router)
 app.include_router(crawler.router)  # Crawler management
 app.include_router(features.router)  # Collections, bookmarks, saved searches
 app.include_router(hybrid_router)  # Hybrid search engine
+app.include_router(mobile.router)  # Mobile-specific endpoints
 app.include_router(autocomplete_router)  # Autocomplete system
 app.include_router(mfa_router)  # Multi-factor authentication
 app.include_router(oauth_router)  # OAuth provider authentication
 app.include_router(spell_router)  # Spell correction system
 app.include_router(suggestions_router)  # Search suggestions system
+
+# --- Health endpoints for worker services ---
+app.include_router(vector_health_router)  # Vector worker health
+app.include_router(indexing_health_router)  # Indexing worker health
 
 # --- Prometheus /metrics endpoint (mounted after routes) ---
 

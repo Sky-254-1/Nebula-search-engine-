@@ -15,12 +15,6 @@ CREATE TABLE IF NOT EXISTS search_suggestions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Note: search_suggestions is created with type column above, so no ALTER TABLE needed.
--- SQLite does not support CHECK constraints in ALTER TABLE ADD COLUMN, so the column
--- is defined in the CREATE TABLE IF NOT EXISTS above. The backfill below handles
--- pre-existing rows from a prior schema version that lacked the type column.
-UPDATE search_suggestions SET type = 'personalized' WHERE type IS NULL;
-
 -- Indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_search_suggestions_query ON search_suggestions(query);
 CREATE INDEX IF NOT EXISTS idx_search_suggestions_type ON search_suggestions(type);

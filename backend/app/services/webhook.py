@@ -254,4 +254,4 @@ webhook_service = WebhookService()
 
 
 # Import asyncio for sleep
-import asyncio
+import asyncio  # noqa: E402

@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-08-03
+
+### Added
+
+- **Backend Tests** - 1358 tests (up from 477), 61% code coverage (up from 49%)
+- **New API Domains**:
+  - `auth_extended.py` - Extended authentication routes (pending email, email verification)
+  - `notifications.py` - Real-time notifications system
+  - `collections.py` - Collections management
+  - `mfa.py` - MFA setup and management routes
+  - `mobile.py` - Mobile-specific API endpoints
+  - `analytics.py` - Analytics and reporting endpoints
+  - `recommendations.py` - Personalized recommendations
+  - `indexing.py` - Document indexing control endpoints
+- **Security Hardening**:
+  - CodeQL fixes: JWT secret logging, API key exposure, HTML parsing, CORS hardening, deploy.yml permissions
+  - OAuth2 providers: Google, GitHub, Microsoft, Apple
+  - WebAuthn support for passwordless auth
+  - Least-privilege permissions in CI/CD workflows
+- **Database Migrations** - 22+ idempotent migrations (Postgres + SQLite variants) with schema_migrations tracking
+- **Hybrid Search** - Improved fusion algorithm with RRF + linear + adaptive fusion
+- **Incremental Indexing** - Change detection and delta indexing support
+- **Queue System** - Background job queue with retry logic
+- **Crawler** - Async web crawler with depth control, rate limiting, robots.txt respect
+
+### Changed
+
+- **Pytest Configuration** - Fixed test collection: now only collects from `backend/tests/` (1408 tests)
+- **Migration System** - Updated `migrate.py` with proper idempotency and SQLite/Postgres support
+- **Vector Search** - Integrated `backend/vector/` module (faiss, bm25, fusion, semantic, embeddings)
+- **Project Structure** - Consolidated duplicate directories: removed `infra/`, `database/migrations/` (root), root docker-compose files
+- **Makefile** - Docker commands now reference `docker/` directory
+
+### Fixed
+
+- **Test Collection Errors** - Resolved `ModuleNotFoundError` from duplicate root tests directory
+- **Pytest Configuration** - Updated `testpaths` to only include `backend/tests`
+- **API Endpoints** - MFA router endpoints now accessible after routing fix
+- **Storage Directories** - Consolidated `storage/indexes/` → `storage/index/`, `storage/vectors/` → removed
+
+### Removed
+
+- **Root Test Directory** - Removed 16 outdated test files from `tests/` (root)
+- **Infrastructure Duplicates** - Deleted `infra/` directory
+- **Docker Compose Duplicates** - Deleted 4 root docker-compose files
+- **Database Migrations (root)** - Deleted 4 outdated migration files
+- **Storage Directories** - Deleted `storage/indexes/`, `storage/vectors/`
+- **Legacy Files** - Deleted `frontend/legacy/`, stale scripts, generated artifacts
+- **Codeql Scaffolding** - Deleted `codeql-custom-queries-*/` directories
+- **Figma MCP** - Deleted `Figma-Context-MCP/` (~30 unrelated files)
+- **Environment Files** - Removed root `package.json`, `package-lock.json`
+
+---
+
 ## [1.1.0] - 2026-07-28
 
 ### Added
@@ -30,7 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Background Worker** - `vector/worker.py` for async document processing
 - **Migration 002** - Add document_chunks, embeddings, citations, search_sessions tables
 - **MFA Support** - TOTP-based multi-factor authentication with backup codes
-- **Postgres Migration Parity** - All 12 migrations now support both SQLite and Postgres
+- **Database Migrations** - 22+ idempotent migrations (001-013) with SQLite/Postgres variants
 - **Migration Idempotency** - `schema_migrations` tracking table prevents duplicate application
 - **E2E Test Skip Guards** - Tests requiring external API keys now properly skip when keys are unset
 
@@ -42,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Security Headers** - HSTS added for production environments
 - **Migration Runner** - Now uses `schema_migrations` tracking table (standard Alembic-style pattern)
 - **Postgres Migrations** - All `ALTER TABLE ADD COLUMN` use `IF NOT EXISTS`; all `CREATE INDEX` use `IF NOT EXISTS`
+- **Vector Search Pipeline** - Fully integrated with FastAPI app via `backend/vector/` module
 
 ### Fixed
 
@@ -58,6 +113,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced password policy enforcement
 - Improved brute-force protection
 - TOTP-based MFA with encrypted backup codes
+- OAuth2 providers (Google, GitHub, Microsoft, Apple)
+- CodeQL fixes for secret logging, API key exposure, HTML parsing, CORS, deploy permissions
+- Least-privilege permissions in CI/CD workflows
+- WebAuthn support for passwordless authentication
+- CORS wildcard protection with explicit origin lists
 
 ---
 
@@ -122,4 +182,4 @@ None currently. All existing endpoints remain stable.
 
 ---
 
-*For support, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)*
+For support, see [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) or open an issue on [GitHub](https://github.com/Sky-254-1/Nebula-search-engine-/issues).

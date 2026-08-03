@@ -407,7 +407,7 @@ async def list_active_sessions(
     
     # Get all sessions (in production, add filtering and pagination)
     # For now, return placeholder
-    sessions = []
+    sessions: list[dict] = []
     total = 0
     
     pagination_meta = PaginationMeta(

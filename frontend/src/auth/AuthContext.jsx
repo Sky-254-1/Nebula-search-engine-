@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { buildClient } from '../api/client';
+import { apiClient } from '@/api/client';
 import { clearTokens, loadTokens, saveTokens } from '../utils/storage';
 
 const AuthContext = createContext(null);
@@ -21,8 +21,24 @@ export function AuthProvider({ children }) {
   };
 
   const api = useMemo(
-    () => buildClient(() => tokens, setTokens, clear),
-    [tokens]
+    () => ({
+      login: async (email, password) => {
+        const response = await apiClient.login(email, password);
+        setTokens(response);
+        return response;
+      },
+      signup: async (email, password) => {
+        await apiClient.signup(email, password);
+      },
+      logout: async () => {
+        await apiClient.logout();
+        clear();
+      },
+      me: async () => {
+        return apiClient.getCurrentUser();
+      },
+    }),
+    []
   );
 
   useEffect(() => {

@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nebula.fullname" . }}-vector-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-vector-worker
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: vector-worker
+    app.kubernetes.io/part-of: nebula
+spec:
+  replicas: {{ .Values.vectorWorker.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nebula-vector-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nebula-vector-worker
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: vector-worker
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: vector-worker
+          image: "{{ .Values.vectorWorker.image.repository }}:{{ .Values.vectorWorker.image.tag }}"
+          imagePullPolicy: {{ .Values.vectorWorker.image.pullPolicy }}
+          ports:
+            - containerPort: 8001
+              name: http
+          env:
+            - name: APP_ENV
+              value: {{ .Values.vectorWorker.env.APP_ENV | default "production" }}
+            - name: LOG_LEVEL
+              value: {{ .Values.vectorWorker.env.LOG_LEVEL | default "INFO" }}
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.auth.existingSecret }}
+                  key: redis-url
+            - name: VECTOR_DIMENSION
+              value: {{ .Values.vectorWorker.VECTOR_DIMENSION | default "768" }}
+          resources:
+            {{- toYaml .Values.vectorWorker.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nebula.fullname" . }}-vector-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nebula-vector-worker
+    app.kubernetes.io/part-of: nebula
+spec:
+  type: {{ .Values.vectorWorker.service.type }}
+  ports:
+    - port: {{ .Values.vectorWorker.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: nebula-vector-worker

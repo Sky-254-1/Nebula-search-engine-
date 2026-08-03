@@ -73,6 +73,16 @@ class Settings:
     ai_provider: str = field(default_factory=lambda: os.getenv("AI_PROVIDER", "auto"))
     brave_api_key: str = field(default_factory=lambda: os.getenv("BRAVE_API_KEY", ""))
     serpapi_key: str = field(default_factory=lambda: os.getenv("SERPAPI_KEY", ""))
+    # OAuth provider settings
+    enable_oauth: bool = field(default_factory=lambda: os.getenv("ENABLE_OAUTH", "false").lower() == "true")
+    google_client_id: str = field(default_factory=lambda: os.getenv("GOOGLE_CLIENT_ID", ""))
+    google_client_secret: str = field(default_factory=lambda: os.getenv("GOOGLE_CLIENT_SECRET", ""))
+    github_client_id: str = field(default_factory=lambda: os.getenv("GITHUB_CLIENT_ID", ""))
+    github_client_secret: str = field(default_factory=lambda: os.getenv("GITHUB_CLIENT_SECRET", ""))
+    microsoft_client_id: str = field(default_factory=lambda: os.getenv("MICROSOFT_CLIENT_ID", ""))
+    microsoft_client_secret: str = field(default_factory=lambda: os.getenv("MICROSOFT_CLIENT_SECRET", ""))
+    apple_client_id: str = field(default_factory=lambda: os.getenv("APPLE_CLIENT_ID", ""))
+    apple_client_secret: str = field(default_factory=lambda: os.getenv("APPLE_CLIENT_SECRET", ""))
     redis_url: str = field(default_factory=lambda: os.getenv("REDIS_URL", ""))
     app_env: str = field(default_factory=lambda: os.getenv("APP_ENV", "development"))
     rate_limit_per_minute: int = field(
@@ -399,21 +409,6 @@ class Settings:
             key = key.ljust(32, b"\0")
         return key[:32]
 
-    @property
-    def cors_origin_list(self) -> list[str]:
-        """Parse CORS origins into a list.
-
-        A literal ``*`` is rejected because ``allow_credentials=True`` is set
-        in the CORS middleware — combining wildcard origins with credentials
-        is invalid per the CORS spec and silently fails in most browsers.
-        """
-        raw = self.cors_origins.strip()
-        if raw == "*":
-            raise ValueError(
-                "CORS_ORIGINS='*' is not allowed when allow_credentials=True. "
-                "Set CORS_ORIGINS to an explicit allow-list of origins."
-            )
-        return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
 @lru_cache

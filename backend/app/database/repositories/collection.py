@@ -4,11 +4,12 @@ class CollectionRepository:
     def __init__(self, db: DatabaseConnection):
         self.db = db
 
-    async def create(self, user_id: int, name: str, description: str | None, is_public: bool) -> int:
+    async def create(self, user_id: int, name: str, description: str | None, is_public: bool) -> int | None:
         row = await self.db.fetchone(
             "INSERT INTO collections (user_id, name, description, is_public) VALUES (?, ?, ?, ?) RETURNING id",
             (user_id, name, description, is_public),
         )
+        await self.db.commit()
         return row["id"] if row else None
 
     async def list_for_user(self, user_id: int) -> list[dict]:
@@ -56,6 +57,7 @@ class CollectionRepository:
             "INSERT INTO collection_items (collection_id, document_id, search_result_id, note) VALUES (?, ?, ?, ?) RETURNING id",
             (collection_id, document_id, search_result_id, note),
         )
+        await self.db.commit()
         return row["id"] if row else None
 
     async def list_items(self, collection_id: int) -> list[dict]:

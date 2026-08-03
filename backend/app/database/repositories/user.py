@@ -101,10 +101,9 @@ class UserRepository:
         now = datetime.now(timezone.utc).isoformat()
         await self._db.execute(
             """UPDATE users 
-               SET failed_login_attempts = failed_login_attempts + 1, 
-                   last_failed_login = ? 
+               SET failed_login_attempts = failed_login_attempts + 1 
                WHERE id = ?""",
-            (now, user_id),
+            (user_id,),
         )
         await self._db.commit()
         
@@ -115,7 +114,7 @@ class UserRepository:
     async def clear_failed_login(self, user_id: int) -> None:
         """Clear failed login attempts."""
         await self._db.execute(
-            "UPDATE users SET failed_login_attempts = 0, last_failed_login = NULL WHERE id = ?",
+            "UPDATE users SET failed_login_attempts = 0 WHERE id = ?",
             (user_id,),
         )
         await self._db.commit()
@@ -123,15 +122,15 @@ class UserRepository:
     async def lock_account(self, user_id: int, locked_until: datetime) -> None:
         """Lock user account."""
         await self._db.execute(
-            "UPDATE users SET is_locked = TRUE, locked_until = ? WHERE id = ?",
-            (locked_until.isoformat(), user_id),
+            "UPDATE users SET is_locked = TRUE, locked_until = ?, last_failed_login = ? WHERE id = ?",
+            (locked_until.isoformat(), locked_until.isoformat(), user_id),
         )
         await self._db.commit()
 
     async def unlock_account(self, user_id: int) -> None:
         """Unlock user account."""
         await self._db.execute(
-            "UPDATE users SET is_locked = FALSE, locked_until = NULL, failed_login_attempts = 0 WHERE id = ?",
+            "UPDATE users SET is_locked = FALSE, locked_until = NULL WHERE id = ?",
             (user_id,),
         )
         await self._db.commit()

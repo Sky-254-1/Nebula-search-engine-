@@ -5,9 +5,9 @@ from collections.abc import AsyncIterator
 from typing import Optional
 
 from app.config import get_settings
-from app.providers.ai.duckduckgo import DuckDuckGoProvider
 from app.providers.ai.gguf import GGUFProvider
 from app.providers.ai.ollama import OllamaProvider
+from app.providers.ai.ollama_free import OllamaFreeProvider
 from app.providers.ai.openai import OpenAIProvider
 
 logger = logging.getLogger("nebula.ai.router")
@@ -19,23 +19,21 @@ class AIProviderRouter:
         self._providers = {
             "openai": OpenAIProvider(),
             "ollama": OllamaProvider(),
+            "ollama_free": OllamaFreeProvider(),
             "gguf": GGUFProvider(),
-            "duckduckgo": DuckDuckGoProvider(),
         }
 
     def _ordered_providers(self) -> list[str]:
         if settings.ai_provider == "openai":
-            return ["openai", "ollama", "gguf", "duckduckgo"]
+            return ["openai", "ollama", "gguf"]
         if settings.ai_provider == "ollama":
-            return ["ollama", "gguf", "openai", "duckduckgo"]
+            return ["ollama", "gguf", "openai"]
         if settings.ai_provider == "gguf":
-            return ["gguf", "ollama", "openai", "duckduckgo"]
-        if settings.ai_provider == "duckduckgo":
-            return ["duckduckgo", "openai", "ollama", "gguf"]
+            return ["gguf", "ollama", "openai"]
         order = []
         if settings.openai_api_key:
             order.append("openai")
-        order.extend(["ollama", "gguf", "duckduckgo"])
+        order.extend(["ollama", "ollama_free", "gguf"])
         return order
 
     async def complete(self, prompt: str, system: Optional[str] = None) -> tuple[Optional[str], str]:

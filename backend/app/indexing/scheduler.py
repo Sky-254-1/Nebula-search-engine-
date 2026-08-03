@@ -254,7 +254,7 @@ class IndexingScheduler:
         pass
 
 
-import asyncio
+import asyncio  # noqa: E402
 
 
 # Global scheduler instance

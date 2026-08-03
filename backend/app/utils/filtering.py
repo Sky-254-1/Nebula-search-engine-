@@ -48,23 +48,34 @@ class FilterCondition:
         if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', self.field):
             raise ValueError(f"Invalid field name: {self.field}")
         
-        operator_map = {
-            FilterOperator.EQ: f"{self.field} = ?",
-            FilterOperator.NE: f"{self.field} != ?",
-            FilterOperator.GT: f"{self.field} > ?",
-            FilterOperator.GTE: f"{self.field} >= ?",
-            FilterOperator.LT: f"{self.field} < ?",
-            FilterOperator.LTE: f"{self.field} <= ?",
-            FilterOperator.IN: f"{self.field} IN ({','.join(['?'] * len(self.value))})",
-            FilterOperator.NIN: f"{self.field} NOT IN ({','.join(['?'] * len(self.value))})",
-            FilterOperator.LIKE: f"{self.field} LIKE ?",
-            FilterOperator.ILIKE: f"LOWER({self.field}) LIKE LOWER(?)",
-            FilterOperator.BETWEEN: f"{self.field} BETWEEN ? AND ?",
-            FilterOperator.IS_NULL: f"{self.field} IS NULL",
-            FilterOperator.IS_NOT_NULL: f"{self.field} IS NOT NULL",
-        }
-        
-        sql_template = operator_map[self.operator]
+        if self.operator == FilterOperator.IN:
+            sql_template = f"{self.field} IN ({','.join(['?'] * len(self.value))})"
+        elif self.operator == FilterOperator.NIN:
+            sql_template = f"{self.field} NOT IN ({','.join(['?'] * len(self.value))})"
+        elif self.operator == FilterOperator.EQ:
+            sql_template = f"{self.field} = ?"
+        elif self.operator == FilterOperator.NE:
+            sql_template = f"{self.field} != ?"
+        elif self.operator == FilterOperator.GT:
+            sql_template = f"{self.field} > ?"
+        elif self.operator == FilterOperator.GTE:
+            sql_template = f"{self.field} >= ?"
+        elif self.operator == FilterOperator.LT:
+            sql_template = f"{self.field} < ?"
+        elif self.operator == FilterOperator.LTE:
+            sql_template = f"{self.field} <= ?"
+        elif self.operator == FilterOperator.LIKE:
+            sql_template = f"{self.field} LIKE ?"
+        elif self.operator == FilterOperator.ILIKE:
+            sql_template = f"LOWER({self.field}) LIKE LOWER(?)"
+        elif self.operator == FilterOperator.BETWEEN:
+            sql_template = f"{self.field} BETWEEN ? AND ?"
+        elif self.operator == FilterOperator.IS_NULL:
+            sql_template = f"{self.field} IS NULL"
+        elif self.operator == FilterOperator.IS_NOT_NULL:
+            sql_template = f"{self.field} IS NOT NULL"
+        else:
+            raise ValueError(f"Unsupported operator: {self.operator}")
         
         # Build params based on operator
         if self.operator in [FilterOperator.IN, FilterOperator.NIN]:
@@ -165,7 +176,7 @@ class FilterSet:
             return "", ()
         
         conditions = []
-        params = []
+        params: list[Any] = []
         
         for i, filter_cond in enumerate(self.filters):
             sql_fragment, filter_params = filter_cond.to_sql(i)

@@ -1,0 +1,307 @@
+# Staging values for Nebula Search Engine
+
+# Image tags - staging versions
+global:
+  environment: staging
+  imageRegistry: ""
+  imageTag: "1.0.0-staging"
+
+# Backend service - staging configuration
+backend:
+  replicaCount: 2
+  image:
+    repository: nebula/backend
+    tag: "1.0.0-staging"
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  storage:
+    size: 5Gi
+    storageClass: standard
+    accessModes:
+      - ReadWriteOnce
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+  env:
+    APP_ENV: staging
+    LOG_LEVEL: DEBUG
+    LOG_JSON_FORMAT: "true"
+    CORS_ORIGINS: "https://staging.nebula.example.com,http://localhost:3000"
+
+# Frontend service - staging configuration
+frontend:
+  replicaCount: 2
+  image:
+    repository: nebula/frontend
+    tag: "1.0.0-staging"
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+# Vector worker - staging configuration
+vectorWorker:
+  replicaCount: 1
+  image:
+    repository: nebula/vector-worker
+    tag: "1.0.0-staging"
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8001
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  env:
+    APP_ENV: staging
+    LOG_LEVEL: DEBUG
+    VECTOR_DIMENSION: "768"
+
+# Index worker - staging configuration
+indexWorker:
+  replicaCount: 1
+  image:
+    repository: nebula/index-worker
+    tag: "1.0.0-staging"
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8002
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  env:
+    APP_ENV: staging
+    LOG_LEVEL: DEBUG
+
+# PostgreSQL - staging configuration
+postgresql:
+  enabled: true
+  auth:
+    database: nebula
+    username: nebula
+    password: ""
+    existingSecret: nebula-secrets-staging
+    secretKeys:
+      adminPasswordKey: postgres-password
+      userPasswordKey: password
+  primary:
+    persistence:
+      size: 20Gi
+      storageClass: standard
+      accessModes:
+        - ReadWriteOnce
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 2
+        memory: 4Gi
+    probes:
+      livenessProbe:
+        enabled: true
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readinessProbe:
+        enabled: true
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        timeoutSeconds: 1
+        successThreshold: 1
+        failureThreshold: 3
+      startupProbe:
+        enabled: true
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 30
+    extraFlags:
+      - "-c"
+      - "max_connections=100"
+      - "-c"
+      - "shared_buffers=128MB"
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+
+# Redis - staging configuration
+redis:
+  enabled: true
+  architecture: replication
+  auth:
+    password: ""
+    existingSecret: nebula-secrets-staging
+    existingSecretPasswordKey: redis-password
+  master:
+    persistence:
+      size: 10Gi
+      storageClass: standard
+      accessModes:
+        - ReadWriteOnce
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+  replica:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+
+# Ingress - staging configuration
+ingress:
+  enabled: true
+  className: nginx
+  host: staging.nebula.example.com
+  tls:
+    enabled: true
+    secretName: nebula-tls-staging
+    clusterIssuer: nebula-letsencrypt
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+# Monitoring stack - staging configuration
+monitoring:
+  enabled: true
+  prometheus:
+    retention: 7d
+    storage: 10Gi
+  grafana:
+    adminPassword: admin
+    storage: 5Gi
+  loki:
+    retention: 7d
+    storage: 20Gi
+
+# Backup configuration - staging
+backup:
+  enabled: true
+  schedule: "0 3 * * *"
+  retention: 30
+  storage: 10Gi
+  s3:
+    bucket: nebula-backups-staging
+    region: us-east-1
+  encryption:
+    enabled: true
+    algorithm: AES256
+
+# Resource quotas
+resourceQuotas:
+  enabled: true
+  hard:
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+    limits.cpu: "8"
+    limits.memory: "16Gi"
+    persistentvolumeclaims: "10"
+    pods: "20"
+
+# Service account
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# Pod disruption budgets - relaxed for staging
+podDisruptionBudget:
+  backend:
+    enabled: true
+    minAvailable: 1
+  frontend:
+    enabled: true
+    minAvailable: 1
+  vectorWorker:
+    enabled: true
+    minAvailable: 1
+  indexWorker:
+    enabled: true
+    minAvailable: 1
+
+# Affinity rules - less strict for staging
+affinity:
+  backend:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: nebula-backend
+            topologyKey: kubernetes.io/hostname
+  frontend:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: nebula-frontend
+            topologyKey: kubernetes.io/hostname

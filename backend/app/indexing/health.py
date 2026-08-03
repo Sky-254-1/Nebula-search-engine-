@@ -222,3 +222,93 @@ worker_health_monitor = WorkerHealthMonitor()
 def get_worker_health_monitor() -> WorkerHealthMonitor:
     """Get global worker health monitor."""
     return worker_health_monitor
+
+
+# FastAPI health endpoints
+from fastapi import APIRouter
+from datetime import datetime, timezone
+from typing import Dict, Any
+import time
+
+router = APIRouter(prefix="/api/v1/indexing", tags=["Indexing Health"])
+
+
+@router.get("/health")
+async def indexing_liveness() -> Dict[str, Any]:
+    """
+    Indexing worker liveness check.
+    Returns 200 if indexing worker process is running.
+    """
+    return {
+        "status": "alive",
+        "service": "nebula-indexing-worker",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+
+@router.get("/health/ready")
+async def indexing_readiness() -> Dict[str, Any]:
+    """
+    Indexing worker readiness check.
+    Returns 200 if indexing worker is ready to process requests.
+    Checks database and Redis connectivity.
+    """
+    from app.database.engine import connect
+    from app.services.cache import cache_service
+    from app.services.queue import job_queue
+    from app.indexing.health import get_worker_health_monitor
+    
+    start = time.time()
+    db_status = "healthy"
+    redis_status = "healthy"
+    queue_status = "healthy"
+    worker_status = "healthy"
+    
+    # Check database
+    try:
+        db = await connect()
+        await db.execute("SELECT 1")
+        await db.close()
+    except Exception:
+        db_status = "unhealthy"
+    
+    # Check Redis
+    try:
+        if cache_service._redis:
+            await cache_service._redis.ping()
+    except Exception:
+        redis_status = "unhealthy"
+    
+    # Check queue
+    try:
+        if job_queue._redis:
+            await job_queue._redis.ping()
+    except Exception:
+        queue_status = "unhealthy"
+    
+    # Check workers
+    try:
+        monitor = get_worker_health_monitor()
+        active = monitor.get_active_workers()
+        if len(active) == 0:
+            worker_status = "degraded"
+    except Exception:
+        worker_status = "unhealthy"
+    
+    response_time_ms = int((time.time() - start) * 1000)
+    
+    overall_status = "ready"
+    if any(s == "unhealthy" for s in [db_status, redis_status, queue_status, worker_status]):
+        overall_status = "not_ready"
+    
+    return {
+        "status": overall_status,
+        "service": "nebula-indexing-worker",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "dependencies": {
+            "database": {"status": db_status, "response_time_ms": response_time_ms},
+            "redis": {"status": redis_status, "response_time_ms": response_time_ms},
+            "queue": {"status": queue_status, "response_time_ms": response_time_ms},
+            "workers": {"status": worker_status, "response_time_ms": response_time_ms}
+        }
+    }

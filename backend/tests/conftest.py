@@ -28,9 +28,9 @@ os.environ["SIGNUP_RATE_LIMIT"] = "1000"
 os.environ["LOGIN_RATE_LIMIT"] = "1000"
 os.environ["REFRESH_RATE_LIMIT"] = "1000"
 
-from app.config import get_settings
-from app.database import init_db
-from app.main import app
+from app.config import get_settings # noqa: E402
+from app.database import init_db # noqa: E402
+from app.main import app # noqa: E402
 
 get_settings.cache_clear()
 

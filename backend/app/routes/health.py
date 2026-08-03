@@ -19,11 +19,12 @@ async def root():
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
+    import time
     return HealthResponse(
         status="healthy",
         version="1.0.0",
         environment=settings.app_env,
-        timestamp=datetime.now(timezone.utc).isoformat(),
+        timestamp=int(time.time()),
         database="postgresql" if settings.uses_postgres else "sqlite",
         cache="redis" if cache_service._redis else "memory",
     )

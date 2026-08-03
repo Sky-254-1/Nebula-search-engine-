@@ -52,7 +52,7 @@ class SearchService:
                 processed_query = corrected
 
         results: list[dict] = []
-        ai_answer = None
+        ai_answer: Optional[str] = None
         suggestions = None
         facets = None
 

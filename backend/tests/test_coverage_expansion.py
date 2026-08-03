@@ -1,10 +1,9 @@
 """Tests for 0% coverage files: hybrid_search, personalization, quality_metrics,
 indexing events/models/services, background_tasks, and health_routes."""
 
-import asyncio
 import json
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

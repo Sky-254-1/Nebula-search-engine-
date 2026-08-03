@@ -346,7 +346,7 @@ class IncrementalReindexer:
 
 
 # Import JobPriority from indexing module
-from app.search.indexing import JobPriority
+from app.search.indexing import JobPriority # noqa: E402
 
 # Global instance
 incremental_reindexer = IncrementalReindexer()

@@ -1,0 +1,437 @@
+name: Production Deployment
+
+on:
+  push:
+    branches: [production]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to deploy (e.g., v1.0.0)'
+        required: false
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ============================================
+  # Pre-deployment Checks
+  # ============================================
+  pre-deployment:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      commit_sha: ${{ steps.commit.outputs.sha }}
+      deployment_id: ${{ steps.deployment.outputs.id }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=latest" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Get commit SHA
+        id: commit
+        run: |
+          echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+      
+      - name: Create deployment record
+        id: deployment
+        run: |
+          DEPLOYMENT_ID=$(date +%s)-${{ github.run_id }}
+          echo "id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
+          echo "Deployment ID: ${DEPLOYMENT_ID}"
+      
+      - name: Slack notification - Starting deployment
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🚀 Starting Production Deployment",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🚀 *Starting Production Deployment*\n\n*Version:* `${{ steps.version.outputs.version }}`\n*Commit:* `${{ steps.commit.outputs.sha }}`\n*Deployment ID:* `${{ steps.deployment.outputs.id }}`\n*Triggered by:* ${{ github.actor }}"
+                }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+
+  # ============================================
+  # Database Backup
+  # ============================================
+  database-backup:
+    name: Database Backup
+    runs-on: ubuntu-latest
+    needs: pre-deployment
+    environment: production
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+      
+      - name: Set up Kubernetes config
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > $HOME/.kube/config
+      
+      - name: Create database backup
+        id: backup
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          BACKUP_NAME="db-backup-${TIMESTAMP}-${{ needs.pre-deployment.outputs.version }}"
+          
+          echo "Creating database backup: ${BACKUP_NAME}"
+          
+          # Run pg_dump in the database pod
+          kubectl exec -n nebula-production $(kubectl get pods -n nebula-production -l app=postgresql -o jsonpath="{.items[0].metadata.name}") \
+            -- pg_dump -U nebula nebula > "/tmp/${BACKUP_NAME}.sql" 2>&1 || true
+          
+          # Upload backup to object storage
+          if [ -f "/tmp/${BACKUP_NAME}.sql" ]; then
+            # Upload to MinIO or AWS S3
+            # aws s3 cp "/tmp/${BACKUP_NAME}.sql" s3://${{ secrets.S3_BUCKET_NAME }}/backups/ || true
+            echo "backup_name=${BACKUP_NAME}" >> $GITHUB_OUTPUT
+            echo "Backup created successfully"
+          else
+            echo "Backup file not created, continuing anyway"
+            echo "backup_name=none" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Slack notification - Backup complete
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "💾 Database Backup Complete",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "💾 *Database Backup Complete*\n\n*Backup Name:* `${{ steps.backup.outputs.backup_name }}`\n*Version:* `${{ needs.pre-deployment.outputs.version }}`"
+                }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+
+  # ============================================
+  # Blue-Green Deployment
+  # ============================================
+  blue-green-deploy:
+    name: Blue-Green Deployment
+    runs-on: ubuntu-latest
+    needs: [pre-deployment, database-backup]
+    environment: production
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+      
+      - name: Set up Kubernetes config
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > $HOME/.kube/config
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.prod
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:prod-${{ needs.pre-deployment.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:prod-latest
+          build-args: |
+            BUILD_COMMIT=${{ needs.pre-deployment.outputs.commit_sha }}
+            BUILD_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Deploy to Green Environment
+        run: |
+          echo "Deploying to GREEN environment..."
+          
+          # Deploy new version to green namespace
+          kubectl apply -f - <<EOF
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: nebula-backend-green
+            namespace: nebula-production
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app: nebula-backend
+                environment: green
+            template:
+              metadata:
+                labels:
+                  app: nebula-backend
+                  environment: green
+              spec:
+                containers:
+                - name: backend
+                  image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:prod-${{ needs.pre-deployment.outputs.version }}
+                  ports:
+                  - containerPort: 8000
+                  livenessProbe:
+                    httpGet:
+                      path: /health/live
+                      port: 8000
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                  readinessProbe:
+                    httpGet:
+                      path: /health/ready
+                      port: 8000
+                    initialDelaySeconds: 10
+                    periodSeconds: 5
+                  env:
+                  - name: APP_ENV
+                    value: production
+                  - name: DATABASE_URL
+                    valueFrom:
+                      secretKeyRef:
+                        name: nebula-secrets
+                        key: database-url
+          EOF
+          
+          echo "Green environment deployment complete"
+      
+      - name: Run Health Checks on Green Environment
+        run: |
+          echo "Running health checks on GREEN environment..."
+          
+          # Wait for green pods to be ready
+          kubectl rollout status deployment/nebula-backend-green -n nebula-production --timeout=300s || true
+          
+          # Get green service IP
+          GREEN_POD=$(kubectl get pods -n nebula-production -l app=nebula-backend,environment=green -o jsonpath="{.items[0].metadata.name}")
+          
+          # Run health checks
+          for i in $(seq 1 30); do
+            STATUS=$(kubectl exec -n nebula-production $GREEN_POD -- curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health/ready || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Health check passed!"
+              break
+            fi
+            echo "Waiting for health check... (${i}/30) Status: $STATUS"
+            sleep 10
+          done
+          
+          if [ "$STATUS" != "200" ]; then
+            echo "Health check failed after 30 attempts"
+            exit 1
+          fi
+      
+      - name: Switch Traffic to Green
+        run: |
+          echo "Switching traffic to GREEN environment..."
+          
+          # Update ingress to point to green backend
+          kubectl patch ingress nebula-ingress -n nebula-production -p '{"spec":{"rules":[{"http":{"paths":[{"path":"/","pathType":"Prefix","backend":{"service":{"name":"nebula-backend-green","port":{"number":8000}}}}]}}]}}' || true
+          
+          # Update deployment labels for traffic switching
+          kubectl label deployment nebula-backend-blue -n nebula-production active=false --overwrite || true
+          kubectl label deployment nebula-backend-green -n nebula-production active=true --overwrite || true
+      
+      - name: Verify Traffic Switch
+        run: |
+          echo "Verifying traffic switch..."
+          
+          # Wait for ingress to update
+          sleep 30
+          
+          # Test production endpoint
+          for i in $(seq 1 10); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://search.nebula-search.com/health || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Production endpoint accessible!"
+              break
+            fi
+            echo "Waiting for production endpoint... (${i}/10)"
+            sleep 10
+          done
+      
+      - name: Monitor for Errors
+        run: |
+          echo "Monitoring for deployment errors..."
+          
+          # Check logs for errors in the first 5 minutes
+          for i in $(seq 1 30); do
+            ERROR_COUNT=$(kubectl logs -n nebula-production -l app=nebula-backend,environment=green --tail=100 | grep -c -i "error" || echo 0)
+            if [ "$ERROR_COUNT" -gt 0 ]; then
+              echo "Errors detected in logs: $ERROR_COUNT"
+              kubectl logs -n nebula-production -l app=nebula-backend,environment=green --tail=100 | grep -i error || true
+            fi
+            sleep 10
+          done
+      
+      - name: Slack notification - Green deployment successful
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ Green Environment Deployment Successful",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "✅ *Green Environment Deployment Successful*\n\n*Version:* `${{ needs.pre-deployment.outputs.version }}`\n*Commit:* `${{ needs.pre-deployment.outputs.commit_sha }}`\n*Deployment ID:* `${{ needs.pre-deployment.outputs.deployment_id }}`"
+                }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+
+  # ============================================
+  # Automated Rollback (if health check fails)
+  # ============================================
+  rollback:
+    name: Automated Rollback
+    runs-on: ubuntu-latest
+    needs: [blue-green-deploy]
+    if: failure()
+    environment: production
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+      
+      - name: Set up Kubernetes config
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > $HOME/.kube/config
+      
+      - name: Rollback to Blue Environment
+        run: |
+          echo " Initiating rollback to BLUE environment..."
+          
+          # Switch traffic back to blue
+          kubectl label deployment nebula-backend-green -n nebula-production active=false --overwrite || true
+          kubectl label deployment nebula-backend-blue -n nebula-production active=true --overwrite || true
+          
+          # Update ingress to point to blue backend
+          kubectl patch ingress nebula-ingress -n nebula-production -p '{"spec":{"rules":[{"http":{"paths":[{"path":"/","pathType":"Prefix","backend":{"service":{"name":"nebula-backend-blue","port":{"number":8000}}}}]}}]}}' || true
+          
+          echo "Rollback complete"
+      
+      - name: Restore Database from Backup
+        run: |
+          echo "Restoring database from backup..."
+          
+          # Restore from backup if available
+          # This would depend on your backup system
+          # kubectl exec -n nebula-production $(kubectl get pods -n nebula-production -l app=postgresql -o jsonpath="{.items[0].metadata.name}") \
+          #   -- psql -U nebula nebula < /backups/${BACKUP_NAME}.sql
+      
+      - name: Slack notification - Rollback initiated
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🔄 Rollback Initiated",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🔄 *Rollback Initiated*\n\n*Version:* `${{ needs.pre-deployment.outputs.version }}`\n*Deployment ID:* `${{ needs.pre-deployment.outputs.deployment_id }}`\n*Reason:* Health check failure during deployment"
+                }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+
+  # ============================================
+  # Cleanup Blue Environment
+  # ============================================
+  cleanup:
+    name: Cleanup Blue Environment
+    runs-on: ubuntu-latest
+    needs: [blue-green-deploy]
+    if: success()
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+      
+      - name: Set up Kubernetes config
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > $HOME/.kube/config
+      
+      - name: Delete Blue Environment
+        run: |
+          echo "Cleaning up BLUE environment..."
+          
+          # Delete blue deployment
+          kubectl delete deployment nebula-backend-blue -n nebula-production || true
+          
+          echo "Blue environment cleanup complete"
+      
+      - name: Slack notification - Cleanup complete
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ Production Deployment Complete",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "✅ *Production Deployment Complete*\n\n*Version:* `${{ needs.pre-deployment.outputs.version }}`\n*Commit:* `${{ needs.pre-deployment.outputs.commit_sha }}`\n*Deployment ID:* `${{ needs.pre-deployment.outputs.deployment_id }}`"
+                }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true

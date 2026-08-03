@@ -86,15 +86,16 @@ class ParallelRetriever:
             # Handle exceptions
             if isinstance(bm25_results, Exception):
                 logger.error(f"BM25 retrieval failed: {bm25_results}")
-                bm25_results = []
+                bm25_results: list[dict] = []
             
             if isinstance(semantic_results, Exception):
                 logger.error(f"Semantic retrieval failed: {semantic_results}")
-                semantic_results = []
+                semantic_results: list[dict] = []
             
         except asyncio.TimeoutError:
             logger.error("Retrieval timeout")
-            bm25_results, semantic_results = [], []
+            bm25_results: list[dict] = []
+            semantic_results: list[dict] = []
         
         return bm25_results, semantic_results
 

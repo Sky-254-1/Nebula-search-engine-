@@ -134,6 +134,7 @@ cd Nebula-search-engine-
 
 ### 2. Start with Docker (Recommended)
 ```bash
+cd docker
 docker-compose up -d
 ```
 
@@ -154,7 +155,6 @@ npm run dev
 
 - React app: http://localhost:5173
 - API docs: http://localhost:8000/docs
-- Legacy UI: http://localhost:5173/legacy/index.html
 
 ---
 
@@ -279,11 +279,11 @@ nebula-search-engine/
 │   └── codeql.yml              # CodeQL security analysis
 ├── backend/
 │   ├── app/
-│   │   ├── alembic/            # Alembic migration scripts
 │   │   ├── config.py           # Environment settings (dataclass)
 │   │   ├── database/           # Engine, repos, migrations
 │   │   │   ├── engine.py       # SQLite + PostgreSQL adapter
 │   │   │   ├── models.py       # SQLAlchemy ORM models (18 tables)
+│   │   │   ├── migrations/     # Idempotent migrations (001-013)
 │   │   │   └── repositories/   # Data access layer (9 repos)
 │   │   ├── main.py             # App factory, middleware, lifespan
 │   │   ├── middleware/
@@ -298,37 +298,42 @@ nebula-search-engine/
 │   │   │   ├── gguf.py         # Local GGUF models
 │   │   │   └── duckduckgo.py   # DuckDuckGo fallback
 │   │   ├── routes/             # API route handlers
-│   │   │   ├── auth.py, search.py, ai.py
-│   │   │   ├── storage.py, vector.py
-│   │   │   ├── admin.py, health.py
-│   │   └── services/
-│   │       ├── auth.py         # JWT, password hashing, brute-force
-│   │       ├── search.py       # Web search providers
-│   │       ├── ai.py           # AI completion + streaming
-│   │       ├── cache.py        # Redis + in-memory cache
-│   │       └── queue.py        # Background job queue
-│   ├── vector/                 # Vector indexing pipeline
-│   │   ├── ingestion/          # PDF, TXT, MD, DOCX, HTML extractors
-│   │   ├── chunking/           # Text chunking strategies
-│   │   ├── embeddings/         # Embedding generation
-│   │   └── storage/            # Vector storage
+│   │   │   ├── auth.py, auth_extended.py, search.py, ai.py
+│   │   │   ├── storage.py, vector.py, notifications.py
+│   │   │   ├── admin.py, health.py, mobile.py, analytics.py
+│   │   ├── services/
+│   │   │   ├── auth.py         # JWT, password hashing, brute-force
+│   │   │   ├── search.py       # Web search providers
+│   │   │   ├── ai.py           # AI completion + streaming
+│   │   │   ├── cache.py        # Redis + in-memory cache
+│   │   │   └── queue.py        # Background job queue
+│   │   ├── search/             # Search pipeline (query understanding, ranking)
+│   │   ├── hybrid/             # Hybrid search fusion
+│   │   └── vector/             # Vector indexing pipeline
+│   ├── tests/                  # Pytest + Playwright E2E (1408 tests)
 │   ├── requirements.txt        # Python dependencies
-│   └── alembic/                # Database migrations
+│   └── .gitignore
 ├── frontend/
 │   ├── src/                    # React + Vite app
 │   ├── public/                 # PWA manifest + service worker
 │   └── package.json
 ├── mobile/                     # Capacitor (Android/iOS)
-├── database/                   # Database migrations & seeds
 ├── docker/                     # Docker Compose & configs
 ├── docs/                       # Documentation
-├── tests/                      # Unit, integration, E2E tests
 ├── scripts/                    # Build, deploy scripts
-├── deployment/                 # Kubernetes, Terraform, Ansible
+├── infrastructure/             # Kubernetes, Terraform, Helm configs
 ├── storage/                    # uploads, cache, vector, indexes
 └── .github/
     └── workflows/              # CI/CD pipelines
 ```
+
+**Directory Structure Notes:**
+- `backend/tests/` - Active test suite (1408 tests)
+- `backend/vector/` - Vector search implementation (not orphaned)
+- `docker/` - Canonical Docker Compose configuration
+- `infrastructure/` - Kubernetes/Terraform/Helm configs
+- `storage/` - Uploads, cache, vector, indexes
+- `database/migrations/` is no longer at root (migrated to `backend/app/database/migrations/`)
 
 ---
 
@@ -398,26 +403,33 @@ docker compose -f docker-compose.yml up --build
 
 ```bash
 cd backend
-pytest tests/unit/ -v
+pytest tests/ -v  # All tests from backend/tests/
 ```
 
 ### Integration Tests
 
 ```bash
-pytest tests/integration/ -v
+cd backend
+pytest tests/ -k integration -v
 ```
 
 ### E2E Tests (Playwright)
 
 ```bash
-cd frontend
-npm run e2e
+cd backend
+pytest tests/e2e/ -v
 ```
 
 ### Coverage Report
 
 ```bash
+cd backend
 pytest --cov=app --cov-report=html
+```
+
+**Test Coverage:** 1408 tests collected from `backend/tests/`
+
+**Note:** Only `backend/tests/` is active. The root `tests/` directory was removed as it contained outdated duplicate tests.
 ```
 
 ---
@@ -570,17 +582,35 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 ### Development Setup
 ```bash
 # Install dependencies
-make install
+cd backend && pip install -r requirements-dev.txt
 
 # Run tests
-make test
+cd backend && pytest tests/
 
 # Run linters
-make lint
+cd backend && ruff check app/
 
 # Format code
-make format
+cd backend && ruff format app/
 ```
+
+---
+
+## 📝 Changelog
+
+### v2.0.1 - 2026-08-03
+**Project Cleanup & Infrastructure Consolidation**
+- ✅ Fixed pytest configuration to only collect tests from `backend/tests/`
+- ✅ Removed duplicate root `database/migrations/` (outdated)
+- ✅ Consolidated `infra/` directory into `infrastructure/` (canonical)
+- ✅ Removed duplicate root docker-compose files (moved to `docker/`)
+- ✅ Updated Makefile with new docker paths
+- ✅ Removed duplicate storage directories (`storage/indexes/`, `storage/vectors/`)
+- ✅ Deleted legacy frontend (`frontend/legacy/index.html`)
+- ✅ Deleted stale scripts and generated artifacts
+- ✅ Removed deploy/deployments duplicates
+- ✅ Updated `.gitignore` to prevent future artifact commits
+- **Test Results:** 1408 tests collected from `backend/tests/` only
 
 ---
 

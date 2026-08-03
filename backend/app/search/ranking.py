@@ -6,8 +6,10 @@ and ML-based ranking.
 
 import logging
 import math
+import re
 from collections import Counter
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
 
 logger = logging.getLogger("nebula.search.ranking")
@@ -55,7 +57,7 @@ class BM25Ranker:
         self.b = b
         self.avg_doc_length = 0.0
         self.doc_count = 0
-        self.doc_freq = Counter()  # Term -> number of docs containing it
+        self.doc_freq: Counter[str] = Counter()  # Term -> number of docs containing it
         
     def index_documents(self, documents: list[dict]):
         """Index documents for BM25 scoring"""
@@ -499,8 +501,6 @@ class HybridRanker:
 
 
 # Global ranker instance
-import re
-from datetime import datetime
 hybrid_ranker = HybridRanker()
 
 
