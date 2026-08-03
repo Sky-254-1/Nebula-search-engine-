@@ -81,8 +81,10 @@ class CacheService:
 
     async def invalidate_pattern(self, pattern: str) -> None:
         if self._redis:
-            # scan_iter is an async generator, not a coroutine
-            keys = [key async for key in self._redis.scan_iter(match=f"{pattern}*")]
+            # scan_iter is an async generator, use async for
+            keys = []
+            async for key in self._redis.scan_iter(match=f"{pattern}*"):
+                keys.append(key)
             if keys:
                 await self._redis.delete(*keys)
             return

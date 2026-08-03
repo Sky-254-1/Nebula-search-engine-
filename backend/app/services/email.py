@@ -17,11 +17,18 @@ class EmailService:
 
     def __init__(self):
         self._settings = settings
-        self.enabled = bool(self._settings.smtp_host and self._settings.smtp_username)
-        if self.enabled:
-            logger.info("Email service enabled")
-        else:
-            logger.warning("Email service disabled - SMTP not configured")
+        if not self.enabled:
+            logger.warning("Email service not configured - SMTP host or username missing")
+        logger.info("Email service initialized")
+
+    @property
+    def enabled(self) -> bool:
+        """Check if email service is enabled (SMTP configured)."""
+        return bool(self._settings.smtp_host and self._settings.smtp_username)
+
+    def refresh_settings(self) -> None:
+        """Refresh settings from config (useful for tests)."""
+        self._settings = get_settings()
 
     async def send_email(
         self,
@@ -31,8 +38,9 @@ class EmailService:
         text_content: Optional[str] = None,
     ) -> bool:
         """Send an email."""
-        if not self.enabled:
-            logger.warning("Email service not enabled - skipping send to %s", to_email)
+        # Check SMTP config at send-time, not init-time
+        if not (self._settings.smtp_host and self._settings.smtp_username):
+            logger.warning("Email service not configured - skipping send to %s", to_email)
             return False
 
         try:

@@ -195,7 +195,11 @@ async def check_ai_providers() -> Dict[str, Any]:
         router = AIProviderRouter()
         
         # Get provider info
-        provider_info = router.get_provider_info()
+        providers = router._ordered_providers()
+        provider_info = {
+            "provider": providers[0] if providers else "unknown",
+            "model": "default"
+        }
         
         response_time_ms = int((time.time() - start) * 1000)
         return {
@@ -264,10 +268,11 @@ async def readiness_check() -> JSONResponse:
         check_redis(),
         check_storage(),
         check_vector_worker(),
-        check_indexing_worker()
+        check_indexing_worker(),
+        asyncio.to_thread(check_disk_space)
     )
     
-    database_status, redis_status, storage_status, vector_status, indexing_status = checks
+    database_status, redis_status, storage_status, vector_status, indexing_status, disk_status = checks
     
     # Determine overall status
     overall_status = "ready"
@@ -297,7 +302,7 @@ async def detailed_health_check() -> Dict[str, Any]:
     Comprehensive health check with all system details.
     Used for monitoring and debugging.
     """
-    # Run all checks in parallel
+    # Run all checks in parallel - wrap sync check_disk_space with asyncio.to_thread
     checks = await asyncio.gather(
         check_database(),
         check_redis(),
@@ -305,7 +310,7 @@ async def detailed_health_check() -> Dict[str, Any]:
         check_vector_worker(),
         check_indexing_worker(),
         check_ai_providers(),
-        check_disk_space()
+        asyncio.to_thread(check_disk_space)
     )
     
     database_status, redis_status, storage_status, vector_status, indexing_status, ai_status, disk_status = checks
@@ -354,9 +359,34 @@ async def basic_health_check() -> Dict[str, Any]:
     Basic health check - returns if service is running.
     Used by Docker healthcheck and load balancers.
     """
+    # Run quick checks for database and cache
+    database_status = "unknown"
+    cache_status = "unknown"
+    
+    try:
+        from app.database.engine import connect
+        db = await connect()
+        await db.execute("SELECT 1")
+        await db.close()
+        database_status = "connected"
+    except Exception:
+        database_status = "disconnected"
+    
+    try:
+        from app.services.cache import cache_service
+        if cache_service._redis:
+            await cache_service._redis.ping()
+            cache_status = "connected"
+        else:
+            cache_status = "memory"
+    except Exception:
+        cache_status = "disconnected"
+    
     return {
         "status": "healthy",
         "service": "nebula-backend",
         "timestamp": int(time.time()),
-        "version": os.getenv("APP_VERSION", "1.0.0")
+        "version": os.getenv("APP_VERSION", "1.0.0"),
+        "database": database_status,
+        "cache": cache_status
     }

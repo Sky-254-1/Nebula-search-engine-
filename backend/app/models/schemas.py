@@ -215,11 +215,12 @@ class WebhookDelivery(BaseModel):
 class HealthResponse(BaseModel):
     """Health check response."""
     status: str
+    service: str = "nebula-backend"
     version: str
     environment: str
     database: str
     cache: str
-    timestamp: datetime
+    timestamp: int
 
 
 # Admin schemas
