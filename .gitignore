@@ -116,6 +116,9 @@ full_structure.txt
 .coverage.*
 coverage.xml
 htmlcov/
+coverage_report_latest.txt
+backend_coverage_latest.txt
+frontend/coverage/
 
 # Jupyter
 .ipynb_checkpoints
@@ -151,4 +154,3 @@ bandit-report.json
 mypy_full.txt
 mypy_report.txt
 test_summary.txt
-backend_coverage_latest.txt
