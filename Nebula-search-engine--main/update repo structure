@@ -1,0 +1,57 @@
+Nebula-search-engine/
+│
+├── frontend/                 # UI layer (HTML/CSS/JS or SPA framework)
+│   ├── index.html            # Main entry point (if single-page)
+│   ├── assets/               # Icons, fonts, images, SVGs
+│   ├── styles/               # Global styles (glassmorphism, themes)
+│   ├── scripts/              # Core frontend logic
+│   ├── components/           # Reusable UI components
+│   └── pwa/                  # Service worker + manifest files
+│
+├── backend/                  # FastAPI backend services
+│   ├── main.py               # App entry point
+│   ├── config.py             # Environment & configuration
+│   ├── requirements.txt      # Python dependencies
+│   ├── api/                  # API routes
+│   │   ├── auth.py
+│   │   ├── search.py
+│   │   ├── ai.py
+│   │   └── documents.py
+│   ├── core/                 # Core logic (auth, security, utils)
+│   ├── services/             # Business logic layer
+│   │   ├── search_service.py
+│   │   ├── ai_service.py
+│   │   └── document_service.py
+│   ├── db/                   # Database layer
+│   │   ├── database.py
+│   │   └── models.py
+│   └── workers/              # Async/background tasks (optional)
+│
+├── docs/                     # Project documentation
+│   ├── ARCHITECTURE_V2.md    # System design overview
+│   ├── API.md                # API documentation
+│   └── ROADMAP.md            # Development roadmap
+│
+├── prototypes/               # Experimental builds & demos
+│   └── nebula-search-v1.html # Early UI prototype
+│
+├── docker/                   # Containerization setup
+│   ├── Dockerfile            # Backend container
+│   ├── frontend.Dockerfile   # Frontend container (optional)
+│   └── docker-compose.yml    # Full system orchestration
+│
+├── storage/                  # Local storage layer (dev/offline)
+│   ├── cache/                # Cached search results
+│   ├── uploads/              # Uploaded documents
+│   └── index/                # Offline search indexes
+│
+├── tests/                    # Automated tests
+│   ├── test_auth.py
+│   ├── test_search.py
+│   ├── test_ai.py
+│   └── test_documents.py
+│
+├── .env.example              # Environment variables template
+├── .gitignore
+├── LICENSE
+└── README.md                 # Project overview

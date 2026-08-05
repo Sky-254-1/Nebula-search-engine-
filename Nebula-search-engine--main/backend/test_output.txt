@@ -1,0 +1,28 @@
+STDOUT:
+============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0 -- C:\Program Files\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: c:\Users\KNP LIBRARY\Downloads\Nebula Search\Nebula-search-engine--main\backend
+configfile: pytest.ini
+plugins: anyio-4.14.2, asyncio-1.4.0, cov-7.1.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 12 items
+
+tests/test_search_unified.py::test_unified_search_requires_auth PASSED   [  8%]
+tests/test_search_unified.py::test_unified_search_returns_results PASSED [ 16%]
+tests/test_search_unified.py::test_unified_search_ai_mode PASSED         [ 25%]
+tests/test_search_unified.py::test_unified_search_invalid_mode PASSED    [ 33%]
+tests/test_search_unified.py::test_unified_search_empty_query PASSED     [ 41%]
+tests/test_search_unified.py::test_search_suggestions PASSED             [ 50%]
+tests/test_search_unified.py::test_search_history PASSED                 [ 58%]
+tests/test_search_unified.py::test_clear_search_history PASSED           [ 66%]
+tests/test_search_unified.py::test_save_search PASSED                    [ 75%]
+tests/test_search_unified.py::test_list_saved_searches PASSED            [ 83%]
+tests/test_search_unified.py::test_delete_saved_search_not_found PASSED  [ 91%]
+tests/test_search_unified.py::test_unified_search_with_facets PASSED     [100%]
+
+============================= 12 passed in 1.03s ==============================
+
+STDERR:
+
+Return code: 0
